@@ -1,0 +1,28 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: http://localhost:3000/sitemap.xml
+
+# Block admin and API routes
+Disallow: /api/
+Disallow: /admin/
+Disallow: /_next/
+Disallow: /favicon.ico
+Disallow: /login
+Disallow: /register
+Disallow: /user/
+
+# Block pagination and sorting parameters (to prevent duplicate content)
+Disallow: /*?*sort=*
+Disallow: /*?*page=*
+Disallow: /*?*limit=*
+Disallow: /*?*offset=*
+
+# Allow important pages
+Allow: /collections
+Allow: /collections/*
+Allow: /categories
+Allow: /categories/*
+Allow: /products
+Allow: /products/*
