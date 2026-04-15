@@ -265,7 +265,7 @@ export default function CategoryClient({
         {/* Filters Sidebar - Desktop */}
         <aside className="hidden lg:block w-64 flex-shrink-0">
           <div className="sticky top-24 space-y-6">
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-xl font-light text-gray-900 uppercase tracking-[0.1em]">
               {currentCategory?.name ||
                 categoryName.charAt(0).toUpperCase() + categoryName.slice(1)}
             </h1>
@@ -298,7 +298,7 @@ export default function CategoryClient({
         </aside>
 
         <div className="flex-1">
-          <h1 className="lg:hidden text-2xl font-bold text-gray-900">
+          <h1 className="lg:hidden text-xl font-light text-gray-900 uppercase tracking-[0.1em]">
             {currentCategory?.name ||
               categoryName.charAt(0).toUpperCase() + categoryName.slice(1)}
           </h1>

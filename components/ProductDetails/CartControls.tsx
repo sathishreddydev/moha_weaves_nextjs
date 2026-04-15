@@ -22,24 +22,24 @@ export default function CartControls({
   const router = useRouter();
   const pathname = usePathname();
   const { isAuthenticated, isLoading } = useAuth();
-  const { addToCart, removeFromCart, updateQuantity, updating, items } = useCartStore();
+  const { addToCart, removeFromCart, updateQuantity, updating, items } =
+    useCartStore();
   const [isInCart, setIsInCart] = useState(false);
   const [cartQuantity, setCartQuantity] = useState(0);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [quantity, setQuantity] = useState(initialQuantity);
 
   const currentPrice = Number(product.discountedPrice || product.price);
-  
+
   // Check if user is logged in using NextAuth
   const isLoggedIn = isAuthenticated;
 
   // Sync cart state with actual cart items
   useEffect(() => {
-    const existingItem = items.find((item: CartItemWithProduct) => 
-      item.product?.id === product.id && 
-      (!selectedVariant?.id || item.variantId === selectedVariant.id)
+    const existingItem = items.find(
+      (item: CartItemWithProduct) =>
+        item.product?.id === product.id &&
+        (!selectedVariant?.id || item.variantId === selectedVariant.id),
     );
-    
+
     if (existingItem) {
       setIsInCart(true);
       setCartQuantity(existingItem.quantity);
@@ -62,11 +62,9 @@ export default function CartControls({
     }
 
     try {
-      await addToCart(product.id, quantity, selectedVariant?.id || null);
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 2000);
+      await addToCart(product.id, 1, selectedVariant?.id || null);
     } catch (error) {
-      console.error('Failed to add to cart:', error);
+      console.error("Failed to add to cart:", error);
       // TODO: Show user feedback for cart errors
     }
   };
@@ -80,7 +78,7 @@ export default function CartControls({
     try {
       await addToCart(product.id, 1, selectedVariant?.id || null);
     } catch (error) {
-      console.error('Failed to increase quantity:', error);
+      console.error("Failed to increase quantity:", error);
       // TODO: Show user feedback for cart errors
     }
   };
@@ -94,29 +92,31 @@ export default function CartControls({
     if (cartQuantity <= 1) {
       // Remove from cart completely
       try {
-        const cartItem = items.find((item: CartItemWithProduct) => 
-          item.product?.id === product.id && 
-          (!selectedVariant?.id || item.variantId === selectedVariant.id)
+        const cartItem = items.find(
+          (item: CartItemWithProduct) =>
+            item.product?.id === product.id &&
+            (!selectedVariant?.id || item.variantId === selectedVariant.id),
         );
         if (cartItem) {
           await removeFromCart(cartItem.id);
         }
       } catch (error) {
-        console.error('Failed to remove from cart:', error);
+        console.error("Failed to remove from cart:", error);
         // TODO: Show user feedback for cart errors
       }
     } else {
       // Decrease quantity
       try {
-        const cartItem = items.find((item: CartItemWithProduct) => 
-          item.product?.id === product.id && 
-          (!selectedVariant?.id || item.variantId === selectedVariant.id)
+        const cartItem = items.find(
+          (item: CartItemWithProduct) =>
+            item.product?.id === product.id &&
+            (!selectedVariant?.id || item.variantId === selectedVariant.id),
         );
         if (cartItem) {
           await updateQuantity(cartItem.id, cartQuantity - 1);
         }
       } catch (error) {
-        console.error('Failed to decrease quantity:', error);
+        console.error("Failed to decrease quantity:", error);
         // TODO: Show user feedback for cart errors
       }
     }
@@ -127,7 +127,7 @@ export default function CartControls({
       handleLoginRedirect();
       return;
     }
-    router.push('/cart');
+    router.push("/cart");
   };
 
   // If session is loading, show loading state
@@ -162,21 +162,9 @@ export default function CartControls({
     );
   }
 
-  if (showSuccess) {
-    return (
-      <Button
-        disabled
-        className="flex-1 bg-green-600 text-white h-12 sm:h-auto text-base sm:text-sm"
-        size="lg"
-      >
-        ✓ Added!
-      </Button>
-    );
-  }
-
   if (isInCart) {
     return (
-      <div className="space-y-2">
+      <div className="space-y-2 w-full">
         <div className="flex items-center gap-2">
           <div className="flex items-center border rounded-lg">
             <Button
@@ -204,12 +192,13 @@ export default function CartControls({
           <Button
             onClick={handleCheckout}
             disabled={updating === product.id || cartQuantity === 0}
-            className="flex-1 bg-green-600 hover:bg-green-700 text-white h-10"
+            className="w-full"
           >
             <ShoppingCart className="h-4 w-4 mr-2" />
             Checkout
             {cartQuantity > 1 && ` (${cartQuantity})`}
-            {cartQuantity > 0 && ` - ₹${(cartQuantity * currentPrice).toLocaleString()}`}
+            {cartQuantity > 0 &&
+              ` - ₹${(cartQuantity * currentPrice).toLocaleString()}`}
           </Button>
         </div>
       </div>
@@ -219,14 +208,14 @@ export default function CartControls({
   return (
     <Button
       onClick={handleAddToCart}
-      disabled={product.totalStock <= 0 || updating === product.id}
-      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-12 sm:h-auto text-base sm:text-sm"
+      disabled={product.onlineStock <= 0 || updating === product.id}
       size="lg"
+      className="w-full"
     >
       <ShoppingBag className="h-5 w-5 mr-2" />
       {updating === product.id
         ? "Adding..."
-        : product.totalStock <= 0
+        : product.onlineStock <= 0
           ? "Out of Stock"
           : "Add to Cart"}
     </Button>

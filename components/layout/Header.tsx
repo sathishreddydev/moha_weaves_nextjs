@@ -112,7 +112,7 @@ export default function Header() {
       <header className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 fixed top-0 left-0 right-0 bg-white shadow-sm border-b z-50">
         <div className="flex justify-between items-center h-16">
           {/* Logo and Mobile Menu */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center sm:space-x-4">
             {/* Mobile menu button - moved to left */}
             <Button
               variant="ghost"
@@ -126,7 +126,7 @@ export default function Header() {
             </Button>
 
             <Link href="/" className="text-xl font-bold text-primary-600">
-              Moha Weaves
+              Moha
             </Link>
             <MegaMenu
               activeMegaMenu={activeMegaMenu}
@@ -147,7 +147,7 @@ export default function Header() {
                   onClick={() => router.push("/wishlist")}
                   className="relative"
                 >
-                  <Heart className="w-6 h-6" />
+                  <Heart className="w-6 h-6" onClick={() => router.push("/wishlist")} />
                   {wishlistCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                       {wishlistCount > 99 ? "99+" : wishlistCount}

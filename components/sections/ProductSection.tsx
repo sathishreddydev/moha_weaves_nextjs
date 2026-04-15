@@ -38,11 +38,11 @@ export default async function ProductSection({
   }
   return (
     <section>
-      <div className="max-w-7xl mx-auto px-10">
+      <div className="max-w-7xl mx-auto lg:px-10 px-5">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1
-              className="font-serif tracking-tighter transition-colors
+              className="font-serif tracking-wide transition-colors
                text-2xl"
               data-testid="text-featured-title"
             >

@@ -21,6 +21,8 @@ interface ProductCardProps {
   onQuickView?: (product: ProductWithDetails) => void; // for quick view click
   onWishlistToggle?: (product: ProductWithDetails) => void; // for wishlist toggle
   isWishlisted?: boolean; // wishlist state
+  disabled?: boolean; // disable interactions
+  className?: string; // additional CSS classes
 }
 
 export default function ProductCard({
@@ -30,6 +32,8 @@ export default function ProductCard({
   onQuickView,
   onWishlistToggle,
   isWishlisted = false,
+  disabled = false,
+  className = "",
 }: ProductCardProps) {
   const router = useRouter();
 
@@ -46,10 +50,12 @@ export default function ProductCard({
   };
 
   return (
-    <div className={"flex flex-col gap-1 md:gap-2"}>
+    <div className={`flex flex-col gap-1 md:gap-2 ${className}`}>
       <div
-        className="relative aspect-[3/4] overflow-hidden bg-stone-100 rounded-sm cursor-pointer group"
-        onClick={handleProductClick}
+        className={`relative aspect-[3/4] overflow-hidden bg-stone-100 rounded-sm ${
+          disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer group"
+        }`}
+        onClick={!disabled ? handleProductClick : undefined}
       >
         {(product?.images?.length ?? 0) > 0 ? (
           <Image
@@ -64,7 +70,7 @@ export default function ProductCard({
           </div>
         )}
 
-        {onQuickView && (
+        {onQuickView && !disabled && (
           <div className="absolute inset-x-0 bottom-6 px-6 hidden lg:flex justify-center translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
             <div
               className="w-full py-4 bg-white/90 backdrop-blur-md text-stone-900 text-[9px] font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-stone-900 hover:text-white transition-colors shadow-xl"
@@ -112,12 +118,15 @@ export default function ProductCard({
               isWishlisted
                 ? "text-red-500 hover:text-red-700"
                 : "text-stone-500 hover:text-red-700"
-            }`}
+            } ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
             onClick={(e) => {
               e.stopPropagation();
-              onWishlistToggle?.(product);
+              if (!disabled) {
+                onWishlistToggle?.(product);
+              }
             }}
             variant={"link"}
+            disabled={disabled}
           >
             <Heart
               size={16}
