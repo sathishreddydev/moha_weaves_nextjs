@@ -1,73 +1,73 @@
-'use client'
+"use client";
 
-import { usePathname, useRouter } from 'next/navigation'
-import { signOut } from 'next-auth/react'
-import { User, MapPin, Package, LogOut, HelpCircle } from 'lucide-react'
+import { usePathname, useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
+import { User, MapPin, Package, LogOut, HelpCircle } from "lucide-react";
 
 interface ProfileSidebarProps {
-  activeSection?: string
+  activeSection?: string;
 }
 
 export default function ProfileSidebar({ activeSection }: ProfileSidebarProps) {
-  const pathname = usePathname()
-  const router = useRouter()
+  const pathname = usePathname();
+  const router = useRouter();
 
   const menuItems = [
     {
-      id: 'profile',
-      label: 'Profile Details',
+      id: "profile",
+      label: "Profile Details",
       icon: User,
-      href: '/my/details'
+      href: "/my/details",
     },
     {
-      id: 'addresses',
-      label: 'Addresses',
+      id: "addresses",
+      label: "Addresses",
       icon: MapPin,
-      href: '/my/addresses'
+      href: "/my/addresses",
     },
     {
-      id: 'orders',
-      label: 'Order History',
+      id: "orders",
+      label: "Order History",
       icon: Package,
-      href: '/my/orders'
-    }
-  ]
+      href: "/my/orders",
+    },
+  ];
 
   const helpItem = {
-    id: 'help',
-    label: 'Need Help? Talk to Us',
+    id: "help",
+    label: "Need Help? Talk to Us",
     icon: HelpCircle,
-    href: '/my/help'
-  }
+    href: "/my/help",
+  };
 
   const isActive = (href: string) => {
-    return pathname === href
-  }
+    return pathname === href;
+  };
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow p-6 sticky top-20">
       <nav className="space-y-2">
         {menuItems.map((item) => {
-          const Icon = item.icon
+          const Icon = item.icon;
           return (
             <button
               key={item.id}
               onClick={() => router.push(item.href)}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
                 isActive(item.href)
-                  ? 'bg-primary-50 text-primary-600 border-l-4 border-primary-600'
-                  : 'text-gray-700 hover:bg-gray-50'
+                  ? "bg-primary-50 text-primary-600 border-l-4 border-primary-600"
+                  : "hover:bg-gray-50"
               }`}
             >
               <Icon className="w-5 h-5" />
               <span>{item.label}</span>
             </button>
-          )
+          );
         })}
 
         <div className="border-t pt-2 mt-2">
           <button
-            onClick={() => signOut({ callbackUrl: '/' })}
+            onClick={() => signOut({ callbackUrl: "/" })}
             className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left text-red-600 hover:bg-red-50 transition-colors"
           >
             <LogOut className="w-5 h-5" />
@@ -81,8 +81,8 @@ export default function ProfileSidebar({ activeSection }: ProfileSidebarProps) {
           onClick={() => router.push(helpItem.href)}
           className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
             isActive(helpItem.href)
-              ? 'bg-primary-50 text-primary-600 border-l-4 border-primary-600'
-              : 'text-gray-700 hover:bg-gray-50'
+              ? "bg-primary-50 text-primary-600 border-l-4 border-primary-600"
+              : "hover:bg-gray-50"
           }`}
         >
           <HelpCircle className="w-5 h-5" />
@@ -90,5 +90,5 @@ export default function ProfileSidebar({ activeSection }: ProfileSidebarProps) {
         </button>
       </div>
     </div>
-  )
+  );
 }

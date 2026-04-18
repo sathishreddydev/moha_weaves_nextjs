@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { reviewService } from "./reviewsService";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/auth/server";
 
 export async function GET(
     request: NextRequest,
@@ -47,6 +49,75 @@ export async function GET(
 
         return NextResponse.json(
             { message: "Failed to fetch reviews" },
+            { status: 500 }
+        );
+    }
+}
+
+export async function POST(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const session = await getServerSession(authOptions);
+        
+        if (!session) {
+            return NextResponse.json(
+                { message: "Unauthorized" },
+                { status: 401 }
+            );
+        }
+
+        const resolvedParams = await params;
+        const productId = resolvedParams.id;
+        const body = await request.json();
+        const { rating, comment } = body;
+
+        // Validate required fields
+        if (!rating || !comment) {
+            return NextResponse.json(
+                { message: "Rating and comment are required" },
+                { status: 400 }
+            );
+        }
+
+        // Validate rating range
+        if (rating < 1 || rating > 5) {
+            return NextResponse.json(
+                { message: "Rating must be between 1 and 5" },
+                { status: 400 }
+            );
+        }
+
+        // Check if user can review this product
+        const canReview = await reviewService.canUserReviewProduct(
+            session.user.id,
+            productId
+        );
+
+        if (!canReview) {
+            return NextResponse.json(
+                { message: "You can only review products from completed orders" },
+                { status: 403 }
+            );
+        }
+
+        // Create review
+        const review = await reviewService.createReview({
+            userId: session.user.id,
+            productId,
+            rating: parseInt(rating),
+            comment,
+            isVerified: true,
+        });
+
+        return NextResponse.json(review);
+
+    } catch (error) {
+        console.error("Error creating review:", error);
+
+        return NextResponse.json(
+            { message: "Failed to create review" },
             { status: 500 }
         );
     }

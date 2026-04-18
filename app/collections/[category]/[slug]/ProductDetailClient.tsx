@@ -457,7 +457,7 @@ export default function ProductDetailClient({
                         {[...Array(5)].map((_, i) => (
                           <Star
                             key={i}
-                            className={`h-3 w-3 ${
+                            className={`h-4 w-4 ${
                               i < Math.round(reviewsData.stats.averageRating)
                                 ? "fill-yellow-400 text-yellow-400"
                                 : "text-gray-300"
@@ -477,7 +477,7 @@ export default function ProductDetailClient({
                     <>
                       <div className="flex items-center">
                         {[...Array(5)].map((_, i) => (
-                          <Star key={i} className="h-3 w-3 text-gray-300" />
+                          <Star key={i} className="h-4 w-4 text-gray-300" />
                         ))}
                       </div>
                       <span className="text-xs text-gray-600">
@@ -622,7 +622,9 @@ export default function ProductDetailClient({
                               : "border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed"
                         }`}
                       >
-                        <span className={`${variant.onlineStock <= 0 ? 'line-through' : ''}`}>
+                        <span
+                          className={`${variant.onlineStock <= 0 ? "line-through" : ""}`}
+                        >
                           {variant.size}
                         </span>
                         {variant.onlineStock <= 0 && (

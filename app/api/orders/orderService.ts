@@ -20,13 +20,52 @@ import { IdGenerator } from "@/lib/idGenerator";
 import { paymentInfo } from "./createOrderService";
 import { storage } from "./storage";
 import { returnService } from "./returnService/returnService";
+import { productService } from "../products/productService";
+
+// Utility function to extract only required product data for order history
+function createOrderHistoryProduct(product: any) {
+  if (!product) {
+    return {
+      id: '',
+      name: 'Unknown Product',
+      imageUrl: null,
+      category: null,
+      color: null,
+      variants: [],
+    };
+  }
+
+  return {
+    id: product.id,
+    name: product.name,
+    imageUrl: product.imageUrl,
+    category: product.category ? {
+      id: product.category.id,
+      name: product.category.name,
+    } : null,
+    color: product.color ? {
+      id: product.color.id,
+      name: product.color.name,
+    } : null,
+    variants: product.variants?.map((variant: any) => ({
+      id: variant.id,
+      size: variant.size,
+    })) || [],
+  };
+}
 
 export interface OrderStorage {
   createOrder(
     order: InsertOrder,
     items: Omit<InsertOrderItem, "orderId">[]
   ): Promise<Order>;
-  getOrders(userId: string): Promise<OrderWithItems[]>;
+  getOrders(userId: string, page?: number, pageSize?: number): Promise<{
+    data: OrderWithItems[];
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  }>;
   getOrder(id: string): Promise<OrderWithItems | undefined>;
   getBasicOrder(id: string): Promise<OrderWithItems | undefined>;
   updateItemStatus(
@@ -102,28 +141,63 @@ export class OrderRepository implements OrderStorage {
 
     return newOrder;
   }
-  async getOrders(userId: string): Promise<OrderWithItems[]> {
+  async getOrders(
+    userId: string,
+    page: number = 1,
+    pageSize: number = 10
+  ): Promise<{
+    data: OrderWithItems[];
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  }> {
+    // Calculate offset
+    const offset = (page - 1) * pageSize;
+
+    // Get total count
+    const [countResult] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(orders)
+      .where(eq(orders.userId, userId));
+
+    const total = countResult.count;
+    const totalPages = Math.ceil(total / pageSize);
+
+    // Get paginated orders
     const orderList = await db
       .select()
       .from(orders)
       .innerJoin(users, eq(orders.userId, users.id))
       .where(eq(orders.userId, userId))
-      .orderBy(desc(orders.createdAt));
+      .orderBy(desc(orders.createdAt))
+      .limit(pageSize)
+      .offset(offset);
 
     const result: OrderWithItems[] = [];
 
     for (const order of orderList) {
       const customerName = order.users.name;
 
+      // Get order items first
       const items = await db
         .select()
         .from(orderItems)
-        .innerJoin(products, eq(orderItems.productId, products.id))
-        .leftJoin(categories, eq(products.categoryId, categories.id))
-        .leftJoin(colors, eq(products.colorId, colors.id))
-        .leftJoin(fabrics, eq(products.fabricId, fabrics.id))
-        .leftJoin(productVariants, eq(orderItems.variantId, productVariants.id))
         .where(eq(orderItems.orderId, order.orders.id));
+
+      // Get product IDs from order items
+      const productIds = items.map(item => item.productId);
+
+      // Fetch products using getProductsByRole
+      const productsData = await productService.getProductsByRole(
+        { ids: productIds },
+        "user"
+      );
+
+      // Create product map for easy lookup
+      const productMap = new Map(
+        productsData.map(product => [product.id, product])
+      );
 
       // Get return eligibility for all items in this order
       const eligibilityMap = await returnService.checkOrderReturnEligibility(order.orders.id);
@@ -131,72 +205,82 @@ export class OrderRepository implements OrderStorage {
       result.push({
         ...order.orders,
         customerName,
-        items: items.map((row) => {
-          const eligibility = eligibilityMap.find(e => e.itemId === row.order_items.id);
+        items: items.map((item) => {
+          const product = productMap.get(item.productId);
           return {
-            ...row.order_items,
-            returnEligibility: eligibility || { itemId: row.order_items.id, eligible: false },
-            product: {
-              ...row.products,
-              category: row.categories,
-              color: row.colors,
-              fabric: row.fabrics,
-              variants: row.product_variants ? [row.product_variants] : undefined,
-              images: row.products.images,
-            },
+            ...item,
+            returnEligibility: eligibilityMap.find(e => e.itemId === item.id) || { itemId: item.id, eligible: false },
+            product: createOrderHistoryProduct(product) as any,
           };
         }),
       });
     }
 
-    return result;
+    return {
+      data: result as OrderWithItems[],
+      total,
+      page,
+      pageSize,
+      totalPages
+    };
   }
 
   async getBasicOrder(id: string): Promise<OrderWithItems | undefined> {
     const [order] = await db.select().from(orders).where(eq(orders.id, id));
     if (!order) return undefined;
 
-    const itemsRows = await db
+    // Get order items first
+    const orderItemsData = await db
       .select()
       .from(orderItems)
-      .innerJoin(products, eq(orderItems.productId, products.id))
-      .leftJoin(categories, eq(products.categoryId, categories.id))
-      .leftJoin(colors, eq(products.colorId, colors.id))
-      .leftJoin(fabrics, eq(products.fabricId, fabrics.id))
-      .leftJoin(productVariants, eq(orderItems.variantId, productVariants.id))
       .where(eq(orderItems.orderId, order.id));
 
+    if (!orderItemsData.length) {
+      return {
+        ...order,
+        items: [],
+      };
+    }
+
+    // Get product IDs from order items
+    const productIds = orderItemsData.map(item => item.productId);
+
+    // Fetch products using getProductsByRole
+    const productsData = await productService.getProductsByRole(
+      { ids: productIds },
+      "user"
+    );
+
+    // Create product map for easy lookup
+    const productMap = new Map(
+      productsData.map(product => [product.id, product])
+    );
+
     const itemStatuses = await Promise.all(
-      itemsRows.map(async (itemRow) => {
+      orderItemsData.map(async (item) => {
         const [latestStatus] = await db
           .select({ newStatus: itemStatusHistory.newStatus })
           .from(itemStatusHistory)
-          .where(eq(itemStatusHistory.orderItemId, itemRow.order_items.id))
+          .where(eq(itemStatusHistory.orderItemId, item.id))
           .orderBy(desc(itemStatusHistory.createdAt))
           .limit(1);
 
         return {
-          orderItemId: itemRow.order_items.id,
-          currentStatus: latestStatus?.newStatus ?? itemRow.order_items.status,
+          orderItemId: item.id,
+          currentStatus: latestStatus?.newStatus ?? item.status,
         };
       })
     );
     return {
       ...order,
-      items: itemsRows.map((row) => {
-        const statusObj = itemStatuses.find((s) => s.orderItemId === row.order_items.id);
+      items: orderItemsData.map((item) => {
+        const statusObj = itemStatuses.find((s) => s.orderItemId === item.id);
+        const product = productMap.get(item.productId);
         return {
-          ...row.order_items,
-          status: row.order_items.status,
-          currentStatus: statusObj?.currentStatus || row.order_items.status,
-          product: {
-            ...row.products,
-            category: row.categories,
-            color: row.colors,
-            fabric: row.fabrics,
-            images: row.products.images,
-            variants: row.product_variants ? [row.product_variants] : undefined,
-          },
+          ...item,
+          status: item.status,
+          currentStatus: statusObj?.currentStatus || item.status,
+          product: createOrderHistoryProduct(product) as any,
         };
       }),
     };
@@ -206,31 +290,48 @@ export class OrderRepository implements OrderStorage {
     const [order] = await db.select().from(orders).where(eq(orders.id, id));
     if (!order) return undefined;
 
-    const itemsRows = await db
+    // Get order items first
+    const orderItemsData = await db
       .select()
       .from(orderItems)
-      .innerJoin(products, eq(orderItems.productId, products.id))
-      .leftJoin(categories, eq(products.categoryId, categories.id))
-      .leftJoin(colors, eq(products.colorId, colors.id))
-      .leftJoin(fabrics, eq(products.fabricId, fabrics.id))
-      .leftJoin(productVariants, eq(orderItems.variantId, productVariants.id))
       .where(eq(orderItems.orderId, order.id));
+
+    if (!orderItemsData.length) {
+      return {
+        ...order,
+        items: [],
+      };
+    }
+
+    // Get product IDs from order items
+    const productIds = orderItemsData.map(item => item.productId);
+
+    // Fetch products using getProductsByRole
+    const productsData = await productService.getProductsByRole(
+      { ids: productIds },
+      "user"
+    );
+
+    // Create product map for easy lookup
+    const productMap = new Map(
+      productsData.map(product => [product.id, product])
+    );
 
     // Get return eligibility for all items in this order
     const eligibilityMap = await returnService.checkOrderReturnEligibility(order.id);
 
     const itemStatuses = await Promise.all(
-      itemsRows.map(async (itemRow) => {
+      orderItemsData.map(async (item) => {
         const [latestStatus] = await db
           .select({ newStatus: itemStatusHistory.newStatus })
           .from(itemStatusHistory)
-          .where(eq(itemStatusHistory.orderItemId, itemRow.order_items.id))
+          .where(eq(itemStatusHistory.orderItemId, item.id))
           .orderBy(desc(itemStatusHistory.createdAt))
           .limit(1);
 
         return {
-          orderItemId: itemRow.order_items.id,
-          currentStatus: latestStatus?.newStatus ?? itemRow.order_items.status,
+          orderItemId: item.id,
+          currentStatus: latestStatus?.newStatus ?? item.status,
         };
       })
     );
@@ -238,22 +339,16 @@ export class OrderRepository implements OrderStorage {
     return {
       ...order,
       paymentDetails: paymentData || undefined,
-      items: itemsRows.map((row) => {
-        const statusObj = itemStatuses.find((s) => s.orderItemId === row.order_items.id);
-        const eligibility = eligibilityMap.find(e => e.itemId === row.order_items.id);
+      items: orderItemsData.map((item) => {
+        const statusObj = itemStatuses.find((s) => s.orderItemId === item.id);
+        const eligibility = eligibilityMap.find(e => e.itemId === item.id);
+        const product = productMap.get(item.productId);
         return {
-          ...row.order_items,
-          status: row.order_items.status,
-          currentStatus: statusObj?.currentStatus || row.order_items.status,
-          returnEligibility: eligibility || { itemId: row.order_items.id, eligible: false },
-          product: {
-            ...row.products,
-            category: row.categories,
-            color: row.colors,
-            fabric: row.fabrics,
-            images: row.products.images,
-            variants: row.product_variants ? [row.product_variants] : undefined,
-          },
+          ...item,
+          status: item.status,
+          currentStatus: statusObj?.currentStatus || item.status,
+          returnEligibility: eligibility || { itemId: item.id, eligible: false },
+          product: createOrderHistoryProduct(product) as any,
         };
       }),
     };

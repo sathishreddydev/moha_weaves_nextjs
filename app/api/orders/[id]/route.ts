@@ -5,7 +5,7 @@ import { authOptions } from "@/auth/server";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
 
@@ -17,9 +17,10 @@ export async function GET(
   }
 
   try {
+    const { id } = await params;
     const user = session.user;
 
-    const order = await orderService.getOrder(params.id);
+    const order = await orderService.getOrder(id);
 
     if (!order || order.userId !== user.id) {
       return NextResponse.json(

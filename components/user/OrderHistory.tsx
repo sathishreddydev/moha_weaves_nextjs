@@ -1,42 +1,86 @@
-'use client'
+"use client";
 
-import { useEffect } from 'react'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Package, ChevronRight } from 'lucide-react'
-import { useOrderStore } from '@/lib/stores/orderStore'
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { formatDate } from "@/lib/formatters";
+import { OrderWithItems } from "@/shared";
+import {
+  ArrowRight,
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Package,
+  RotateCcw,
+  Truck,
+  XCircle,
+} from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import ShippingAddress from "./shippingAddress";
 
 export default function OrderHistory() {
-  const { orders, loading, error, fetchOrders } = useOrderStore()
+  const [orders, setOrders] = useState<OrderWithItems[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [ordersPerPage, setOrdersPerPage] = useState(5);
+
+  const pageSizeOptions = [5, 10, 20, 50];
+
+  const fetchOrders = async (
+    page: number = currentPage,
+    pageSize: number = ordersPerPage,
+  ) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetch(
+        `/api/orders?page=${page}&pageSize=${pageSize}`,
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch orders");
+      }
+
+      const result = await response.json();
+
+      // Handle paginated response format
+      const ordersData = result.data || [];
+
+      setOrders(ordersData);
+      setTotalPages(result.totalPages || 0);
+      setCurrentPage(result.page || page);
+      setLoading(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch orders");
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    fetchOrders()
-  }, [])
+    fetchOrders();
+  }, []);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    })
-  }
+  const currentOrders = orders;
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'processing':
-        return 'bg-blue-100 text-blue-800'
-      case 'shipped':
-        return 'bg-purple-100 text-purple-800'
-      case 'delivered':
-        return 'bg-green-100 text-green-800'
-      case 'cancelled':
-        return 'bg-red-100 text-red-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
-  }
+  const handlePageChange = (page: number) => {
+    fetchOrders(page);
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setOrdersPerPage(newPageSize);
+    setCurrentPage(1); // Reset to first page when changing page size
+    fetchOrders(1, newPageSize);
+  };
 
   if (loading) {
     return (
@@ -51,7 +95,7 @@ export default function OrderHistory() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -60,19 +104,21 @@ export default function OrderHistory() {
         <div className="p-6">
           <div className="text-red-600 text-center">
             <p>Error loading orders: {error}</p>
-            <Button onClick={fetchOrders} className="mt-2">Retry</Button>
+            <Button onClick={() => fetchOrders()} className="mt-2">
+              Retry
+            </Button>
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow">
-      <div className="p-6 border-b">
-        <h2 className="text-xl font-semibold text-gray-900">Order History</h2>
-      </div>
-      <div className="p-6">
+    <div>
+      {/* <div className="p-3">
+        <h2 className="text-lg font-semibold text-gray-900">Order History</h2>
+      </div> */}
+      <div>
         {orders.length === 0 ? (
           <div className="text-center py-12">
             <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -82,30 +128,254 @@ export default function OrderHistory() {
             </Button>
           </div>
         ) : (
-          <div className="space-y-4">
-            {orders.map((order) => (
-              <div key={order.id} className="border rounded-lg p-4">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <h3 className="font-medium text-gray-900">Order #{order.id}</h3>
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(order.status)}`}>
-                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                      </span>
-                    </div>
-                    <p className="text-gray-600 text-sm">Placed on {formatDate(order.createdAt)}</p>
-                    <p className="text-gray-600 text-sm">Payment: {order.paymentMethod}</p>
-                    <div className="mt-2">
-                      <p className="font-medium text-gray-900">Total: ${parseFloat(order.finalAmount).toFixed(2)}</p>
+          <>
+            <div className="space-y-4">
+              {currentOrders.map((order) => (
+                <div
+                  key={order.id}
+                  className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow"
+                >
+                  <div className="p-3 border-b">
+                    <div className="flex flex-wrap justify-between items-center gap-4">
+                      <div className="flex gap-6">
+                        <div>
+                          <p className="text-xs uppercase tracking-wider text-gray-500 font-bold mb-1">
+                            Order Placed
+                          </p>
+                          <p className="text-xs font-semibold">
+                            {formatDate(order.createdAt, "en-IN")}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-wider text-gray-500 font-bold mb-1">
+                            Total
+                          </p>
+                          <p className="text-xs font-semibold">
+                            ₹{parseFloat(order.finalAmount).toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="hidden sm:block">
+                          <p className="text-xs uppercase tracking-wider text-gray-500 font-bold mb-1">
+                            Order #
+                          </p>
+                          <p className="text-xs font-semibold">{order.id}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-wider text-gray-500 font-bold">
+                            Shipping to:
+                          </p>
+                          <ShippingAddress address={order.shippingAddress} />
+                        </div>
+                      </div>
+                      <Link
+                        href={`/my/orders/${order.id}`}
+                        className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider border-b border-black pb-2 transition-all"
+                      >
+                        <span>View Details</span>
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
                     </div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-400" />
+
+                  {/* Order Items */}
+                  <div className="p-3">
+                    <div className="space-y-4">
+                      {order.items?.map((item) => (
+                        <div key={item.id} className="flex gap-4">
+                          {/* Product Image */}
+                          <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                            {item.product?.imageUrl ? (
+                              <img
+                                src={item.product.imageUrl}
+                                alt={item.product.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Package className="w-8 h-8 text-gray-400" />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Product Details */}
+                          <div className="flex-1 min-w-0 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-xs font-medium text-gray-900 truncate">
+                                {item.product?.name || "Product"}
+                              </h4>
+                              <div className="flex items-center gap-2">
+                                {(() => {
+                                  const status =
+                                    (item as any).currentStatus || item.status;
+                                  const statusConfig = {
+                                    pending: {
+                                      icon: Clock,
+                                      color: "text-yellow-600",
+                                      bg: "bg-yellow-50",
+                                    },
+                                    confirmed: {
+                                      icon: CheckCircle,
+                                      color: "text-blue-600",
+                                      bg: "bg-blue-50",
+                                    },
+                                    processing: {
+                                      icon: Package,
+                                      color: "text-purple-600",
+                                      bg: "bg-purple-50",
+                                    },
+                                    shipped: {
+                                      icon: Truck,
+                                      color: "text-green-600",
+                                      bg: "bg-green-50",
+                                    },
+                                    delivered: {
+                                      icon: CheckCircle,
+                                      color: "text-green-600",
+                                      bg: "bg-green-50",
+                                    },
+                                    cancelled: {
+                                      icon: XCircle,
+                                      color: "text-red-600",
+                                      bg: "bg-red-50",
+                                    },
+                                  };
+                                  const config =
+                                    statusConfig[
+                                      status as keyof typeof statusConfig
+                                    ] || statusConfig.pending;
+                                  const Icon = config.icon;
+
+                                  return (
+                                    <div
+                                      className={`flex items-center gap-1 ${config.color}`}
+                                    >
+                                      <Icon className="w-3 h-3" />
+                                      <span className="text-xs font-medium capitalize">
+                                        {status}
+                                      </span>
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-gray-500">
+                                Qty: {item.quantity}
+                              </span>
+                              {(() => {
+                                if (item.variantId && item.product.variants) {
+                                  const selectedVariant =
+                                    item.product.variants.find(
+                                      (v) => v.id === item.variantId,
+                                    );
+                                  return selectedVariant?.size ? (
+                                    <span className="text-[10px] text-gray-500">
+                                      Size: {selectedVariant.size}
+                                    </span>
+                                  ) : null;
+                                }
+                                return null;
+                              })()}
+                            </div>
+                            <div>
+                              <div className="text-xs font-medium text-gray-900">
+                                ₹{parseFloat(item.price).toFixed(2)}
+                              </div>
+                            </div>
+                            {item.returnEligibility && (
+                              <div className="flex items-center gap-1">
+                                {item.returnEligibility.eligible ? (
+                                  <div className="flex items-center gap-1 text-green-600">
+                                    <RotateCcw className="w-3 h-3" />
+                                    <span className="text-[10px] font-medium">
+                                      Returnable
+                                      {item.returnEligibility.remainingDays &&
+                                        ` (${item.returnEligibility.remainingDays} days left)`}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1 text-gray-400">
+                                    <RotateCcw className="w-3 h-3" />
+                                    <span className="text-[10px] font-medium">
+                                      {item.returnEligibility.reason ||
+                                        "Non-returnable"}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-end pt-6">
+                <div className="flex items-center space-x-2">
+                  <Select
+                    value={ordersPerPage.toString()}
+                    onValueChange={(value) =>
+                      handlePageSizeChange(Number(value))
+                    }
+                  >
+                    <SelectTrigger className="w-16 h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {pageSizeOptions.map((size) => (
+                        <SelectItem key={size} value={size.toString()}>
+                          {size}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="flex items-center space-x-1"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                      (page) => (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handlePageChange(page)}
+                          className="w-8 h-8 p-0"
+                        >
+                          {page}
+                        </Button>
+                      ),
+                    )}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="flex items-center space-x-1"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
     </div>
-  )
+  );
 }
