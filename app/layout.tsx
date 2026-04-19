@@ -1,5 +1,6 @@
 import Footer from '@/components/layout/Footer'
 import Header from '@/components/layout/Header'
+import GlobalSwipeNavigation from '@/components/layout/GlobalSwipeNavigation'
 import { Providers } from '@/components/providers'
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
@@ -33,9 +34,11 @@ export default async function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <Providers session={session}>
-          <Header />
-          <main className="pt-16">{children}</main>
-          <Footer />
+          <GlobalSwipeNavigation>
+            <Header />
+            <main className="pt-16">{children}</main>
+            <Footer />
+          </GlobalSwipeNavigation>
         </Providers>
       </body>
     </html>
