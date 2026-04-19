@@ -6,6 +6,7 @@ import { MapPin, Edit2, Plus, ArrowLeft, Trash2, Loader2 } from "lucide-react";
 import { useAddressStore } from "@/lib/stores/addressStore";
 import AddressForm from "./AddressForm";
 import DeleteConfirmDialog from "./DeleteConfirmDialog";
+import AddressSkeleton from "./AddressSkeleton";
 import { UserAddress } from "@/shared";
 import { useRouter } from "next/navigation";
 
@@ -19,6 +20,7 @@ export default function Addresses() {
     setDefaultAddress,
     updating,
     createAddress,
+    updateAddress,
   } = useAddressStore();
   const [isAddFormOpen, setIsAddFormOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<UserAddress | null>(
@@ -70,12 +72,13 @@ export default function Addresses() {
 
   const handleFormSubmit = async (data: any) => {
     if (editingAddress) {
-      // Handle edit - you'll need to implement updateAddress in the store
-      console.log("Edit address:", editingAddress.id, data);
-      // await updateAddress(editingAddress.id, data)
+      // Handle edit
+      await updateAddress(editingAddress.id, data);
+      handleCloseForm();
     } else {
       // Handle create
       await createAddress(data);
+      handleCloseForm();
     }
   };
 
@@ -124,18 +127,19 @@ export default function Addresses() {
             <h1 className="text-xl font-semibold text-gray-900">Addresses</h1>
           </div>
           <Button
-            size="sm"
             variant="outline"
             onClick={handleAddAddress}
-            className="text-base ml-auto"
+            className="text-base ml-auto min-h-[44px] px-4 touch-manipulation active:scale-[0.98]"
           >
-            <Plus className="w-4 h-4 mr-1" />
+            <Plus className="w-5 h-5 mr-2" />
             Add
           </Button>
         </div>
       </div>
       <div>
-        {addresses.length === 0 ? (
+        {loading ? (
+          <AddressSkeleton />
+        ) : addresses.length === 0 ? (
           <div className="text-center py-12">
             <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-500 mb-4">No addresses saved yet</p>
@@ -161,6 +165,9 @@ export default function Addresses() {
                       <h3 className="text-sm font-medium text-gray-900">
                         {address.name}
                       </h3>
+                      <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded capitalize">
+                        {address.addressType || 'home'}
+                      </span>
                       {address.isDefault && (
                         <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
                           Default
@@ -179,6 +186,7 @@ export default function Addresses() {
                         size="sm"
                         onClick={() => handleSetDefault(address.id)}
                         disabled={updating === address.id}
+                        className="min-h-[40px] px-3 touch-manipulation active:scale-[0.98]"
                       >
                         {updating === address.id ? "Setting..." : "Set Default"}
                       </Button>
@@ -187,13 +195,14 @@ export default function Addresses() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleEditAddress(address)}
+                      className="min-h-[40px] w-10 touch-manipulation active:scale-[0.98]"
                     >
                       <Edit2 className="w-4 h-4" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-red-600 hover:text-red-700 flex items-center gap-2"
+                      className="text-red-600 hover:text-red-700 min-h-[40px] w-10 touch-manipulation active:scale-[0.98]"
                       onClick={() => handleDeleteAddress(address)}
                       disabled={updating === address.id}
                     >

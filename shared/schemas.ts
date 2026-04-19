@@ -147,6 +147,7 @@ export const insertUserAddressSchema = z.object({
   locality: z.string().min(1, "Locality is required"),
   city: z.string().min(1, "City is required"),
   pincode: z.string().min(1, "Pincode is required"),
+  addressType: z.enum(["home", "work", "other"]).default("home"),
   isDefault: z.boolean().default(false),
 });
 

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "../ui/button";
+import ProfileSkeleton from "./ProfileSkeleton";
 const MinimalItem = ({
   label,
   value,
@@ -42,6 +43,11 @@ export default function ProfileDetails() {
   const handleBack = () => {
     router.push("/my");
   };
+
+  if (!user) {
+    return <ProfileSkeleton />;
+  }
+
   return (
     <div className="space-y-4">
       <div className="">

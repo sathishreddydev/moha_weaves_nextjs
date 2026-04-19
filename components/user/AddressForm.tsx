@@ -12,6 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MobileInput } from "@/components/ui/mobile-input";
+import { MobileButton } from "@/components/ui/mobile-button";
 import { UserAddress } from "@/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { MapPin, X } from "lucide-react";
@@ -21,10 +23,11 @@ import { z } from "zod";
 
 const addressSchema = z.object({
   name: z.string().min(2, "Name is required"),
-  phone: z.string().min(10, "Phone number is required"),
+  phone: z.string().regex(/^[6-9]\d{9}$/, "Please enter a valid 10-digit phone number starting with 6, 7, 8, or 9"),
   locality: z.string().min(2, "Locality is required"),
   city: z.string().min(2, "City is required"),
-  pincode: z.string().min(6, "Pincode is required"),
+  pincode: z.string().regex(/^\d{6}$/, "Please enter a valid 6-digit pincode"),
+  addressType: z.enum(["home", "work", "other"]).default("home"),
   isDefault: z.boolean().default(false),
 });
 
@@ -55,6 +58,7 @@ export default function AddressForm({
       locality: "",
       city: "",
       pincode: "",
+      addressType: "home" as const,
       isDefault: false,
     },
   });
@@ -67,6 +71,7 @@ export default function AddressForm({
         locality: editingAddress.locality,
         city: editingAddress.city,
         pincode: editingAddress.pincode,
+        addressType: editingAddress.addressType || "home",
         isDefault: editingAddress.isDefault,
       });
     } else {
@@ -76,92 +81,119 @@ export default function AddressForm({
         locality: "",
         city: "",
         pincode: "",
+        addressType: "home" as const,
         isDefault: false,
       });
     }
   }, [editingAddress, form]);
 
   const handleSubmit = async (data: AddressFormData) => {
-    await onSubmit(data);
-    if (!isLoading) {
+    try {
+      await onSubmit(data);
       form.reset();
       onClose();
+    } catch (error) {
+      // Error is handled by the parent component
+      console.error('Form submission error:', error);
     }
   };
 
   const FormContent = () => (
     <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-2">
-      <div>
-        <Label htmlFor="name">Full Name</Label>
-        <Input
-          id="name"
-          {...form.register("name")}
-          placeholder="John Doe"
-          disabled={isLoading}
-        />
-        {form.formState.errors.name && (
-          <p className="text-sm text-red-600 mt-1">
-            {form.formState.errors.name.message}
-          </p>
-        )}
-      </div>
+      <MobileInput
+        id="name"
+        label="Full Name"
+        {...form.register("name")}
+        placeholder="John Doe"
+        disabled={isLoading}
+        error={form.formState.errors.name?.message}
+        inputMode="text"
+        autoComplete="name"
+      />
+
+      <MobileInput
+        id="phone"
+        label="Phone Number"
+        {...form.register("phone")}
+        placeholder="9876543210"
+        disabled={isLoading}
+        error={form.formState.errors.phone?.message}
+        inputMode="tel"
+        autoComplete="tel"
+        helperText="10-digit number starting with 6, 7, 8, or 9"
+      />
+
+      <MobileInput
+        id="locality"
+        label="Locality/Area"
+        {...form.register("locality")}
+        placeholder="Sector 15, Gurgaon"
+        disabled={isLoading}
+        error={form.formState.errors.locality?.message}
+        inputMode="text"
+        autoComplete="address-line1"
+      />
+
+      <MobileInput
+        id="city"
+        label="City"
+        {...form.register("city")}
+        placeholder="Gurgaon"
+        disabled={isLoading}
+        error={form.formState.errors.city?.message}
+        inputMode="text"
+        autoComplete="address-level2"
+      />
+
+      <MobileInput
+        id="pincode"
+        label="Pincode"
+        {...form.register("pincode")}
+        placeholder="122001"
+        disabled={isLoading}
+        error={form.formState.errors.pincode?.message}
+        inputMode="numeric"
+        autoComplete="postal-code"
+        helperText="6-digit Indian pincode"
+      />
 
       <div>
-        <Label htmlFor="phone">Phone Number</Label>
-        <Input
-          id="phone"
-          {...form.register("phone")}
-          placeholder="+91 98765 43210"
-          disabled={isLoading}
-        />
-        {form.formState.errors.phone && (
+        <Label className="text-sm font-medium">Address Type</Label>
+        <div className="flex gap-4 mt-2">
+          <label className="flex items-center">
+            <input
+              type="radio"
+              value="home"
+              {...form.register("addressType")}
+              disabled={isLoading}
+              className="mr-2"
+            />
+            <span className="text-sm">Home</span>
+          </label>
+          <label className="flex items-center">
+            <input
+              type="radio"
+              value="work"
+              {...form.register("addressType")}
+              disabled={isLoading}
+              className="mr-2"
+            />
+            <span className="text-sm">Work</span>
+          </label>
+          <label className="flex items-center">
+            <input
+              type="radio"
+              value="other"
+              {...form.register("addressType")}
+              disabled={isLoading}
+              className="mr-2"
+            />
+            <span className="text-sm">Other</span>
+          </label>
+        </div>
+        {form.formState.errors.addressType && (
           <p className="text-sm text-red-600 mt-1">
-            {form.formState.errors.phone.message}
-          </p>
-        )}
-      </div>
-
-      <div>
-        <Label htmlFor="locality">Locality/Area</Label>
-        <Input
-          id="locality"
-          {...form.register("locality")}
-          placeholder="Sector 15, Gurgaon"
-          disabled={isLoading}
-        />
-        {form.formState.errors.locality && (
-          <p className="text-sm text-red-600 mt-1">
-            {form.formState.errors.locality.message}
-          </p>
-        )}
-      </div>
-
-      <div>
-        <Label htmlFor="city">City</Label>
-        <Input
-          id="city"
-          {...form.register("city")}
-          placeholder="Gurgaon"
-          disabled={isLoading}
-        />
-        {form.formState.errors.city && (
-          <p className="text-sm text-red-600 mt-1">
-            {form.formState.errors.city.message}
-          </p>
-        )}
-      </div>
-
-      <div>
-        <Label htmlFor="pincode">Pincode</Label>
-        <Input
-          id="pincode"
-          {...form.register("pincode")}
-          placeholder="122001"
-          disabled={isLoading}
-        />
-        {form.formState.errors.pincode && (
-          <p className="text-sm text-red-600 mt-1">
-            {form.formState.errors.pincode.message}
+            {form.formState.errors.addressType.message}
           </p>
         )}
       </div>
@@ -180,22 +212,25 @@ export default function AddressForm({
       </div>
 
       <div className="flex gap-3 pt-4">
-        <Button
+        <MobileButton
           type="button"
           variant="outline"
           onClick={onClose}
           disabled={isLoading}
-          className="flex-1"
+          fullWidth
+          size="lg"
         >
           Cancel
-        </Button>
-        <Button
+        </MobileButton>
+        <MobileButton
           type="submit"
           disabled={isLoading}
-          className="flex-1"
+          loading={isLoading}
+          fullWidth
+          size="lg"
         >
-          {isLoading ? "Saving..." : editingAddress ? "Update" : "Add"} Address
-        </Button>
+          {editingAddress ? "Update" : "Add"} Address
+        </MobileButton>
       </div>
     </form>
   );

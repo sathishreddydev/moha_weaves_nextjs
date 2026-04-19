@@ -2,6 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mobile Optimizations */
+@supports (-webkit-touch-callout: none) {
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="password"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+.touch-manipulation {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+@media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+    position: relative;
+  }
+  
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

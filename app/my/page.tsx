@@ -1,8 +1,50 @@
 'use client'
 
 import ProfileSidebar from '@/components/user/ProfileSidebar'
+import SidebarSkeleton from '@/components/user/SidebarSkeleton'
+import DashboardSkeleton from '@/components/user/DashboardSkeleton'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useState, useEffect } from 'react'
 
 export default function ProfilePage() {
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    // Simulate loading time for demo
+    const timer = setTimeout(() => {
+      setIsLoading(false)
+    }, 1000)
+
+    return () => clearTimeout(timer)
+  }, [])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="mb-4">
+            <Skeleton className="h-7 w-32" />
+          </div>
+
+          {/* Mobile: Sidebar Skeleton */}
+          <div className="lg:hidden">
+            <SidebarSkeleton />
+          </div>
+
+          {/* Desktop: Sidebar + Content Skeleton */}
+          <div className="hidden lg:grid lg:grid-cols-4 lg:gap-8">
+            <div className="lg:col-span-1">
+              <SidebarSkeleton />
+            </div>
+            <div className="lg:col-span-3">
+              <DashboardSkeleton />
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

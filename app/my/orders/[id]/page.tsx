@@ -5,6 +5,7 @@ import ReviewModal from "@/components/reviews/ReviewModal";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { OrderItem } from "@/components/user/OrderItem";
+import LiveChat from "@/components/user/LiveChat";
 import ProfileSidebar from "@/components/user/ProfileSidebar";
 import ShippingAddress from "@/components/user/shippingAddress";
 import { OrderWithItems } from "@/shared";
@@ -38,6 +39,7 @@ export default function OrderDetailsPage() {
     orderItemId: string;
     productId: string;
   } | null>(null);
+  const [helpChatOpen, setHelpChatOpen] = useState(false);
 
   useEffect(() => {
     const getOrderId = async () => {
@@ -140,6 +142,7 @@ export default function OrderDetailsPage() {
           <OrderDetailsContent
             order={order}
             onDownloadInvoice={downloadInvoice}
+            onHelpClick={() => setHelpChatOpen(true)}
             onReturnClick={(itemId: string, type: "return" | "exchange") => {
               setSelectedItem({ id: itemId, type });
               setReturnModalOpen(true);
@@ -163,6 +166,7 @@ export default function OrderDetailsPage() {
             <OrderDetailsContent
               order={order}
               onDownloadInvoice={downloadInvoice}
+              onHelpClick={() => setHelpChatOpen(true)}
               onReturnClick={(itemId: string, type: "return" | "exchange") => {
                 setSelectedItem({ id: itemId, type });
                 setReturnModalOpen(true);
@@ -197,6 +201,24 @@ export default function OrderDetailsPage() {
           productId={selectedReviewItem.productId}
         />
       )}
+
+      {/* Contextual Help Chat */}
+      {order && orderId && (
+        <LiveChat
+          isOpen={helpChatOpen}
+          onOpenChange={setHelpChatOpen}
+          onReturnClick={(itemId: string, type: "return" | "exchange") => {
+            setSelectedItem({ id: itemId, type });
+            setReturnModalOpen(true);
+            setHelpChatOpen(false);
+          }}
+          orderContext={{
+            orderId,
+            order,
+            productName: order.items.length === 1 ? order.items[0].product.name : undefined
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -204,11 +226,13 @@ export default function OrderDetailsPage() {
 function OrderDetailsContent({
   order,
   onDownloadInvoice,
+  onHelpClick,
   onReturnClick,
   onReviewClick,
 }: {
   order: OrderWithItems;
   onDownloadInvoice: () => void;
+  onHelpClick: () => void;
   onReturnClick: (itemId: string, type: "return" | "exchange") => void;
   onReviewClick: (orderItemId: string, productId: string) => void;
 }) {
@@ -231,9 +255,12 @@ function OrderDetailsContent({
 
           <div className="text-xs">
             <span className="mr-1">Need</span>
-            <Link href="#" className="text-blue-800 underline">
+            <button 
+              onClick={onHelpClick}
+              className="text-blue-800 underline hover:text-blue-600"
+            >
               Help?
-            </Link>
+            </button>
           </div>
         </div>
 

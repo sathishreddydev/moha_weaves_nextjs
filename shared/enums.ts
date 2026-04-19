@@ -7,6 +7,12 @@ export const userRoleEnum = pgEnum("user_role", [
   "store",
 ]);
 
+export const addressTypeEnum = pgEnum("address_type", [
+  "home",
+  "work",
+  "other",
+]);
+
 export const orderStatusEnum = pgEnum("order_status", [
   "created",
   "processing",

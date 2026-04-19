@@ -353,6 +353,7 @@ export const userAddresses = pgTable("user_addresses", {
   locality: text("locality").notNull(),
   city: text("city").notNull(),
   pincode: text("pincode").notNull(),
+  addressType: enums.addressTypeEnum("address_type").notNull().default("home"),
   isDefault: boolean("is_default").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
