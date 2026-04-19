@@ -135,7 +135,7 @@ export default function CartControls({
     return (
       <Button
         disabled
-        className="flex-1 bg-gray-300 text-gray-600 h-12 sm:h-auto text-base sm:text-sm"
+        className="flex-1 bg-gray-300 text-gray-600 h-12 sm:h-auto text-base sm:text-sm min-h-[48px] touch-manipulation"
         size="lg"
       >
         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-600 mr-2"></div>
@@ -149,7 +149,7 @@ export default function CartControls({
       <div className="space-y-3">
         <Button
           onClick={handleLoginRedirect}
-          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-12 sm:h-auto text-base sm:text-sm"
+          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-12 sm:h-auto text-base sm:text-sm min-h-[48px] touch-manipulation active:scale-95 transition-transform"
           size="lg"
         >
           <User className="h-5 w-5 mr-2" />
@@ -172,7 +172,7 @@ export default function CartControls({
               size="icon"
               onClick={handleDecreaseQuantity}
               disabled={updating === product.id || cartQuantity <= 0}
-              className="h-10 w-10 rounded-none"
+              className="h-10 w-10 rounded-none min-h-[44px] min-w-[44px] touch-manipulation active:scale-95 transition-transform"
             >
               <Minus className="h-4 w-4" />
             </Button>
@@ -184,7 +184,7 @@ export default function CartControls({
               size="icon"
               onClick={handleIncreaseQuantity}
               disabled={updating === product.id}
-              className="h-10 w-10 rounded-none"
+              className="h-10 w-10 rounded-none min-h-[44px] min-w-[44px] touch-manipulation active:scale-95 transition-transform"
             >
               <Plus className="h-4 w-4" />
             </Button>
@@ -192,7 +192,7 @@ export default function CartControls({
           <Button
             onClick={handleCheckout}
             disabled={updating === product.id || cartQuantity === 0}
-            className="w-full"
+            className="w-full min-h-[48px] touch-manipulation active:scale-95 transition-transform"
           >
             <ShoppingCart className="h-4 w-4 mr-2" />
             Checkout
@@ -210,7 +210,7 @@ export default function CartControls({
       onClick={handleAddToCart}
       disabled={product.onlineStock <= 0 || updating === product.id}
       size="lg"
-      className="w-full"
+      className="w-full min-h-[48px] touch-manipulation active:scale-95 transition-transform"
     >
       <ShoppingBag className="h-5 w-5 mr-2" />
       {updating === product.id

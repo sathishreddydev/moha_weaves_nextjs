@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
 import Search from "../navigation/Search";
+import { useSwipeToToggleMenu } from "@/hooks/use-swipe-gesture";
 
 export default function Header() {
   const { isAuthenticated } = useAuth();
@@ -21,12 +22,27 @@ export default function Header() {
     null,
   );
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
+  
+  // Swipe gesture for mobile menu
+  const swipeMenuRef = useSwipeToToggleMenu(
+    () => setIsMobileMenuOpen(true),  // Swipe left to open menu
+    () => setIsMobileMenuOpen(false) // Swipe right to close menu
+  ) as React.RefObject<HTMLDivElement>;
 
   // Get cart and wishlist data from stores
   const { count: cartCount, fetchCart } = useCartStore();
   const { count: wishlistCount, fetchWishlist } = useWishlistStore();
   const { categories, loading, error, fetchFilters } = useFilterStore();
+
+  // Check if mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Fetch cart and wishlist data when user is authenticated
   useEffect(() => {
@@ -108,7 +124,7 @@ export default function Header() {
   }, [isMobileMenuOpen]);
 
   return (
-    <div>
+    <div ref={swipeMenuRef}>
       <header className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 fixed top-0 left-0 right-0 bg-white shadow-sm border-b z-50">
         <div className="flex justify-between items-center h-16">
           {/* Logo and Mobile Menu */}
@@ -118,7 +134,7 @@ export default function Header() {
               variant="ghost"
               size="sm"
               onClick={handleMobileMenuToggle}
-              className="md:hidden p-2"
+              className="md:hidden p-3 min-h-[44px] min-w-[44px] touch-manipulation active:scale-95 transition-transform"
               aria-label="Open menu"
               aria-expanded={isMobileMenuOpen}
             >
@@ -145,7 +161,7 @@ export default function Header() {
                 <Button
                   variant={"link"}
                   onClick={() => router.push("/wishlist")}
-                  className="relative"
+                  className="relative p-2 min-h-[44px] min-w-[44px] touch-manipulation active:scale-95 transition-transform"
                 >
                   <Heart className="w-6 h-6" onClick={() => router.push("/wishlist")} />
                   {wishlistCount > 0 && (
@@ -159,7 +175,7 @@ export default function Header() {
                 <Button
                   variant={"link"}
                   size={"sm"}
-                  className="relative"
+                  className="relative p-2 min-h-[44px] min-w-[44px] touch-manipulation active:scale-95 transition-transform"
                   onClick={() => router.push("/cart")}
                 >
                   <ShoppingBag className="w-6 h-6" />
@@ -175,7 +191,8 @@ export default function Header() {
                   <Button
                     variant={"link"}
                     size={"sm"}
-                    onClick={() => router.push("/my")}
+                    onClick={() => router.push(isMobile ? "/my" : "/my/details")}
+                    className="p-2 min-h-[44px] min-w-[44px] touch-manipulation active:scale-95 transition-transform"
                   >
                     <UserIcon className="w-6 h-6" />
                   </Button>
@@ -187,6 +204,7 @@ export default function Header() {
                   variant={"link"}
                   size={"sm"}
                   onClick={() => router.push("/login")}
+                  className="p-2 min-h-[44px] min-w-[44px] touch-manipulation active:scale-95 transition-transform"
                 >
                   <UserIcon className="w-6 h-6" />
                 </Button>
@@ -225,7 +243,7 @@ export default function Header() {
               >
                 <button
                   onClick={() => handleMobileSectionClick("collections")}
-                  className="w-full text-left px-4 py-3 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors duration-200 flex items-center justify-between"
+                  className="w-full text-left px-4 py-4 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors duration-200 flex items-center justify-between min-h-[48px] touch-manipulation active:scale-[0.98] transition-transform"
                   aria-expanded={activeMobileSection === "collections"}
                   aria-controls="collections-panel"
                 >
@@ -240,7 +258,7 @@ export default function Header() {
 
                 <button
                   onClick={() => handleMobileSectionClick("categories")}
-                  className="w-full text-left px-4 py-3 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors duration-200 flex items-center justify-between"
+                  className="w-full text-left px-4 py-4 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors duration-200 flex items-center justify-between min-h-[48px] touch-manipulation active:scale-[0.98] transition-transform"
                   aria-expanded={activeMobileSection === "categories"}
                   aria-controls="categories-panel"
                 >

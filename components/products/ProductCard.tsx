@@ -73,7 +73,7 @@ export default function ProductCard({
         {onQuickView && !disabled && (
           <div className="absolute inset-x-0 bottom-6 px-6 hidden lg:flex justify-center translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
             <div
-              className="w-full py-4 bg-white/90 backdrop-blur-md text-stone-900 text-[9px] font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-stone-900 hover:text-white transition-colors shadow-xl"
+              className="w-full py-4 bg-white/90 backdrop-blur-md text-stone-900 text-[9px] font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-stone-900 hover:text-white transition-colors shadow-xl min-h-[44px] touch-manipulation active:scale-95 cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
                 onQuickView(product);
@@ -107,14 +107,14 @@ export default function ProductCard({
               </p>
             )}
             <h4
-              className="text-xs md:text-sm font-light tracking-wide line-clamp-1 cursor-pointer hover:text-amber-800 transition-colors"
+              className="text-xs md:text-sm font-light tracking-wide line-clamp-1 cursor-pointer hover:text-amber-800 transition-colors min-h-[44px] flex items-center touch-manipulation active:scale-95"
               onClick={handleProductClick}
             >
               {product.name}
             </h4>
           </div>
           <Button
-            className={`transition-colors p-1 ${
+            className={`transition-colors p-2 min-h-[44px] min-w-[44px] touch-manipulation active:scale-95 ${
               isWishlisted
                 ? "text-red-500 hover:text-red-700"
                 : "text-stone-500 hover:text-red-700"

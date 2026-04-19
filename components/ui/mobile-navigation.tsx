@@ -68,7 +68,7 @@ export default function MobileNavigation({
                 variant="ghost"
                 size="icon"
                 onClick={onBack}
-                className="h-10 w-10 touch-manipulation"
+                className="h-10 w-10 min-h-[44px] min-w-[44px] touch-manipulation active:scale-95 transition-transform"
               >
                 <ChevronLeft className="h-5 w-5" />
               </Button>
@@ -81,7 +81,7 @@ export default function MobileNavigation({
             variant="ghost"
             size="icon"
             onClick={handleClose}
-            className="h-10 w-10 touch-manipulation"
+            className="h-10 w-10 min-h-[44px] min-w-[44px] touch-manipulation active:scale-95 transition-transform"
           >
             <X className="h-5 w-5" />
           </Button>
@@ -109,7 +109,7 @@ export function MobileMenuButton({
       variant="ghost"
       size="icon"
       onClick={onClick}
-      className="h-12 w-12 touch-manipulation lg:hidden"
+      className="h-12 w-12 min-h-[44px] min-w-[44px] touch-manipulation active:scale-95 transition-transform lg:hidden"
       aria-label="Toggle menu"
     >
       {isOpen ? (
