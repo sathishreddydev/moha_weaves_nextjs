@@ -63,50 +63,49 @@ export function OrderItem({
               )}
             </div>
           </div>
-
-          <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-slate-50">
-            {item.status === "delivered" ? (
-              <button
-                className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1.5 transition-colors"
-                onClick={() => onReview(item.id, item.product.id)}
-              >
-                <Star className="w-3.5 h-3.5 mr-2 text-yellow-500 fill-yellow-500" />
-                Rate & Review
-              </button>
-            ) : (
-              <div className="flex items-center gap-2 text-indigo-600">
-                <Clock className="w-4 h-4" />
-                <span className="text-xs font-semibold">In Transit</span>
-              </div>
-            )}
-
-            <div className="flex items-center gap-4 ml-auto">
-              {item.returnEligibility?.eligible ? (
-                <>
-                  <button
-                    onClick={() => onReturn(item.id, "return")}
-                    className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1.5 transition-colors"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    Return
-                  </button>
-                  <div className="w-1 h-1 bg-slate-300 rounded-full" />
-                  <button
-                    onClick={() => onReturn(item.id, "exchange")}
-                    className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1.5 transition-colors"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    Exchange
-                  </button>
-                </>
-              ) : (
-                <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
-                  <XCircle className="w-3 h-3" />
-                  {item.returnEligibility?.reason || "Non-returnable"}
-                </span>
-              )}
-            </div>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center pt-4 border-t border-slate-50">
+        {item.status === "delivered" ? (
+          <button
+            className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center transition-colors"
+            onClick={() => onReview(item.id, item.product.id)}
+          >
+            <Star className="w-3.5 h-3.5 mr-2 text-yellow-500 fill-yellow-500" />
+            Rate & Review
+          </button>
+        ) : (
+          <div className="flex items-center text-indigo-600">
+            <Clock className="w-4 h-4" />
+            <span className="text-xs font-semibold">In Transit</span>
           </div>
+        )}
+
+        <div className="flex items-center gap-2 ml-auto">
+          {item.returnEligibility?.eligible ? (
+            <>
+              <button
+                onClick={() => onReturn(item.id, "return")}
+                className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1.5 transition-colors"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Return
+              </button>
+              <div className="w-1 h-1 bg-slate-300 rounded-full" />
+              <button
+                onClick={() => onReturn(item.id, "exchange")}
+                className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1.5 transition-colors"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Exchange
+              </button>
+            </>
+          ) : (
+            <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
+              <XCircle className="w-3 h-3" />
+              {item.returnEligibility?.reason || "Non-returnable"}
+            </span>
+          )}
         </div>
       </div>
     </Card>

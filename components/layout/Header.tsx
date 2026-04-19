@@ -175,7 +175,7 @@ export default function Header() {
                   <Button
                     variant={"link"}
                     size={"sm"}
-                    onClick={() => router.push("/my/details")}
+                    onClick={() => router.push("/my")}
                   >
                     <UserIcon className="w-6 h-6" />
                   </Button>

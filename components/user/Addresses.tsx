@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { MapPin, Edit2, Plus } from "lucide-react";
+import { MapPin, Edit2, Plus, ArrowLeft, Trash2, Loader2 } from "lucide-react";
 import { useAddressStore } from "@/lib/stores/addressStore";
 import AddressForm from "./AddressForm";
+import DeleteConfirmDialog from "./DeleteConfirmDialog";
 import { UserAddress } from "@/shared";
+import { useRouter } from "next/navigation";
 
 export default function Addresses() {
   const {
@@ -23,6 +25,9 @@ export default function Addresses() {
     null,
   );
   const [isMobile, setIsMobile] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [addressToDelete, setAddressToDelete] = useState<UserAddress | null>(null);
+  const router = useRouter();
 
   // Check if mobile on mount and resize
   useEffect(() => {
@@ -32,10 +37,21 @@ export default function Addresses() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  const handleDeleteAddress = async (addressId: string) => {
-    if (window.confirm("Are you sure you want to delete this address?")) {
-      await deleteAddress(addressId);
+  const handleDeleteAddress = (address: UserAddress) => {
+    setAddressToDelete(address);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (addressToDelete) {
+      await deleteAddress(addressToDelete.id);
+      setAddressToDelete(null);
     }
+  };
+
+  const handleCloseDeleteConfirm = () => {
+    setDeleteConfirmOpen(false);
+    setAddressToDelete(null);
   };
 
   const handleSetDefault = async (addressId: string) => {
@@ -92,23 +108,45 @@ export default function Addresses() {
     );
   }
 
+  const handleBack = () => {
+    router.push("/my");
+  };
   return (
-    <div className="space-y-3">
-      <div className="flex justify-end items-center">
-        {/* <h2 className="text-lg font-semibold text-gray-900">
-            Shipping Addresses
-          </h2> */}
-        <Button onClick={handleAddAddress}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Address
-        </Button>
+    <div className="space-y-4">
+      <div className="">
+        <div className="flex items-center justify-between border-b border-gray-50">
+          <div
+            onClick={handleBack}
+            className="flex items-center gap-4 cursor-pointer lg:hidden"
+          >
+            <ArrowLeft className="w-6 h-6 text-gray-500" color="#1F2937" />
+
+            <h1 className="text-xl font-semibold text-gray-900">Addresses</h1>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleAddAddress}
+            className="text-base ml-auto"
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Add
+          </Button>
+        </div>
       </div>
       <div>
         {addresses.length === 0 ? (
           <div className="text-center py-12">
             <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-500 mb-4">No addresses saved yet</p>
-            <Button onClick={handleAddAddress}>Add Your First Address</Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleAddAddress}
+              className="text-base"
+            >
+              Add Your First Address
+            </Button>
           </div>
         ) : (
           <div className="space-y-4">
@@ -155,11 +193,17 @@ export default function Addresses() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-red-600 hover:text-red-700"
-                      onClick={() => handleDeleteAddress(address.id)}
+                      className="text-red-600 hover:text-red-700 flex items-center gap-2"
+                      onClick={() => handleDeleteAddress(address)}
                       disabled={updating === address.id}
                     >
-                      {updating === address.id ? "Deleting..." : "Delete"}
+                      {updating === address.id ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        </>
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -177,6 +221,16 @@ export default function Addresses() {
         editingAddress={editingAddress}
         isLoading={loading}
         isMobile={isMobile}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmDialog
+        isOpen={deleteConfirmOpen}
+        onClose={handleCloseDeleteConfirm}
+        onConfirm={handleConfirmDelete}
+        isMobile={isMobile}
+        isLoading={updating !== null}
+        addressName={addressToDelete?.name}
       />
     </div>
   );

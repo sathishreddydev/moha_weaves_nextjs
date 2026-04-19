@@ -11,6 +11,7 @@ import {
 import { formatDate } from "@/lib/formatters";
 import { OrderWithItems } from "@/shared";
 import {
+  ArrowLeft,
   ArrowRight,
   CheckCircle,
   ChevronLeft,
@@ -24,6 +25,7 @@ import {
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import ShippingAddress from "./shippingAddress";
+import { useRouter } from "next/navigation";
 
 export default function OrderHistory() {
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
@@ -34,7 +36,7 @@ export default function OrderHistory() {
   const [ordersPerPage, setOrdersPerPage] = useState(5);
 
   const pageSizeOptions = [5, 10, 20, 50];
-
+  const router = useRouter();
   const fetchOrders = async (
     page: number = currentPage,
     pageSize: number = ordersPerPage,
@@ -112,12 +114,19 @@ export default function OrderHistory() {
       </div>
     );
   }
-
+  const handleBack = () => {
+    router.push("/my");
+  };
   return (
-    <div>
-      {/* <div className="p-3">
-        <h2 className="text-lg font-semibold text-gray-900">Order History</h2>
-      </div> */}
+    <div className="space-y-4">
+      <div
+        onClick={handleBack}
+        className="flex items-center gap-4 cursor-pointer lg:hidden"
+      >
+        <ArrowLeft className="w-6 h-6 text-gray-500" color="#1F2937" />
+
+        <h1 className="text-xl font-semibold text-gray-900">Addresses</h1>
+      </div>
       <div>
         {orders.length === 0 ? (
           <div className="text-center py-12">
@@ -135,7 +144,7 @@ export default function OrderHistory() {
                   key={order.id}
                   className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow"
                 >
-                  <div className="p-3 border-b">
+                  <div className="p-3 border-b border-gray-200 bg-gray-50">
                     <div className="flex flex-wrap justify-between items-center gap-4">
                       <div className="flex gap-6">
                         <div>
@@ -143,7 +152,11 @@ export default function OrderHistory() {
                             Order Placed
                           </p>
                           <p className="text-xs font-semibold">
-                            {formatDate(order.createdAt, "en-IN")}
+                            {formatDate(order.createdAt, "en-IN", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}
                           </p>
                         </div>
                         <div>
@@ -160,7 +173,7 @@ export default function OrderHistory() {
                           </p>
                           <p className="text-xs font-semibold">{order.id}</p>
                         </div>
-                        <div>
+                        <div className="hidden sm:block">
                           <p className="text-xs uppercase tracking-wider text-gray-500 font-bold">
                             Shipping to:
                           </p>

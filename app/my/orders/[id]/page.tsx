@@ -12,6 +12,7 @@ import {
   ArrowLeft,
   CreditCard,
   Download,
+  MapPin,
   Package,
   ReceiptText,
 } from "lucide-react";
@@ -237,9 +238,9 @@ function OrderDetailsContent({
         </div>
 
         {/* Content */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+        <div className="flex justify-between gap-4">
           {/* Order Details */}
-          <div className="flex flex-col sm:flex-row flex-wrap gap-4 sm:gap-8">
+          <div className="flex items-center justify-between gap-4 sm:gap-8">
             {/* Order ID */}
             <div>
               <p className="text-xs text-gray-500">Order ID</p>
@@ -247,7 +248,7 @@ function OrderDetailsContent({
             </div>
 
             {/* Total Amount */}
-            <div>
+            <div className="hidden sm:block">
               <p className="text-xs text-gray-500">Total Amount</p>
               <p className="font-medium text-xs">
                 ₹{parseFloat(order.finalAmount).toFixed(2)}
@@ -255,14 +256,16 @@ function OrderDetailsContent({
             </div>
 
             {/* Shipping Address */}
-            <div className="max-w-xs">
-              <p className="text-xs text-gray-500">Shipping Address</p>
-              <ShippingAddress address={order.shippingAddress || ""} />
+            <div className="hidden sm:block">
+              <div className="max-w-xs">
+                <p className="text-xs text-gray-500">Shipping Address</p>
+                <ShippingAddress address={order.shippingAddress || ""} />
+              </div>
             </div>
           </div>
 
           {/* Button */}
-          <div className="flex sm:block justify-start sm:justify-end">
+          <div>
             <Button
               onClick={onDownloadInvoice}
               variant="outline"
@@ -337,10 +340,23 @@ function OrderDetailsContent({
         </div>
       </Card>
 
+      {/* Shipping Details - Mobile Only */}
+      <div className="block sm:hidden">
+        <Card className="p-4 sm:p-5 hover:border-slate-300 transition-colors bg-white">
+          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-slate-400" />
+            Shipping Address
+          </h3>
+          <div className="text-xs whitespace-pre-line">
+            {order.shippingAddress || ""}
+          </div>
+        </Card>
+      </div>
+
       {/* Payment Details */}
       {order.paymentDetails?.available && (
         <Card className="p-4 sm:p-5 hover:border-slate-300 transition-colors bg-white">
-          <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
+          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
             <CreditCard className="w-4 h-4 text-slate-400" />
             Payment Details
           </h3>
