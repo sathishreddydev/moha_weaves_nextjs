@@ -4,6 +4,7 @@ import { couponsService } from "../coupon/couponsService";
 import { razorpay } from "@/lib/razorpay/razorpayClient";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth/server";
+import { calculatePricing, validateStockAvailability } from "@/lib/pricing-utils";
 
 export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
@@ -27,44 +28,27 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Validate stock availability before creating order
-        for (const item of cartItems.cart) {
-            if (item.product.onlineStock < item.quantity) {
-                return NextResponse.json(
-                    { 
-                        message: `Insufficient stock for ${item.product.name}. Only ${item.product.onlineStock} items available.`,
-                        productId: item.productId 
-                    },
-                    { status: 400 }
-                );
-            }
+        // Validate stock availability using shared utility
+        const stockValidation = await validateStockAvailability(cartItems.cart);
+        if (!stockValidation.valid) {
+            return NextResponse.json(
+                { 
+                    message: stockValidation.message,
+                    productId: stockValidation.productId 
+                },
+                { status: 400 }
+            );
         }
 
-        const totalAmount = cartItems.cart.reduce((sum, item) => {
-            const price = (item.product as any).discountedPrice 
-                ? (item.product as any).discountedPrice
-                : typeof item.product.price === "string"
-                    ? parseFloat(item.product.price)
-                    : item.product.price;
-
-            return sum + price * item.quantity;
-        }, 0);
-
-        let discountAmount = 0;
-
+        // Get coupon details if provided
+        let coupon = null;
         if (couponId) {
-            const coupon = await couponsService.getCoupon(couponId);
-
-            if (coupon && coupon.isActive) {
-                if (coupon.type === "percentage") {
-                    discountAmount = (totalAmount * parseFloat(coupon.value)) / 100;
-                } else {
-                    discountAmount = parseFloat(coupon.value);
-                }
-            }
+            coupon = await couponsService.getCoupon(couponId);
         }
 
-        const finalAmount = totalAmount - discountAmount;
+        // Calculate pricing using shared utility
+        const pricing = calculatePricing(cartItems.cart, coupon);
+        const finalAmount = pricing.totalAmount;
 
         const razorpayOrder = await razorpay.orders.create({
             amount: Math.round(finalAmount * 100),

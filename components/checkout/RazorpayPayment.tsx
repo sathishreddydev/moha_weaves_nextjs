@@ -21,6 +21,10 @@ interface RazorpayPaymentProps {
   onSuccess: (orderId: string) => void;
   onError: (error: string) => void;
   disabled?: boolean;
+  // Add pricing breakdown for verification
+  subtotal?: number;
+  shipping?: number;
+  discountAmount?: number;
 }
 
 export default function RazorpayPayment({
@@ -32,6 +36,9 @@ export default function RazorpayPayment({
   onSuccess,
   onError,
   disabled = false,
+  subtotal,
+  shipping,
+  discountAmount,
 }: RazorpayPaymentProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [scriptLoaded, setScriptLoaded] = useState(false);

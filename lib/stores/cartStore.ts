@@ -1,8 +1,8 @@
-import { create } from 'zustand'
-import { CartItemWithProduct } from '@/shared/types'
-import { guestStorage } from '@/lib/guest-storage'
-import { useAuth } from '@/auth'
 import { syncGuestCart } from '@/lib/guest-cart-sync'
+import { guestStorage } from '@/lib/guest-storage'
+import { getEffectivePrice } from '@/lib/pricing-utils'
+import { CartItemWithProduct } from '@/shared/types'
+import { create } from 'zustand'
 
 interface CartState {
   items: CartItemWithProduct[]
@@ -388,7 +388,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
   calculateTotal: () => {
     const { items } = get()
     return items.reduce((total, item) => {
-      const price = item.product?.discountedPrice || parseFloat(item.product?.price || '0');
+      const price = getEffectivePrice(item.product);
       return total + (price * item.quantity);
     }, 0);
   }

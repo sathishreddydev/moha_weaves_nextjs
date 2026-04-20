@@ -7,6 +7,7 @@ import { orderService } from "../orders/orderService";
 import { db } from "@/lib/db";
 import { orders } from "@/shared";
 import { eq } from "drizzle-orm";
+import { calculatePricing, validateStockAvailability, getEffectivePrice } from "@/lib/pricing-utils";
 
 export async function POST(req: NextRequest) {
     try {
@@ -46,36 +47,36 @@ export async function POST(req: NextRequest) {
 
         const cartItems = await cartServices.getCartItems(user.id);
 
-        // Validate stock availability before processing payment
-        for (const item of cartItems.cart) {
-            if (item.product.onlineStock < item.quantity) {
-                return NextResponse.json(
-                    { 
-                        message: `Insufficient stock for ${item.product.name}. Only ${item.product.onlineStock} items available.`,
-                        productId: item.productId 
-                    },
-                    { status: 400 }
-                );
-            }
+        // Validate stock availability using shared utility
+        const stockValidation = await validateStockAvailability(cartItems.cart);
+        if (!stockValidation.valid) {
+            return NextResponse.json(
+                { 
+                    message: stockValidation.message,
+                    productId: stockValidation.productId 
+                },
+                { status: 400 }
+            );
         }
 
-        const totalAmount = cartItems.cart.reduce((sum, item) => {
-            const price =
-                typeof item.product.price === "string"
-                    ? parseFloat(item.product.price)
-                    : item.product.price;
+        // Get coupon details if provided
+        let coupon = null;
+        if (couponId) {
+            const { couponsService } = await import("../coupon/couponsService");
+            coupon = await couponsService.getCoupon(couponId);
+        }
 
-            return sum + price * item.quantity;
-        }, 0);
+        // Calculate pricing using shared utility
+        const pricing = calculatePricing(cartItems.cart, coupon);
 
         // Create order and clear cart in a single transaction
         const result = await db.transaction(async (tx) => {
             const order = await orderService.createOrder(
                 {
                     userId: user.id,
-                    totalAmount: totalAmount.toString(),
-                    discountAmount: "0",
-                    finalAmount: totalAmount.toString(),
+                    totalAmount: pricing.subtotal.toString(),
+                    discountAmount: pricing.discountAmount.toString(),
+                    finalAmount: pricing.totalAmount.toString(),
                     shippingAddress,
                     phone,
                     notes,
@@ -88,7 +89,7 @@ export async function POST(req: NextRequest) {
                 cartItems.cart.map((item) => ({
                     productId: item.productId,
                     quantity: item.quantity,
-                    price: item.product.price.toString(),
+                    price: getEffectivePrice(item.product).toString(),
                 }))
             );
 
