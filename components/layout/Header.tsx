@@ -6,7 +6,14 @@ import MegaMenu from "@/components/navigation/MegaMenu";
 import { Button } from "@/components/ui/button";
 import { useCartStore, useFilterStore, useWishlistStore } from "@/lib/stores";
 import { getProductUrl } from "@/lib/utils/productUrl";
-import { Heart, Menu, ShoppingBag, UserIcon, X, ChevronDown } from "lucide-react";
+import {
+  Heart,
+  Menu,
+  ShoppingBag,
+  UserIcon,
+  X,
+  ChevronDown,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
@@ -24,11 +31,11 @@ export default function Header() {
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [isMobile, setIsMobile] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
-  
+
   // Swipe gesture for mobile menu
   const swipeMenuRef = useSwipeToToggleMenu(
-    () => setIsMobileMenuOpen(true),  // Swipe left to open menu
-    () => setIsMobileMenuOpen(false) // Swipe right to close menu
+    () => setIsMobileMenuOpen(true), // Swipe left to open menu
+    () => setIsMobileMenuOpen(false), // Swipe right to close menu
   ) as React.RefObject<HTMLDivElement>;
 
   // Get cart and wishlist data from stores
@@ -134,7 +141,7 @@ export default function Header() {
               variant="ghost"
               size="sm"
               onClick={handleMobileMenuToggle}
-              className="md:hidden p-3  min-w-[44px] touch-manipulation active:scale-95 transition-transform"
+              className="md:hidden touch-manipulation active:scale-95 transition-transform"
               aria-label="Open menu"
               aria-expanded={isMobileMenuOpen}
             >
@@ -150,7 +157,7 @@ export default function Header() {
             />
           </div>
 
-          <div className="flex items-center">
+          <div className="flex items-center space-x-3">
             <Search
               activeMegaMenu={activeMegaMenu}
               setActiveMegaMenu={setActiveMegaMenu}
@@ -158,57 +165,46 @@ export default function Header() {
             {isAuthenticated ? (
               <>
                 {/* Wishlist */}
-                <Button
-                  variant={"link"}
+                <button
                   onClick={() => router.push("/wishlist")}
-                  className="relative p-2  min-w-[44px] touch-manipulation active:scale-95 transition-transform"
+                  className="relative touch-manipulation active:scale-95 transition-transform"
                 >
-                  <Heart className="w-6 h-6" onClick={() => router.push("/wishlist")} />
+                  <Heart className="w-6 h-6" />
                   {wishlistCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                       {wishlistCount > 99 ? "99+" : wishlistCount}
                     </span>
                   )}
-                </Button>
+                </button>
 
                 {/* Cart */}
-                <Button
-                  variant={"link"}
-                  size={"sm"}
-                  className="relative p-2  min-w-[44px] touch-manipulation active:scale-95 transition-transform"
+                <button
                   onClick={() => router.push("/cart")}
+                  className="relative touch-manipulation active:scale-95 transition-transform"
                 >
                   <ShoppingBag className="w-6 h-6" />
                   {cartCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    <span className="absolute -top-3 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                       {cartCount > 99 ? "99+" : cartCount}
                     </span>
                   )}
-                </Button>
+                </button>
 
-                {/* User Menu */}
-                <div className="relative">
-                  <Button
-                    variant={"link"}
-                    size={"sm"}
-                    onClick={() => router.push(isMobile ? "/my" : "/my/details")}
-                    className="p-2  min-w-[44px] touch-manipulation active:scale-95 transition-transform"
-                  >
-                    <UserIcon className="w-6 h-6" />
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <div className="flex space-x-4">
-                <Button
-                  variant={"link"}
-                  size={"sm"}
-                  onClick={() => router.push("/login")}
-                  className="p-2  min-w-[44px] touch-manipulation active:scale-95 transition-transform"
+                {/* User */}
+                <button
+                  onClick={() => router.push(isMobile ? "/my" : "/my/details")}
+                  className="touch-manipulation active:scale-95 transition-transform"
                 >
                   <UserIcon className="w-6 h-6" />
-                </Button>
-              </div>
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => router.push("/login")}
+                className="touch-manipulation active:scale-95 transition-transform"
+              >
+                <UserIcon className="w-6 h-6" />
+              </button>
             )}
           </div>
         </div>
@@ -332,9 +328,7 @@ export default function Header() {
                           onClick={handleMobileLinkClick}
                           asChild
                         >
-                          <Link href="/collections">
-                            View All Collections
-                          </Link>
+                          <Link href="/collections">View All Collections</Link>
                         </Button>
                       </div>
                     </div>
@@ -390,9 +384,7 @@ export default function Header() {
                           onClick={handleMobileLinkClick}
                           asChild
                         >
-                          <Link href="/categories">
-                            View All Categories
-                          </Link>
+                          <Link href="/categories">View All Categories</Link>
                         </Button>
                       </div>
                     </div>

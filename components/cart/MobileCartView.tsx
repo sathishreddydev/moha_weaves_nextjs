@@ -86,7 +86,7 @@ export default function MobileCartView({
                 size="icon"
                 onClick={() => removeFromCart(item.id)}
                 disabled={updating === item.id}
-                className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed  min-w-[44px] touch-manipulation active:scale-95"
+                className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed   touch-manipulation active:scale-95"
                 aria-label="Remove item"
               >
                 <X className="w-4 h-4 text-gray-500 hover:text-red-600" />
@@ -162,7 +162,7 @@ export default function MobileCartView({
                       disabled={updating === item.id || item.quantity <= 1}
                       variant="outline"
                       size="icon"
-                      className="h-8 w-8  min-w-[44px] touch-manipulation active:scale-95 transition-transform"
+                      className="h-8 w-8   touch-manipulation active:scale-95 transition-transform"
                     >
                       -
                     </Button>
@@ -174,7 +174,7 @@ export default function MobileCartView({
                       disabled={updating === item.id}
                       variant="outline"
                       size="icon"
-                      className="h-8 w-8  min-w-[44px] touch-manipulation active:scale-95 transition-transform"
+                      className="h-8 w-8   touch-manipulation active:scale-95 transition-transform"
                     >
                       +
                     </Button>

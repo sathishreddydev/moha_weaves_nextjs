@@ -172,7 +172,7 @@ export default function CartControls({
               size="icon"
               onClick={handleDecreaseQuantity}
               disabled={updating === product.id || cartQuantity <= 0}
-              className="h-10 w-10 rounded-none  min-w-[44px] touch-manipulation active:scale-95 transition-transform"
+              className="h-10 w-10 rounded-none   touch-manipulation active:scale-95 transition-transform"
             >
               <Minus className="h-4 w-4" />
             </Button>
@@ -184,7 +184,7 @@ export default function CartControls({
               size="icon"
               onClick={handleIncreaseQuantity}
               disabled={updating === product.id}
-              className="h-10 w-10 rounded-none  min-w-[44px] touch-manipulation active:scale-95 transition-transform"
+              className="h-10 w-10 rounded-none   touch-manipulation active:scale-95 transition-transform"
             >
               <Plus className="h-4 w-4" />
             </Button>

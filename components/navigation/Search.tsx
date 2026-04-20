@@ -80,18 +80,16 @@ export default function Search({
           className="h-20 flex items-center"
           onMouseEnter={() => setActiveMegaMenu("search")}
         >
-          <Button
-            variant="link"
-            size="sm"
+          <button
             aria-label="Search"
+            onClick={() => setActiveMegaMenu("search")}
             className={cn(
-              "text-gray-700 hover:text-purple-600 font-medium transition-colors duration-200",
+              "transition-colors duration-200 p-0 bg-transparent border-none",
               activeMegaMenu === "search" && "text-purple-600",
             )}
-            onClick={()=>setActiveMegaMenu('search')}
           >
             <SearchIcon className="w-6 h-6" />
-          </Button>
+          </button>
         </div>
       </nav>
 
