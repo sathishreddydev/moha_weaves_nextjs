@@ -1,7 +1,9 @@
 import Footer from '@/components/layout/Footer'
 import Header from '@/components/layout/Header'
+import OffersBanner from '@/components/layout/OffersBanner'
 import GlobalSwipeNavigation from '@/components/layout/GlobalSwipeNavigation'
 import { Providers } from '@/components/providers'
+import { OffersBannerProvider } from '@/hooks/use-offers-banner'
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import Script from 'next/script'
@@ -34,11 +36,14 @@ export default async function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <Providers session={session}>
-          <GlobalSwipeNavigation>
-            <Header />
-            <main className="pt-16">{children}</main>
-            <Footer />
-          </GlobalSwipeNavigation>
+          <OffersBannerProvider>
+            <GlobalSwipeNavigation>
+              <OffersBanner />
+              <Header />
+              <main className="pt-16">{children}</main>
+              <Footer />
+            </GlobalSwipeNavigation>
+          </OffersBannerProvider>
         </Providers>
       </body>
     </html>

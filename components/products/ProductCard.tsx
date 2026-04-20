@@ -127,11 +127,7 @@ export default function ProductCard({
             }}
             disabled={disabled}
           >
-            <Heart
-              size={16}
-              strokeWidth={1.2}
-              fill={isWishlisted ? "currentColor" : "none"}
-            />
+            <Heart className="w-6 h-6 lg:w-5 lg:h-5" fill={isWishlisted ? "currentColor" : "none"} />
           </button>
         </div>
         <p className="text-sm font-bold font-sans tracking-tight">

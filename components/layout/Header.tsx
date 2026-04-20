@@ -19,6 +19,8 @@ import { useRouter } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
 import Search from "../navigation/Search";
 import { useSwipeToToggleMenu } from "@/hooks/use-swipe-gesture";
+import { useOffersBanner } from "@/hooks/use-offers-banner";
+import { ProductWithDetails } from "@/shared";
 
 export default function Header() {
   const { isAuthenticated } = useAuth();
@@ -31,6 +33,7 @@ export default function Header() {
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [isMobile, setIsMobile] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const { hasOfferData, isBannerVisible } = useOffersBanner();
 
   // Swipe gesture for mobile menu
   const swipeMenuRef = useSwipeToToggleMenu(
@@ -69,22 +72,27 @@ export default function Header() {
   // Fetch featured products for mobile menu
   useEffect(() => {
     if (isMobileMenuOpen && featuredProducts.length === 0) {
-      fetchFeaturedProducts();
+      const fetchProducts = async () => {
+        const products = await getProducts("/api/products/featured");
+        setFeaturedProducts(products);
+      };
+      fetchProducts();
     }
   }, [isMobileMenuOpen, featuredProducts.length]);
 
-  const fetchFeaturedProducts = async () => {
+  async function getProducts(endpoint: string): Promise<ProductWithDetails[]> {
     try {
-      const response = await fetch("/api/products/featured");
+      const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+      const response = await fetch(`${baseUrl}${endpoint}`, {
+        cache: "no-store",
+      });
       const data = await response.json();
-      if (data.products) {
-        setFeaturedProducts(data.products.slice(0, 4));
-      }
+      return data.products || [];
     } catch (error) {
-      console.error("Error fetching featured products:", error);
+      console.error("Error fetching products:", error);
+      return [];
     }
-  };
-
+  }
   // Handle mobile menu toggle
   const handleMobileMenuToggle = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -132,21 +140,21 @@ export default function Header() {
 
   return (
     <div ref={swipeMenuRef}>
-      <header className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 fixed top-0 left-0 right-0 bg-white shadow-sm border-b z-50">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo and Mobile Menu */}
-          <div className="flex items-center sm:space-x-4">
-            {/* Mobile menu button - moved to left */}
-            <Button
-              variant="ghost"
-              size="sm"
+      <header
+        className={`max-w-7xl mx-auto py-6 lg:py-4 px-4 sm:px-6 lg:px-8 fixed left-0 right-0 bg-white shadow-sm border-b z-40 transition-all duration-300 ease-in-out ${
+          hasOfferData && isBannerVisible ? "top-8" : "top-0"
+        }`}
+      >
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <button
               onClick={handleMobileMenuToggle}
               className="md:hidden touch-manipulation active:scale-95 transition-transform"
               aria-label="Open menu"
               aria-expanded={isMobileMenuOpen}
             >
               <Menu className="w-6 h-6" />
-            </Button>
+            </button>
 
             <Link href="/" className="text-xl font-bold text-primary-600">
               Moha
@@ -169,7 +177,7 @@ export default function Header() {
                   onClick={() => router.push("/wishlist")}
                   className="relative touch-manipulation active:scale-95 transition-transform"
                 >
-                  <Heart className="w-6 h-6" />
+                  <Heart className="w-6 h-6 lg:w-5 lg:h-5" />
                   {wishlistCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                       {wishlistCount > 99 ? "99+" : wishlistCount}
@@ -182,7 +190,7 @@ export default function Header() {
                   onClick={() => router.push("/cart")}
                   className="relative touch-manipulation active:scale-95 transition-transform"
                 >
-                  <ShoppingBag className="w-6 h-6" />
+                  <ShoppingBag className="w-6 h-6 lg:w-5 lg:h-5" />
                   {cartCount > 0 && (
                     <span className="absolute -top-3 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                       {cartCount > 99 ? "99+" : cartCount}
@@ -195,7 +203,7 @@ export default function Header() {
                   onClick={() => router.push(isMobile ? "/my" : "/my/details")}
                   className="touch-manipulation active:scale-95 transition-transform"
                 >
-                  <UserIcon className="w-6 h-6" />
+                  <UserIcon className="w-6 h-6 lg:w-5 lg:h-5" />
                 </button>
               </>
             ) : (
@@ -203,7 +211,7 @@ export default function Header() {
                 onClick={() => router.push("/login")}
                 className="touch-manipulation active:scale-95 transition-transform"
               >
-                <UserIcon className="w-6 h-6" />
+                <UserIcon className="w-6 h-6 lg:w-5 lg:h-5" />
               </button>
             )}
           </div>
@@ -213,25 +221,10 @@ export default function Header() {
         {isMobileMenuOpen && (
           <div
             ref={mobileMenuRef}
-            className="md:hidden bg-white border-b border-gray-200"
+            className="md:hidden bg-white"
             onKeyDown={handleMobileMenuKeyDown}
           >
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              {/* Mobile Menu Header */}
-              <div className="flex items-center justify-between py-4 border-b border-gray-100">
-                <h3 className="text-lg font-semibold text-gray-900">Menu</h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleMobileMenuToggle}
-                  className="p-2"
-                  aria-label="Close menu"
-                >
-                  <X className="w-5 h-5" />
-                </Button>
-              </div>
-
-              {/* Mobile Menu Items */}
+            <div className="max-w-7xl mx-auto">
               <div
                 className="py-4 space-y-2"
                 role="navigation"
@@ -239,7 +232,7 @@ export default function Header() {
               >
                 <button
                   onClick={() => handleMobileSectionClick("collections")}
-                  className="w-full text-left px-4 py-4 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors duration-200 flex items-center justify-between  touch-manipulation active:scale-[0.98] transition-transform"
+                  className="w-full text-left py-4 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors duration-200 flex items-center justify-between  touch-manipulation active:scale-[0.98] transition-transform"
                   aria-expanded={activeMobileSection === "collections"}
                   aria-controls="collections-panel"
                 >
@@ -252,7 +245,7 @@ export default function Header() {
                   />
                 </button>
 
-                <button
+                {/* <button
                   onClick={() => handleMobileSectionClick("categories")}
                   className="w-full text-left px-4 py-4 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors duration-200 flex items-center justify-between  touch-manipulation active:scale-[0.98] transition-transform"
                   aria-expanded={activeMobileSection === "categories"}
@@ -265,7 +258,7 @@ export default function Header() {
                     }`}
                     aria-hidden="true"
                   />
-                </button>
+                </button> */}
               </div>
 
               {/* Mobile Extended Content */}
@@ -273,51 +266,41 @@ export default function Header() {
                 <div className="pb-4 border-t border-gray-100" role="region">
                   {activeMobileSection === "collections" && (
                     <div id="collections-panel" className="pt-4">
-                      <h4 className="px-4 text-sm font-semibold text-gray-900 mb-3">
-                        Featured Products
-                      </h4>
-                      <div className="grid grid-cols-2 gap-3 px-4">
-                        {featuredProducts.length > 0
-                          ? featuredProducts.map((product: any) => (
+                      <div className="grid grid-cols-3 gap-3 px-4">
+                        {loading
+                          ? // Loading state for categories
+                            [1, 2, 3, 4, 5, 6].map((item) => (
+                              <div key={item} className="animate-pulse">
+                                <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-200 mb-2 mx-auto"></div>
+                                <div className="h-3 bg-gray-200 rounded mx-auto w-16 mb-1"></div>
+                              </div>
+                            ))
+                          : categories.slice(0, 6).map((category) => (
                               <Link
-                                key={product.id}
-                                href={getProductUrl(product)}
-                                className="group"
+                                key={category.id}
+                                href={`/collections/${encodeURIComponent(category.name)}`}
+                                className="group p-3 rounded-lg border border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-all duration-200"
                                 onClick={handleMobileLinkClick}
                               >
-                                <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 mb-2">
-                                  {product.images &&
-                                  product.images.length > 0 ? (
+                                <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 mb-2 mx-auto">
+                                  {category.imageUrl ? (
                                     <img
-                                      src={product.images[0]}
-                                      alt={product.name}
-                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                      src={category.imageUrl}
+                                      alt={category.name}
+                                      className="w-full h-full object-cover"
                                     />
                                   ) : (
                                     <div className="w-full h-full bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center">
                                       <span className="text-purple-600 text-xs font-medium">
-                                        Product
+                                        {category.name.slice(0, 2)}
                                       </span>
                                     </div>
                                   )}
                                 </div>
-                                <h5 className="text-xs font-medium text-gray-900 group-hover:text-purple-600 transition-colors">
-                                  {product.name}
+                                <h5 className="text-xs font-medium text-gray-900 text-center group-hover:text-purple-600 transition-colors">
+                                  {category.name}
                                 </h5>
-                                <p className="text-xs text-gray-600">
-                                  {product.price
-                                    ? `₹${product.price}`
-                                    : "Price on request"}
-                                </p>
                               </Link>
-                            ))
-                          : // Loading state or fallback
-                            [1, 2, 3, 4].map((item) => (
-                              <div key={item} className="animate-pulse">
-                                <div className="aspect-square rounded-lg overflow-hidden bg-gray-200 mb-2"></div>
-                                <div className="h-3 bg-gray-200 rounded mb-1"></div>
-                                <div className="h-3 bg-gray-200 rounded w-16"></div>
-                              </div>
                             ))}
                       </div>
                       <div className="mt-4 px-4">

@@ -94,9 +94,9 @@ export default function MegaMenu({
 
   return (
     <>
-      <nav className="hidden lg:flex items-center space-x-8">
+      <nav className="hidden lg:flex items-center gap-4">
         <div
-          className="h-20 flex items-center"
+          className="flex items-center"
           onMouseEnter={() => setActiveMegaMenu("collections")}
         >
           <Link
@@ -109,8 +109,8 @@ export default function MegaMenu({
             Collections <ChevronDown className="w-4 h-4" />
           </Link>
         </div>
-        <div
-          className="h-20 flex items-center"
+        {/* <div
+          className="flex items-center"
           onMouseEnter={() => setActiveMegaMenu("categories")}
         >
           <Link
@@ -122,7 +122,7 @@ export default function MegaMenu({
           >
             All Categories <ChevronDown className="w-4 h-4" />
           </Link>
-        </div>
+        </div> */}
       </nav>
 
       {/* Extended Header - Only render on client */}
@@ -190,48 +190,38 @@ export default function MegaMenu({
             )}
             {activeMegaMenu === "collections" && (
               <div className="max-w-7xl mx-auto px-8 py-6">
-                <h3 className="text-sm font-semibold text-slate-800 mb-4">
-                  Featured Products
-                </h3>
-                <div className="grid grid-cols-4 gap-4">
-                  {featuredProducts.slice(0, 8).map((product, idx) => (
-                    <div
-                      key={product.id}
-                      className={`group cursor-pointer ${
+                <div className="flex flex-wrap gap-4">
+                  {categories.map((cat, idx) => (
+                    <Link
+                      key={cat.name}
+                      className={`flex items-center gap-5 group/item cursor-pointer px-4   ${
                         activeMegaMenu === "collections"
                           ? "animate-in fade-in slide-in-from-top-4"
                           : ""
                       }`}
                       style={{ animationDelay: `${idx * 30}ms` }}
-                      onClick={() => {
-                        handleLinkClick();
-                        router.push(getProductUrl(product));
-                      }}
+                      href={`/collections/${encodeURIComponent(cat.name)}`}
+                      onClick={handleLinkClick}
                     >
-                      <div className="bg-[#F5F6F8] rounded-2xl overflow-hidden transition-transform group-hover:scale-105 shadow-sm border border-slate-50">
-                        <div className="aspect-square bg-slate-200 relative">
-                          <Image
-                            src={product.imageUrl || "/placeholder-image.png"}
-                            alt={product.name}
-                            fill
-                            className="object-cover"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.src = "/placeholder-image.png";
-                            }}
-                          />
-                        </div>
-                        <div className="p-3">
-                          <h4 className="text-sm font-medium text-slate-800 group-hover:text-[#FF8A3D] transition-colors line-clamp-2">
-                            {product.name}
-                          </h4>
-                          <p className="text-sm text-slate-600 mt-1">
-                            {product.currency === "INR" ? "₹" : "$"}
-                            {product.price}
-                          </p>
-                        </div>
+                      <div className="w-20 h-20 bg-[#F5F6F8] rounded-3xl flex items-center justify-center p-4 transition-transform group-hover/item:scale-110 shadow-sm border border-slate-50">
+                        <Image
+                          src={cat.imageUrl || "/placeholder-image.png"}
+                          alt={cat.name}
+                          width={80}
+                          height={80}
+                          className="w-full h-full object-contain mix-blend-multiply opacity-90"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = "/placeholder-image.png";
+                          }}
+                        />
                       </div>
-                    </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-slate-800 group-hover/item:text-[#FF8A3D] transition-colors">
+                          {cat.name}
+                        </span>
+                      </div>
+                    </Link>
                   ))}
                 </div>
                 <div className="flex justify-end mt-6">

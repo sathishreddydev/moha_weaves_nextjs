@@ -77,7 +77,7 @@ export default function Search({
     <div ref={searchContainerRef}>
       <nav className="">
         <div
-          className="h-20 flex items-center"
+          className="flex items-center"
           onMouseEnter={() => setActiveMegaMenu("search")}
         >
           <button
@@ -88,7 +88,7 @@ export default function Search({
               activeMegaMenu === "search" && "text-purple-600",
             )}
           >
-            <SearchIcon className="w-6 h-6" />
+            <SearchIcon className="w-6 h-6 lg:w-5 lg:h-5" />
           </button>
         </div>
       </nav>
