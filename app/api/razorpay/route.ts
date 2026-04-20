@@ -41,8 +41,9 @@ export async function POST(req: NextRequest) {
         }
 
         const totalAmount = cartItems.cart.reduce((sum, item) => {
-            const price =
-                typeof item.product.price === "string"
+            const price = (item.product as any).discountedPrice 
+                ? (item.product as any).discountedPrice
+                : typeof item.product.price === "string"
                     ? parseFloat(item.product.price)
                     : item.product.price;
 

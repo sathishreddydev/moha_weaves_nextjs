@@ -98,7 +98,9 @@ export default async function CollectionsPage({
     params.search ||
     params.categories ||
     params.colors ||
-    params.fabrics;
+    params.fabrics ||
+    params.onSale ||
+    params.featured;
 
   const [sideBarFilters, products] = await Promise.all([
     getFilters(),

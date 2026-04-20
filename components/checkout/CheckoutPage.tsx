@@ -8,7 +8,15 @@ import { useAddressStore, useCartStore } from "@/lib/stores";
 import { CartItemWithProduct, UserAddress } from "@/shared/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Separator } from "@radix-ui/react-separator";
-import { Loader2, MapPin, Plus, ShoppingBag, Truck } from "lucide-react";
+import {
+  ImageIcon,
+  Loader2,
+  MapPin,
+  Plus,
+  ShoppingBag,
+  Tag,
+  Truck,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -18,6 +26,7 @@ import { Badge } from "../ui/badge";
 import AddressList from "./AddressList";
 import AddressForm from "../user/AddressForm";
 import RazorpayPayment from "./RazorpayPayment";
+import CouponInput from "./CouponInput";
 
 const checkoutSchema = z.object({
   addressId: z.string().min(1, "Please select an address"),
@@ -46,8 +55,17 @@ export default function CheckoutPage() {
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [showAddressModal, setShowAddressModal] = useState(false);
-  const [editingAddress, setEditingAddress] = useState<UserAddress | null>(null);
+  const [editingAddress, setEditingAddress] = useState<UserAddress | null>(
+    null,
+  );
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    id: string;
+    code: string;
+    discountAmount: number;
+    type: string;
+    value: string;
+  } | null>(null);
   const [showMobileSummary, setShowMobileSummary] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -61,7 +79,17 @@ export default function CheckoutPage() {
 
   const subtotal = calculateTotal();
   const shipping = subtotal > 0 ? (subtotal >= 999 ? 0 : 50) : 0;
-  const total = subtotal + shipping;
+  const couponDiscount = appliedCoupon?.discountAmount || 0;
+  
+  // Calculate total savings (original price - discounted price)
+  const totalDiscountedPrice = items.reduce((sum, item) => {
+    const originalPrice = parseFloat(item.product.price || "0");
+    const discountedPrice = item.product.discountedPrice || originalPrice;
+    const savings = (originalPrice - discountedPrice) * item.quantity;
+    return sum + savings;
+  }, 0);
+  
+  const total = subtotal + shipping - couponDiscount;
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -89,10 +117,10 @@ export default function CheckoutPage() {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 1024);
     };
-    
+
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   const handleAddressSubmit = async (data: any) => {
@@ -148,7 +176,6 @@ export default function CheckoutPage() {
     // Payment will be handled by Razorpay component
   };
 
-
   const handlePaymentSuccess = (orderId: string) => {
     clearCart();
     setOrderId(orderId);
@@ -157,6 +184,20 @@ export default function CheckoutPage() {
 
   const handlePaymentError = (error: string) => {
     toast.error(error);
+  };
+
+  const handleCouponApplied = (coupon: {
+    id: string;
+    code: string;
+    discountAmount: number;
+    type: string;
+    value: string;
+  }) => {
+    setAppliedCoupon(coupon);
+  };
+
+  const handleCouponRemoved = () => {
+    setAppliedCoupon(null);
   };
 
   if (status === "loading") {
@@ -352,12 +393,28 @@ export default function CheckoutPage() {
 
                   <Separator />
 
+                  {/* Coupon Input */}
+                  <CouponInput
+                    orderAmount={subtotal}
+                    onCouponApplied={handleCouponApplied}
+                    onCouponRemoved={handleCouponRemoved}
+                    appliedCoupon={appliedCoupon}
+                  />
+
                   {/* Price Breakdown */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Subtotal</span>
                       <span>{formatPrice(subtotal)}</span>
                     </div>
+                    {totalDiscountedPrice > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-green-600">Total Savings</span>
+                        <span className="text-green-600">
+                          -{formatPrice(totalDiscountedPrice)}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-sm">
                       <span className="flex items-center gap-1">
                         <Truck className="h-4 w-4" />
@@ -367,10 +424,20 @@ export default function CheckoutPage() {
                         {shipping === 0 ? "FREE" : formatPrice(shipping)}
                       </span>
                     </div>
+                    {couponDiscount > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="flex items-center gap-1 text-green-600">
+                          <Tag className="h-4 w-4" />
+                          Coupon Discount
+                        </span>
+                        <span className="text-green-600">
+                          -{formatPrice(couponDiscount)}
+                        </span>
+                      </div>
+                    )}
                     {shipping > 0 && (
                       <p className="text-xs text-green-600">
-                        Add {formatPrice(999 - subtotal)} more for FREE
-                        shipping
+                        Add {formatPrice(999 - subtotal)} more for FREE shipping
                       </p>
                     )}
                     <Separator />
@@ -384,22 +451,97 @@ export default function CheckoutPage() {
                   <RazorpayPayment
                     amount={total}
                     user={user}
-                    selectedAddress={addresses.find(addr => addr.id === selectedAddressId) || undefined}
+                    selectedAddress={
+                      addresses.find((addr) => addr.id === selectedAddressId) ||
+                      undefined
+                    }
                     notes={form.getValues("notes")}
+                    couponId={appliedCoupon?.id}
                     onSuccess={handlePaymentSuccess}
                     onError={handlePaymentError}
                     disabled={!selectedAddressId || items.length === 0}
                   />
 
                   <p className="text-xs text-gray-500 text-center">
-                    By placing this order, you agree to our Terms of Service
-                    and Privacy Policy
+                    By placing this order, you agree to our Terms of Service and
+                    Privacy Policy
                   </p>
                 </CardContent>
               </Card>
             </div>
           </div>
         </div>
+
+        {/* Mobile Cart Items and Coupon Section */}
+        {isMobile && (
+          <div className="lg:hidden space-y-4 mb-4">
+            {/* Cart Items */}
+            <Card>
+              <CardContent className="p-4">
+                <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                  <ShoppingBag className="h-4 w-4" />
+                  Order Items ({items.length})
+                </h3>
+                <div className="space-y-4">
+                  {items.map((item) => (
+                    <div key={item.id} className="flex items-center gap-4">
+                      {/* Product Image */}
+                      <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden flex-shrink-0">
+                        {item.product.images?.[0] ? (
+                          <img
+                            src={item.product.images[0]}
+                            alt={item.product.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <ImageIcon className="h-6 w-6 text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Product Details */}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 text-sm line-clamp-2">
+                          {item.product.name}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Qty: {item.quantity}
+                        </p>
+                        </div>
+
+                      {/* Price */}
+                      <div className="text-right">
+                        {item.product.discountedPrice ? (
+                          <div className="flex flex-col items-end">
+                            <span className="text-sm font-medium text-red-600">
+                              {formatPrice(item.product.discountedPrice * item.quantity)}
+                            </span>
+                            <span className="text-xs text-gray-400 line-through">
+                              {formatPrice(parseFloat(item.product.price || "0") * item.quantity)}
+                            </span>
+                          </div>
+                        ) : (
+                          <p className="text-sm font-medium">
+                            {formatPrice(parseFloat(item.product.price || "0") * item.quantity)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Coupon Input */}
+            <CouponInput
+              orderAmount={subtotal}
+              onCouponApplied={handleCouponApplied}
+              onCouponRemoved={handleCouponRemoved}
+              appliedCoupon={appliedCoupon}
+            />
+          </div>
+        )}
 
         {/* Mobile Sticky Payment Section */}
         {isMobile && (
@@ -440,6 +582,12 @@ export default function CheckoutPage() {
                     <span>Subtotal</span>
                     <span>{formatPrice(subtotal)}</span>
                   </div>
+                  {totalDiscountedPrice > 0 && (
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span>Total Savings</span>
+                      <span>-{formatPrice(totalDiscountedPrice)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm text-gray-600">
                     <span className="flex items-center gap-1">
                       <Truck className="h-4 w-4" />
@@ -449,18 +597,21 @@ export default function CheckoutPage() {
                       {shipping === 0 ? "FREE" : formatPrice(shipping)}
                     </span>
                   </div>
+                  {couponDiscount > 0 && (
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span className="flex items-center gap-1">
+                        <Tag className="h-4 w-4" />
+                        Coupon Discount
+                      </span>
+                      <span>-{formatPrice(couponDiscount)}</span>
+                    </div>
+                  )}
                   {shipping > 0 && (
                     <p className="text-xs text-green-600">
-                      Add {formatPrice(999 - subtotal)} more for FREE
-                      shipping
+                      Add {formatPrice(999 - subtotal)} more for FREE shipping
                     </p>
                   )}
-                  <div className="border-t pt-2 mt-2">
-                    <div className="flex justify-between font-semibold">
-                      <span>Total</span>
-                      <span>{formatPrice(total)}</span>
-                    </div>
-                  </div>
+                  <Separator />
                 </div>
               )}
 
@@ -468,16 +619,20 @@ export default function CheckoutPage() {
               <RazorpayPayment
                 amount={total}
                 user={user}
-                selectedAddress={addresses.find(addr => addr.id === selectedAddressId) || undefined}
+                selectedAddress={
+                  addresses.find((addr) => addr.id === selectedAddressId) ||
+                  undefined
+                }
                 notes={form.getValues("notes")}
+                couponId={appliedCoupon?.id}
                 onSuccess={handlePaymentSuccess}
                 onError={handlePaymentError}
                 disabled={!selectedAddressId || items.length === 0}
               />
 
               <p className="text-xs text-gray-500 text-center mt-2">
-                By placing this order, you agree to our Terms of Service
-                and Privacy Policy
+                By placing this order, you agree to our Terms of Service and
+                Privacy Policy
               </p>
             </div>
           </div>

@@ -398,6 +398,7 @@ export class RoleBasedProductService {
         activeSales.map(s => s.id)
       );
 
+
       const productSaleMap = new Map<string, any>();
 
       for (const mapping of saleMappings) {
@@ -418,9 +419,11 @@ export class RoleBasedProductService {
           sale = activeSales.find(
             s => s.id === productSaleMap.get(product.id)
           );
-        } else if (product.categoryId) {
+        }
+
+        if (!sale && product.categoryId && product.subcategoryId) {
           sale = activeSales.find(
-            s => s.categoryId === product.categoryId
+            s => s.categoryId === product.categoryId && s.subcategoryId === product.subcategoryId
           );
         }
 
@@ -448,7 +451,6 @@ export class RoleBasedProductService {
           (p.discountedPrice ?? Number(p.price)) <= filters.maxPrice!
         );
       }
-
       if (filters.onSale) {
         results = results.filter(p => p.activeSale !== null);
       }
@@ -466,6 +468,23 @@ export class RoleBasedProductService {
           return hasStoreAllocation || hasVariantInStore;
         });
       }
+
+      // Apply minOrderAmount filter for sales
+      results = results.map(product => {
+        if (product.activeSale && product.activeSale.minOrderAmount) {
+          const minOrder = Number(product.activeSale.minOrderAmount);
+          const currentPrice = product.discountedPrice ?? Number(product.price);
+
+          if (currentPrice < minOrder) {
+            return {
+              ...product,
+              activeSale: null,
+              discountedPrice: undefined,
+            };
+          }
+        }
+        return product;
+      });
 
       if (filters.size?.length) {
         results = results.filter(p =>
@@ -494,7 +513,6 @@ export class RoleBasedProductService {
           return totalStock >= filters.minStock!;
         });
       }
-
       return results;
     } catch (error) {
       console.error('Error fetching products by role:', error);

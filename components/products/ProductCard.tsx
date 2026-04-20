@@ -90,11 +90,18 @@ export default function ProductCard({
             New
           </span>
         )}
-        {showFeaturedBadge && product.isFeatured && (
-          <span className="absolute top-4 right-4 bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-            Featured
-          </span>
-        )}
+        <div className="absolute top-4 right-4 flex flex-col gap-2">
+          {showFeaturedBadge && product.isFeatured && (
+            <span className="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+              Featured
+            </span>
+          )}
+          {(product as any).activeSale && (
+            <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+              Sale
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Product Info */}
@@ -130,9 +137,22 @@ export default function ProductCard({
             <Heart className="w-6 h-6 lg:w-5 lg:h-5" fill={isWishlisted ? "currentColor" : "none"} />
           </button>
         </div>
-        <p className="text-sm font-bold font-sans tracking-tight">
-          ₹{product.price}
-        </p>
+        <div className="flex items-center gap-2">
+          {(product as any).discountedPrice && (product as any).discountedPrice < Number(product.price) ? (
+            <>
+              <p className="text-sm font-bold font-sans tracking-tight text-red-600">
+                ₹{(product as any).discountedPrice}
+              </p>
+              <p className="text-xs text-gray-500 line-through">
+                ₹{product.price}
+              </p>
+            </>
+          ) : (
+            <p className="text-sm font-bold font-sans tracking-tight">
+              ₹{product.price}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

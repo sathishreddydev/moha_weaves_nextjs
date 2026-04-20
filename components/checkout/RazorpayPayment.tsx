@@ -17,6 +17,7 @@ interface RazorpayPaymentProps {
   user: any;
   selectedAddress?: UserAddress;
   notes?: string;
+  couponId?: string | null;
   onSuccess: (orderId: string) => void;
   onError: (error: string) => void;
   disabled?: boolean;
@@ -27,6 +28,7 @@ export default function RazorpayPayment({
   user,
   selectedAddress,
   notes,
+  couponId,
   onSuccess,
   onError,
   disabled = false,
@@ -80,7 +82,7 @@ export default function RazorpayPayment({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          couponId: undefined, // Add coupon support if needed
+          couponId: couponId || undefined,
         }),
       });
 
@@ -146,7 +148,7 @@ export default function RazorpayPayment({
           shippingAddress: selectedAddress,
           phone: selectedAddress?.phone,
           notes: notes,
-          couponId: undefined, // Add coupon support if needed
+          couponId: couponId || undefined,
         }),
       });
 

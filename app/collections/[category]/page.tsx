@@ -123,7 +123,9 @@ export default async function CategoryPage({
     resolvedSearchParams.search ||
     resolvedSearchParams.colors ||
     resolvedSearchParams.fabrics ||
-    resolvedSearchParams.subcategories;
+    resolvedSearchParams.subcategories ||
+    resolvedSearchParams.onSale ||
+    resolvedSearchParams.featured;
 
   const [sideBarFilters, products] = await Promise.all([
     getFilters(),
