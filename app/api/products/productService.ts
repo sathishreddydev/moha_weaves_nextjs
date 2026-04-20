@@ -98,10 +98,16 @@ export class RoleBasedProductService {
   // Helper method to resolve names to IDs for subcategories
   private async resolveSubcategoryNames(names: string[]) {
     if (names.length === 0) return [];
+
+    // Use case-insensitive matching with OR conditions
+    const conditions = names.map(name => ilike(subcategories.name, name));
+
     const result = await db
-      .select({ id: subcategories.id })
+      .select({ id: subcategories.id, name: subcategories.name })
       .from(subcategories)
-      .where(inArray(subcategories.name, names));
+      .where(or(...conditions));
+
+    
     return result.map((s) => s.id);
   }
 
@@ -117,9 +123,7 @@ export class RoleBasedProductService {
       .from(colors)
       .where(or(...conditions));
 
-    console.log("Color lookup - Input names:", names);
-    console.log("Color lookup - Found colors:", result);
-
+    
     return result.map((c) => c.id);
   }
 
@@ -351,12 +355,17 @@ export class RoleBasedProductService {
       const colorIds = filters.colors?.length ? await this.resolveColorNames(filters.colors) : [];
       const fabricIds = filters.fabrics?.length ? await this.resolveFabricNames(filters.fabrics) : [];
 
-      // Get subcategories from categories if categories are specified
-      const categorySubcategoryIds = categoryIds.length > 0 ? await this.resolveCategoryAndSubcategoryIds(categoryIds) : [];
+      // Get subcategories from categories only if no specific subcategories are selected
+      const categorySubcategoryIds = (categoryIds.length > 0 && subcategoryIds.length === 0) 
+        ? await this.resolveCategoryAndSubcategoryIds(categoryIds) 
+        : [];
 
-      // Combine direct subcategories and category subcategories
-      const allSubcategoryIds = Array.from(new Set([...subcategoryIds, ...categorySubcategoryIds]));
+      // Use specific subcategories if provided, otherwise use category subcategories
+      const allSubcategoryIds = subcategoryIds.length > 0 
+        ? subcategoryIds 
+        : categorySubcategoryIds;
 
+      
       if (allSubcategoryIds.length) {
         conditions.push(inArray(products.subcategoryId, allSubcategoryIds));
       }

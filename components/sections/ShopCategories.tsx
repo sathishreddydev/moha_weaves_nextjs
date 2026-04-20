@@ -51,7 +51,7 @@ export default function ShopCategories() {
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {categories?.slice(0, 8).map((category) => {
-            const categoryUrl = `/collections/${category.name.toLowerCase().replace(/\s+/g, "-")}`;
+            const categoryUrl = `/collections/${encodeURIComponent(category.name)}`;
 
             return (
               <Link key={category.id} href={categoryUrl}>

@@ -90,11 +90,15 @@ export default async function CategoryPage({
 
   const categoryName = decodeURIComponent(resolvedParams.category);
 
+  const subcategories = resolvedSearchParams.subcategories
+      ?.split(",")
+      .filter(Boolean)
+      .map(sub => decodeURIComponent(sub)); // Decode URL-encoded subcategories
+
+  
   const filters: ProductFilters = {
     categories: [categoryName],
-    subcategories: resolvedSearchParams.subcategories
-      ?.split(",")
-      .filter(Boolean),
+    subcategories: subcategories,
     colors: resolvedSearchParams.colors?.split(",").filter(Boolean),
     fabrics: resolvedSearchParams.fabrics?.split(",").filter(Boolean),
     search: resolvedSearchParams.search || undefined,

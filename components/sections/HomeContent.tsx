@@ -5,7 +5,7 @@ import ProductSection from "./ProductSection";
 
 export default function HomeContent() {
   return (
-    <div className="min-h-screen pb-12 space-y-8">
+    <div id="main-content" className="min-h-screen pb-12 space-y-8">
       <HeroSection />
       <ShopCategories />
       <ProductSection

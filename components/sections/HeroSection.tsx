@@ -22,8 +22,9 @@ export default function HeroSection() {
   useEffect(() => {
     fetchFilters();
   }, []);
+
   useEffect(() => {
-    if (isPaused) return;
+    if (isPaused || !categoriesData || categoriesData.length === 0) return;
 
     const timer = setInterval(() => {
       setActiveIndex((prev) => (prev + 1) % categoriesData.length);
@@ -56,7 +57,9 @@ export default function HeroSection() {
   };
 
   const handleSubcategoryClick = (category: any, subcategory: any) => {
-    router.push(`/collections/${category.name}/${subcategory.name}`);
+    const params = new URLSearchParams();
+    params.set("subcategories", subcategory.name.toLowerCase());
+    router.push(`/collections/${encodeURIComponent(category.name)}?${params.toString()}`);
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -82,6 +85,49 @@ export default function HeroSection() {
       );
     }
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <section className="relative h-[70vh] w-full bg-zinc-950 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />
+        <div className="relative z-10 h-full max-w-[1800px] mx-auto px-8 flex flex-col justify-center">
+          <div className="max-w-4xl">
+            <div className="animate-pulse">
+              <div className="h-4 bg-gray-700 rounded w-32 mb-6"></div>
+              <div className="h-20 bg-gray-700 rounded w-96 mb-4"></div>
+              <div className="h-12 bg-gray-700 rounded w-64"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // Error state
+  if (error || !categoriesData || categoriesData.length === 0) {
+    return (
+      <section className="relative h-[70vh] w-full bg-zinc-950 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />
+        <div className="relative z-10 h-full max-w-[1800px] mx-auto px-8 flex flex-col justify-center">
+          <div className="max-w-4xl text-center">
+            <h2 className="text-white text-5xl font-serif leading-[0.85] tracking-tighter mb-4">
+              Discover Our Collection
+            </h2>
+            <p className="text-white/80 text-xl mb-8">
+              Explore our handcrafted sarees and traditional wear
+            </p>
+            <button
+              onClick={() => router.push("/collections")}
+              className="bg-white text-black px-8 py-4 rounded-full font-medium hover:bg-gray-100 transition-colors"
+            >
+              Shop Now
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section

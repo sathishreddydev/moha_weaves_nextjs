@@ -75,9 +75,9 @@ export default async function CollectionsPage({
   const params = await searchParams;
 
   const filters: ProductFilters = {
-    categories: params.categories?.split(",").filter(Boolean),
-    colors: params.colors?.split(",").filter(Boolean),
-    fabrics: params.fabrics?.split(",").filter(Boolean),
+    categories: params.categories?.split(",").filter(Boolean).map(cat => decodeURIComponent(cat)),
+    colors: params.colors?.split(",").filter(Boolean).map(color => decodeURIComponent(color)),
+    fabrics: params.fabrics?.split(",").filter(Boolean).map(fabric => decodeURIComponent(fabric)),
     search: params.search || undefined,
     minPrice: params.price?.split("-")[0]
       ? Number(params.price?.split("-")[0])

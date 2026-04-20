@@ -145,6 +145,8 @@ export default function CategoryClient({
         ...newFilters,
         offset: 0, // Reset to first page when filters change
       };
+      
+            
       setCurrentFilters(updatedFilters);
       setCurrentPage(1); // Reset page state
       updateURL(updatedFilters);
@@ -221,15 +223,23 @@ export default function CategoryClient({
   const handleClearAllFilters = useCallback(() => {
     setIsApplyingFilters(true);
     const clearedFilters: ProductFilters = {
-      limit: 20,
+      ...initialFilters,
+      subcategories: [],
+      colors: [],
+      fabrics: [],
+      search: undefined,
+      minPrice: undefined,
+      maxPrice: undefined,
+      sort: undefined,
+      featured: undefined,
+      onSale: undefined,
       offset: 0,
-      distributionChannel: "online",
     };
     setCurrentFilters(clearedFilters);
     setCurrentPage(1); // Reset page
     updateURL(clearedFilters);
     setTimeout(() => setIsApplyingFilters(false), 500);
-  }, [updateURL]);
+  }, [updateURL, initialFilters]);
 
   // Handle pagination
   const handlePageChange = useCallback(
