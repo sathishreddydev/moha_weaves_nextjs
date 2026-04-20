@@ -35,7 +35,7 @@ export default function CollectionsFilterSections({
         <h4 className="text-sm font-medium text-gray-700 mb-2">
           Categories
         </h4>
-        <div className="space-y-2 max-h-48 overflow-y-auto">
+        <div className="space-y-2 overflow-y-auto">
           {categories.map((category) => (
             <div key={category.id}>
               <label className="flex items-center cursor-pointer">
@@ -67,7 +67,7 @@ export default function CollectionsFilterSections({
         <h4 className="text-sm font-medium text-gray-700 mb-2">
           Colors
         </h4>
-        <div className="space-y-2 max-h-32 overflow-y-auto">
+        <div className="space-y-2 overflow-y-auto">
           {colors.map((color) => (
             <label key={color.id} className="flex items-center cursor-pointer">
               <Checkbox
@@ -100,7 +100,7 @@ export default function CollectionsFilterSections({
         <h4 className="text-sm font-medium text-gray-700 mb-2">
           Fabrics
         </h4>
-        <div className="space-y-2 max-h-32 overflow-y-auto">
+        <div className="space-y-2 overflow-y-auto">
           {fabrics.map((fabric) => (
             <label key={fabric.id} className="flex items-center cursor-pointer">
               <Checkbox

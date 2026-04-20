@@ -27,11 +27,11 @@
     position: relative;
   }
   
-  button {
+  /* button {
     min-height: 44px;
     min-width: 44px;
   }
-  
+   */
   /* Better mobile navigation */
   .mobile-nav-item {
     min-height: 48px;

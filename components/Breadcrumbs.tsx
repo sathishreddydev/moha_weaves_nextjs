@@ -28,7 +28,7 @@ export default function Breadcrumbs({ items, productName }: BreadcrumbsProps) {
             {item.href ? (
               <button
                 onClick={() => handleNavigation(item.href!)}
-                className="hover:text-gray-700 capitalize min-h-[44px] px-2 py-1 touch-manipulation active:scale-95 transition-transform"
+                className="hover:text-gray-700 capitalize  px-2 py-1 touch-manipulation active:scale-95 transition-transform"
               >
                 {item.label}
               </button>

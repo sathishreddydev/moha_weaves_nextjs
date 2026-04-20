@@ -129,7 +129,7 @@ export default function Addresses() {
           <Button
             variant="outline"
             onClick={handleAddAddress}
-            className="text-base ml-auto min-h-[44px] px-4 touch-manipulation active:scale-[0.98]"
+            className="text-base ml-auto  px-4 touch-manipulation active:scale-[0.98]"
           >
             <Plus className="w-5 h-5 mr-2" />
             Add
@@ -186,7 +186,7 @@ export default function Addresses() {
                         size="sm"
                         onClick={() => handleSetDefault(address.id)}
                         disabled={updating === address.id}
-                        className="min-h-[40px] px-3 touch-manipulation active:scale-[0.98]"
+                        className=" px-3 touch-manipulation active:scale-[0.98]"
                       >
                         {updating === address.id ? "Setting..." : "Set Default"}
                       </Button>
@@ -195,14 +195,14 @@ export default function Addresses() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleEditAddress(address)}
-                      className="min-h-[40px] w-10 touch-manipulation active:scale-[0.98]"
+                      className=" w-10 touch-manipulation active:scale-[0.98]"
                     >
                       <Edit2 className="w-4 h-4" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-red-600 hover:text-red-700 min-h-[40px] w-10 touch-manipulation active:scale-[0.98]"
+                      className="text-red-600 hover:text-red-700  w-10 touch-manipulation active:scale-[0.98]"
                       onClick={() => handleDeleteAddress(address)}
                       disabled={updating === address.id}
                     >

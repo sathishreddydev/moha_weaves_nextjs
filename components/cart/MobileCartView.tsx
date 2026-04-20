@@ -58,7 +58,7 @@ export default function MobileCartView({
               disabled={updating === "all"}
               variant="outline"
               size="sm"
-              className="min-h-[44px] touch-manipulation active:scale-95 transition-transform"
+              className=" touch-manipulation active:scale-95 transition-transform"
             >
               {updating === "all" ? "Clearing..." : "Clear"}
             </Button>
@@ -86,7 +86,7 @@ export default function MobileCartView({
                 size="icon"
                 onClick={() => removeFromCart(item.id)}
                 disabled={updating === item.id}
-                className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] touch-manipulation active:scale-95"
+                className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed  min-w-[44px] touch-manipulation active:scale-95"
                 aria-label="Remove item"
               >
                 <X className="w-4 h-4 text-gray-500 hover:text-red-600" />
@@ -162,7 +162,7 @@ export default function MobileCartView({
                       disabled={updating === item.id || item.quantity <= 1}
                       variant="outline"
                       size="icon"
-                      className="h-8 w-8 min-h-[44px] min-w-[44px] touch-manipulation active:scale-95 transition-transform"
+                      className="h-8 w-8  min-w-[44px] touch-manipulation active:scale-95 transition-transform"
                     >
                       -
                     </Button>
@@ -174,7 +174,7 @@ export default function MobileCartView({
                       disabled={updating === item.id}
                       variant="outline"
                       size="icon"
-                      className="h-8 w-8 min-h-[44px] min-w-[44px] touch-manipulation active:scale-95 transition-transform"
+                      className="h-8 w-8  min-w-[44px] touch-manipulation active:scale-95 transition-transform"
                     >
                       +
                     </Button>
@@ -197,7 +197,7 @@ export default function MobileCartView({
           {/* Toggle Summary */}
           <button
             onClick={() => setShowSummary(!showSummary)}
-            className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-lg mb-3 min-h-[48px] touch-manipulation active:scale-[0.98] transition-transform"
+            className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-lg mb-3  touch-manipulation active:scale-[0.98] transition-transform"
           >
             <span className="font-medium text-gray-900">Order Summary</span>
             <div className="flex items-center space-x-2">
@@ -247,7 +247,7 @@ export default function MobileCartView({
           )}
 
           {/* Checkout Button */}
-          <Button asChild className="w-full h-12 min-h-[48px] touch-manipulation active:scale-95 transition-transform" size="lg">
+          <Button asChild className="w-full h-12  touch-manipulation active:scale-95 transition-transform" size="lg">
             {isGuest ? (
               <Link href="/login?redirect=/checkout">
                 Sign In to Checkout • {formatPrice(calculateTotal())}

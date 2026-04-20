@@ -134,7 +134,7 @@ export default function Header() {
               variant="ghost"
               size="sm"
               onClick={handleMobileMenuToggle}
-              className="md:hidden p-3 min-h-[44px] min-w-[44px] touch-manipulation active:scale-95 transition-transform"
+              className="md:hidden p-3  min-w-[44px] touch-manipulation active:scale-95 transition-transform"
               aria-label="Open menu"
               aria-expanded={isMobileMenuOpen}
             >
@@ -161,7 +161,7 @@ export default function Header() {
                 <Button
                   variant={"link"}
                   onClick={() => router.push("/wishlist")}
-                  className="relative p-2 min-h-[44px] min-w-[44px] touch-manipulation active:scale-95 transition-transform"
+                  className="relative p-2  min-w-[44px] touch-manipulation active:scale-95 transition-transform"
                 >
                   <Heart className="w-6 h-6" onClick={() => router.push("/wishlist")} />
                   {wishlistCount > 0 && (
@@ -175,7 +175,7 @@ export default function Header() {
                 <Button
                   variant={"link"}
                   size={"sm"}
-                  className="relative p-2 min-h-[44px] min-w-[44px] touch-manipulation active:scale-95 transition-transform"
+                  className="relative p-2  min-w-[44px] touch-manipulation active:scale-95 transition-transform"
                   onClick={() => router.push("/cart")}
                 >
                   <ShoppingBag className="w-6 h-6" />
@@ -192,7 +192,7 @@ export default function Header() {
                     variant={"link"}
                     size={"sm"}
                     onClick={() => router.push(isMobile ? "/my" : "/my/details")}
-                    className="p-2 min-h-[44px] min-w-[44px] touch-manipulation active:scale-95 transition-transform"
+                    className="p-2  min-w-[44px] touch-manipulation active:scale-95 transition-transform"
                   >
                     <UserIcon className="w-6 h-6" />
                   </Button>
@@ -204,7 +204,7 @@ export default function Header() {
                   variant={"link"}
                   size={"sm"}
                   onClick={() => router.push("/login")}
-                  className="p-2 min-h-[44px] min-w-[44px] touch-manipulation active:scale-95 transition-transform"
+                  className="p-2  min-w-[44px] touch-manipulation active:scale-95 transition-transform"
                 >
                   <UserIcon className="w-6 h-6" />
                 </Button>
@@ -243,7 +243,7 @@ export default function Header() {
               >
                 <button
                   onClick={() => handleMobileSectionClick("collections")}
-                  className="w-full text-left px-4 py-4 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors duration-200 flex items-center justify-between min-h-[48px] touch-manipulation active:scale-[0.98] transition-transform"
+                  className="w-full text-left px-4 py-4 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors duration-200 flex items-center justify-between  touch-manipulation active:scale-[0.98] transition-transform"
                   aria-expanded={activeMobileSection === "collections"}
                   aria-controls="collections-panel"
                 >
@@ -258,7 +258,7 @@ export default function Header() {
 
                 <button
                   onClick={() => handleMobileSectionClick("categories")}
-                  className="w-full text-left px-4 py-4 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors duration-200 flex items-center justify-between min-h-[48px] touch-manipulation active:scale-[0.98] transition-transform"
+                  className="w-full text-left px-4 py-4 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors duration-200 flex items-center justify-between  touch-manipulation active:scale-[0.98] transition-transform"
                   aria-expanded={activeMobileSection === "categories"}
                   aria-controls="categories-panel"
                 >

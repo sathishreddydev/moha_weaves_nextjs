@@ -57,7 +57,7 @@ export default function ProfileSidebar({ activeSection, onItemClick }: ProfileSi
                 router.push(item.href);
                 onItemClick?.();
               }}
-              className={`w-full flex items-center space-x-3 px-4 py-4 min-h-[52px] rounded-lg text-left transition-colors touch-manipulation active:scale-[0.98] ${
+              className={`w-full flex items-center space-x-3 px-4 py-4  rounded-lg text-left transition-colors touch-manipulation active:scale-[0.98] ${
                 isActive(item.href)
                   ? "bg-primary-50 text-primary-600 border-l-4 border-primary-600"
                   : "hover:bg-gray-50"
@@ -72,7 +72,7 @@ export default function ProfileSidebar({ activeSection, onItemClick }: ProfileSi
         <div className="border-t pt-2 mt-2">
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
-            className="w-full flex items-center space-x-3 px-4 py-4 min-h-[52px] rounded-lg text-left text-red-600 hover:bg-red-50 transition-colors touch-manipulation active:scale-[0.98]"
+            className="w-full flex items-center space-x-3 px-4 py-4  rounded-lg text-left text-red-600 hover:bg-red-50 transition-colors touch-manipulation active:scale-[0.98]"
           >
             <LogOut className="w-6 h-6 flex-shrink-0" />
             <span className="text-base font-medium">Logout</span>
@@ -86,7 +86,7 @@ export default function ProfileSidebar({ activeSection, onItemClick }: ProfileSi
             router.push(helpItem.href);
             onItemClick?.();
           }}
-          className={`w-full flex items-center space-x-3 px-4 py-4 min-h-[52px] rounded-lg text-left transition-colors touch-manipulation active:scale-[0.98] ${
+          className={`w-full flex items-center space-x-3 px-4 py-4  rounded-lg text-left transition-colors touch-manipulation active:scale-[0.98] ${
             isActive(helpItem.href)
               ? "bg-primary-50 text-primary-600 border-l-4 border-primary-600"
               : "hover:bg-gray-50"

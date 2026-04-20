@@ -73,7 +73,7 @@ export default function ProductCard({
         {onQuickView && !disabled && (
           <div className="absolute inset-x-0 bottom-6 px-6 hidden lg:flex justify-center translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
             <div
-              className="w-full py-4 bg-white/90 backdrop-blur-md text-stone-900 text-[9px] font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-stone-900 hover:text-white transition-colors shadow-xl min-h-[44px] touch-manipulation active:scale-95 cursor-pointer"
+              className="w-full py-4 bg-white/90 backdrop-blur-md text-stone-900 text-[9px] font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-stone-900 hover:text-white transition-colors shadow-xl cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
                 onQuickView(product);
@@ -102,19 +102,19 @@ export default function ProductCard({
         <div className="flex justify-between items-start">
           <div className="flex-1 pr-4">
             {(product as any).fabric && (
-              <p className="text-[8px] md:text-[9px] font-bold uppercase tracking-[0.2em] text-amber-800 mb-0.5 font-sans">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-800 mb-0.5 font-sans">
                 {(product as any).fabric.name}
               </p>
             )}
             <h4
-              className="text-xs md:text-sm font-light tracking-wide line-clamp-1 cursor-pointer hover:text-amber-800 transition-colors min-h-[44px] flex items-center touch-manipulation active:scale-95"
+              className="text-sm font-light tracking-wide line-clamp-1 cursor-pointer hover:text-amber-800 transition-colors flex items-center"
               onClick={handleProductClick}
             >
               {product.name}
             </h4>
           </div>
-          <Button
-            className={`transition-colors p-2 min-h-[44px] min-w-[44px] touch-manipulation active:scale-95 ${
+          <button
+            className={`transition-colors ${
               isWishlisted
                 ? "text-red-500 hover:text-red-700"
                 : "text-stone-500 hover:text-red-700"
@@ -125,7 +125,6 @@ export default function ProductCard({
                 onWishlistToggle?.(product);
               }
             }}
-            variant={"link"}
             disabled={disabled}
           >
             <Heart
@@ -133,9 +132,9 @@ export default function ProductCard({
               strokeWidth={1.2}
               fill={isWishlisted ? "currentColor" : "none"}
             />
-          </Button>
+          </button>
         </div>
-        <p className="text-xs md:text-sm font-bold font-sans tracking-tight">
+        <p className="text-sm font-bold font-sans tracking-tight">
           ₹{product.price}
         </p>
       </div>

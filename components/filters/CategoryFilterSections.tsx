@@ -1,5 +1,5 @@
-import { CategoryWithSubcategories, Color, Fabric } from "@/shared";
 import { Checkbox } from "@/components/ui/checkbox";
+import { CategoryWithSubcategories, Color, Fabric } from "@/shared";
 
 interface CategoryFilterSectionsProps {
   categoryName: string;
@@ -34,14 +34,10 @@ export default function CategoryFilterSections({
 }: CategoryFilterSectionsProps) {
   return (
     <div className="space-y-6">
-      {/* Current Category & Subcategories */}
       <div>
-        {/* <h4 className="text-lg font-medium text-gray-900 mb-3">
-          {currentCategory?.name || categoryName}
-        </h4> */}
         <h4 className="text-sm font-medium text-gray-700 mb-2">Categories</h4>
         {currentSubcategories.length > 0 ? (
-          <div className="space-y-2 max-h-48 overflow-y-auto">
+          <div className="space-y-2 overflow-y-auto">
             {currentSubcategories.map((subcategory) => (
               <div key={subcategory.id}>
                 <label className="flex items-center cursor-pointer">
@@ -70,10 +66,9 @@ export default function CategoryFilterSections({
         )}
       </div>
 
-      {/* Colors */}
       <div>
         <h4 className="text-sm font-medium text-gray-700 mb-2">Colors</h4>
-        <div className="space-y-2 max-h-32 overflow-y-auto">
+        <div className="space-y-2 overflow-y-auto">
           {colors.map((color) => (
             <label key={color.id} className="flex items-center cursor-pointer">
               <Checkbox
@@ -98,10 +93,9 @@ export default function CategoryFilterSections({
         </div>
       </div>
 
-      {/* Fabrics */}
       <div>
         <h4 className="text-sm font-medium text-gray-700 mb-2">Fabrics</h4>
-        <div className="space-y-2 max-h-32 overflow-y-auto">
+        <div className="space-y-2 overflow-y-auto">
           {fabrics.map((fabric) => (
             <label key={fabric.id} className="flex items-center cursor-pointer">
               <Checkbox
@@ -120,7 +114,6 @@ export default function CategoryFilterSections({
         </div>
       </div>
 
-      {/* Special Filters */}
       <div>
         <h4 className="text-sm font-medium text-gray-700 mb-2">Special</h4>
         <div className="space-y-2">

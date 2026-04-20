@@ -42,7 +42,7 @@ export default function ShopCategories() {
           </div>
           <Link
             href="/categories"
-            className="inline-flex items-center text-[10px] font-bold uppercase tracking-[0.2em] border-b border-black pb-2 transition-all min-h-[44px] touch-manipulation active:scale-95"
+            className="inline-flex items-center text-[10px] font-bold uppercase tracking-[0.2em] border-b border-black pb-2 transition-all  touch-manipulation active:scale-95"
           >
             <span>View All</span>
             <ArrowRight className="ml-2 h-4 w-4" />

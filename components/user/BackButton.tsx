@@ -24,7 +24,7 @@ export default function BackButton({ href = '/my', label = 'Back to Profile' }: 
     <Button
       variant="outline"
       onClick={handleBack}
-      className="mb-6 lg:hidden min-h-[44px] touch-manipulation active:scale-95 transition-transform"
+      className="mb-6 lg:hidden  touch-manipulation active:scale-95 transition-transform"
     >
       <ArrowLeft className="w-4 h-4 mr-2" />
       {label}
