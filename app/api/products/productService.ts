@@ -59,17 +59,6 @@ export class RoleBasedProductService {
       );
   }
 
-  // Helper method to fetch sale product mappings (optimized)
-  private async getSaleProductMappings(saleIds?: string[]) {
-    if (saleIds && saleIds.length > 0) {
-      return await db
-        .select()
-        .from(saleProducts)
-        .where(inArray(saleProducts.saleId, saleIds));
-    }
-    return await db.select().from(saleProducts);
-  }
-
   // Helper method to resolve names to IDs for categories
   private async resolveCategoryNames(names: string[]) {
     if (!names.length) return [];
@@ -107,7 +96,7 @@ export class RoleBasedProductService {
       .from(subcategories)
       .where(or(...conditions));
 
-    
+
     return result.map((s) => s.id);
   }
 
@@ -123,7 +112,7 @@ export class RoleBasedProductService {
       .from(colors)
       .where(or(...conditions));
 
-    
+
     return result.map((c) => c.id);
   }
 
@@ -143,63 +132,6 @@ export class RoleBasedProductService {
     console.log("Fabric lookup - Found fabrics:", result);
 
     return result.map((f) => f.id);
-  }
-
-  // Helper method to find applicable sale for a product
-  private findApplicableSale(
-    productId: string,
-    categoryId: string | null,
-    activeSales: any[],
-    saleProductMappings: any[],
-    subcategoryId: string | null = null,
-  ) {
-    // Check for product-specific sale
-    const productSaleMapping = saleProductMappings.find(
-      (sp) => sp.productId === productId,
-    );
-    let applicableSale = null;
-    if (productSaleMapping) {
-      applicableSale = activeSales.find(
-        (s) => s.id === productSaleMapping.saleId,
-      );
-    }
-
-    // Check for subcategory-wide sale if no product-specific sale
-    if (!applicableSale && subcategoryId) {
-      applicableSale = activeSales.find(
-        (s) =>
-          s.subcategoryId === subcategoryId &&
-          !saleProductMappings.some(
-            (sp) => sp.saleId === s.id && sp.productId === productId,
-          ),
-      );
-    }
-
-    // Check for category-wide sale if no product-specific or subcategory sale
-    if (!applicableSale && categoryId) {
-      applicableSale = activeSales.find(
-        (s) =>
-          s.categoryId === categoryId &&
-          !saleProductMappings.some(
-            (sp) => sp.saleId === s.id && sp.productId === productId,
-          ),
-      );
-    }
-
-    return applicableSale;
-  }
-
-  // Helper method to construct active sale object
-  private constructActiveSaleObject(applicableSale: any) {
-    return applicableSale
-      ? {
-        id: applicableSale.id,
-        name: applicableSale.name,
-        offerType: applicableSale.offerType,
-        discountValue: applicableSale.discountValue,
-        maxDiscount: applicableSale.maxDiscount || undefined,
-      }
-      : null;
   }
 
   private async resolveCategoryAndSubcategoryIds(categoryIds: string[]) {
@@ -368,16 +300,16 @@ export class RoleBasedProductService {
       const fabricIds = filters.fabrics?.length ? await this.resolveFabricNames(filters.fabrics) : [];
 
       // Get subcategories from categories only if no specific subcategories are selected
-      const categorySubcategoryIds = (categoryIds.length > 0 && subcategoryIds.length === 0) 
-        ? await this.resolveCategoryAndSubcategoryIds(categoryIds) 
+      const categorySubcategoryIds = (categoryIds.length > 0 && subcategoryIds.length === 0)
+        ? await this.resolveCategoryAndSubcategoryIds(categoryIds)
         : [];
 
       // Use specific subcategories if provided, otherwise use category subcategories
-      const allSubcategoryIds = subcategoryIds.length > 0 
-        ? subcategoryIds 
+      const allSubcategoryIds = subcategoryIds.length > 0
+        ? subcategoryIds
         : categorySubcategoryIds;
 
-      
+
       if (allSubcategoryIds.length) {
         conditions.push(inArray(products.subcategoryId, allSubcategoryIds));
       }
@@ -480,16 +412,17 @@ export class RoleBasedProductService {
       results = results.map(product => {
         const basePrice = Number(product.price);
 
-        // Use proper sale finding logic with priority handling
-        const applicableSale = this.findApplicableSale(
-          product.id,
-          product.categoryId,
-          activeSales,
-          saleMappings,
-          product.subcategoryId
-        );
+        let sale = null;
 
-        const sale = this.constructActiveSaleObject(applicableSale);
+        if (productSaleMap.has(product.id)) {
+          sale = activeSales.find(
+            s => s.id === productSaleMap.get(product.id)
+          );
+        } else if (product.categoryId) {
+          sale = activeSales.find(
+            s => s.categoryId === product.categoryId
+          );
+        }
 
         const discountedPrice = sale
           ? this.calculateDiscountedPrice(basePrice, sale)

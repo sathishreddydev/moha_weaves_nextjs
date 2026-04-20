@@ -247,7 +247,6 @@ export default function CollectionsClient({
     },
     [isInWishlist, removeFromWishlist, addToWishlist],
   );
-
   return (
     <div className="min-h-screen bg-gray-50 max-w-7xl mx-auto lg:px-10 px-5 pt-6 pb-12 space-y-6">
       <div className="flex flex-col lg:flex-row gap-8">
