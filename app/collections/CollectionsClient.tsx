@@ -92,7 +92,7 @@ export default function CollectionsClient({
       if (filters.minPrice || filters.maxPrice) {
         params.set(
           "price",
-          `${filters.minPrice || ""}-${filters.maxPrice || ""}`,
+          `${filters.minPrice || 100}-${filters.maxPrice || 50000}`,
         );
       }
       if (filters.search) {
@@ -195,6 +195,17 @@ export default function CollectionsClient({
     [handleFilterChange],
   );
 
+  // Handle price range filter
+  const handlePriceRangeChange = useCallback(
+    (priceRange: [number, number]) => {
+      handleFilterChange({ 
+        minPrice: priceRange[0] === 100 ? undefined : priceRange[0],
+        maxPrice: priceRange[1] === 50000 ? undefined : priceRange[1]
+      });
+    },
+    [handleFilterChange],
+  );
+
   // Handle clear all filters
   const handleClearAllFilters = useCallback(() => {
     setIsApplyingFilters(true);
@@ -267,6 +278,7 @@ export default function CollectionsClient({
                 onColorChange={handleColorChange}
                 onFabricChange={handleFabricChange}
                 onToggleFilter={handleToggleFilter}
+                onPriceRangeChange={handlePriceRangeChange}
               />
             </div>
           </div>
@@ -324,6 +336,7 @@ export default function CollectionsClient({
                     onColorChange={handleColorChange}
                     onFabricChange={handleFabricChange}
                     onToggleFilter={handleToggleFilter}
+                    onPriceRangeChange={handlePriceRangeChange}
                   />
                 </div>
               </DrawerContent>

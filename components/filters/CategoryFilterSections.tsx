@@ -1,4 +1,5 @@
 import { Checkbox } from "@/components/ui/checkbox";
+import { PriceRangeSlider } from "@/components/ui/price-range-slider";
 import { CategoryWithSubcategories, Color, Fabric } from "@/shared";
 
 interface CategoryFilterSectionsProps {
@@ -13,11 +14,15 @@ interface CategoryFilterSectionsProps {
     fabrics?: string[];
     featured?: boolean;
     onSale?: boolean;
+    priceRange?: [number, number];
+    minPrice?: number;
+    maxPrice?: number;
   };
   onSubcategoryChange: (subcategory: string, checked: boolean) => void;
   onColorChange: (color: string, checked: boolean) => void;
   onFabricChange: (fabric: string, checked: boolean) => void;
   onToggleFilter: (filterType: "featured" | "onSale", checked: boolean) => void;
+  onPriceRangeChange?: (priceRange: [number, number]) => void;
 }
 
 export default function CategoryFilterSections({
@@ -31,6 +36,7 @@ export default function CategoryFilterSections({
   onColorChange,
   onFabricChange,
   onToggleFilter,
+  onPriceRangeChange,
 }: CategoryFilterSectionsProps) {
   return (
     <div className="space-y-6">
@@ -112,6 +118,20 @@ export default function CategoryFilterSections({
             </label>
           ))}
         </div>
+      </div>
+
+      <div>
+        <h4 className="text-sm font-medium text-gray-700 mb-2">Price Range</h4>
+        <PriceRangeSlider
+          min={100}
+          max={50000}
+          step={100}
+          value={currentFilters.priceRange || [
+            currentFilters.minPrice || 100,
+            currentFilters.maxPrice || 50000
+          ]}
+          onValueChange={onPriceRangeChange || (() => {})}
+        />
       </div>
 
       <div>

@@ -151,6 +151,7 @@ export class RoleBasedProductService {
     categoryId: string | null,
     activeSales: any[],
     saleProductMappings: any[],
+    subcategoryId: string | null = null,
   ) {
     // Check for product-specific sale
     const productSaleMapping = saleProductMappings.find(
@@ -163,7 +164,18 @@ export class RoleBasedProductService {
       );
     }
 
-    // Check for category-wide sale if no product-specific sale
+    // Check for subcategory-wide sale if no product-specific sale
+    if (!applicableSale && subcategoryId) {
+      applicableSale = activeSales.find(
+        (s) =>
+          s.subcategoryId === subcategoryId &&
+          !saleProductMappings.some(
+            (sp) => sp.saleId === s.id && sp.productId === productId,
+          ),
+      );
+    }
+
+    // Check for category-wide sale if no product-specific or subcategory sale
     if (!applicableSale && categoryId) {
       applicableSale = activeSales.find(
         (s) =>
@@ -468,17 +480,16 @@ export class RoleBasedProductService {
       results = results.map(product => {
         const basePrice = Number(product.price);
 
-        let sale = null;
+        // Use proper sale finding logic with priority handling
+        const applicableSale = this.findApplicableSale(
+          product.id,
+          product.categoryId,
+          activeSales,
+          saleMappings,
+          product.subcategoryId
+        );
 
-        if (productSaleMap.has(product.id)) {
-          sale = activeSales.find(
-            s => s.id === productSaleMap.get(product.id)
-          );
-        } else if (product.categoryId) {
-          sale = activeSales.find(
-            s => s.categoryId === product.categoryId
-          );
-        }
+        const sale = this.constructActiveSaleObject(applicableSale);
 
         const discountedPrice = sale
           ? this.calculateDiscountedPrice(basePrice, sale)
