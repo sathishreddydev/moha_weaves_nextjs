@@ -24,10 +24,10 @@ const MobileButton = forwardRef<HTMLButtonElement, MobileButtonProps>(
     ...props 
   }, ref) => {
     const sizeClasses = {
-      sm: "h-10 px-4 text-sm min-h-[44px]",
-      default: "h-12 px-6 text-base min-h-[48px]",
-      lg: "h-14 px-8 text-lg min-h-[52px]",
-      xl: "h-16 px-10 text-xl min-h-[56px]",
+      sm: "h-10 px-4 text-sm ",
+      default: "h-12 px-6 text-base ",
+      lg: "h-14 px-8 text-lg ",
+      xl: "h-16 px-10 text-xl ",
     };
 
     // Map our custom sizes to Button component sizes

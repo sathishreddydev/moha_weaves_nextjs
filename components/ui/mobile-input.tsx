@@ -34,7 +34,7 @@ const MobileInput = forwardRef<HTMLInputElement, MobileInputProps>(
           autoComplete={autoComplete}
           className={cn(
             // Mobile-optimized styles
-            "min-h-[48px] text-base touch-manipulation",
+            " text-base touch-manipulation",
             // Prevent zoom on iOS
             "font-size-16px",
             // Focus styles for mobile
