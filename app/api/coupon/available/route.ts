@@ -17,15 +17,13 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const orderAmount = searchParams.get('orderAmount');
 
-    // Get all active coupons
-    const availableCoupons = await couponsService.getAvailableCoupons(
+    // Get coupons with usage status
+    const couponsData = await couponsService.getCouponsWithUsageStatus(
       session.user.id,
       orderAmount ? parseFloat(orderAmount) : undefined
     );
 
-    return NextResponse.json({
-      coupons: availableCoupons
-    });
+    return NextResponse.json(couponsData);
 
   } catch (error) {
     console.error("Get available coupons error:", error);

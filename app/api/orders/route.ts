@@ -64,29 +64,23 @@ export async function POST(req: NextRequest) {
         let validCoupon = null;
 
         if (couponId) {
-            const coupon = await couponsService.getCoupon(couponId);
-
-            if (coupon && coupon.isActive) {
-                validCoupon = coupon;
-
-                if (coupon.type === "percentage") {
-                    discountAmount = (totalAmount * parseFloat(coupon.value)) / 100;
-
-                    if (coupon.maxDiscount) {
-                        discountAmount = Math.min(
-                            discountAmount,
-                            parseFloat(coupon.maxDiscount)
-                        );
-                    }
-                } else {
-                    discountAmount = parseFloat(coupon.value);
-                }
+            const validation = await couponsService.validateCoupon(couponId, session.user.id, totalAmount);
+            
+            if (!validation.isValid) {
+                return NextResponse.json(
+                    { message: validation.message || "Invalid coupon" },
+                    { status: 400 }
+                );
             }
+            
+            validCoupon = validation.coupon;
+            discountAmount = validation.discountAmount || 0;
         }
 
         const finalAmount = totalAmount - discountAmount;
 
-        const order = await orderService.createOrder(
+
+        const order = await couponsService.createOrderWithCoupon(
             {
                 userId: session.user.id,
                 totalAmount: totalAmount.toString(),
@@ -113,23 +107,29 @@ export async function POST(req: NextRequest) {
                     quantity: item.quantity,
                     price: effectivePrice.toString(),
                 };
-            })
+            }),
+            validCoupon?.id,
+            session.user.id,
+            discountAmount.toString()
         );
-
-        if (validCoupon && discountAmount > 0) {
-            await couponsService.applyCoupon(
-                validCoupon.id,
-                session.user.id,
-                order.id,
-                discountAmount.toString()
-            );
-        }
 
         await cartServices.clearCart(session.user.id);
 
         return NextResponse.json({ orderId: order.id });
 
-    } catch {
+    } catch (error) {
+        console.error("Order creation error:", error);
+        
+        // Handle specific database constraint violations
+        if (error && typeof error === 'object' && 'code' in error) {
+            if (error.code === '23505') { // Unique constraint violation
+                return NextResponse.json(
+                    { message: "Coupon has already been used" },
+                    { status: 400 }
+                );
+            }
+        }
+        
         return NextResponse.json(
             { message: "Failed to place order" },
             { status: 500 }

@@ -25,6 +25,24 @@ export class DatabaseStorage {
         });
     }
 
+    async itemHistoryWithTransaction(
+        trx: any,
+        orderItemId: string,
+        currentStatus: string,
+        newStatus: string,
+        note: string,
+        updatedBy?: string,
+    ): Promise<void> {
+        await trx.insert(itemStatusHistory).values({
+            orderItemId,
+            status: currentStatus,
+            newStatus,
+            note,
+            updatedBy,
+            createdAt: new Date(),
+        });
+    }
+
     async getSetting(key: string): Promise<string | null> {
         const [result] = await db
             .select()

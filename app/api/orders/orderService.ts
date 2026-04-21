@@ -87,10 +87,20 @@ export class OrderRepository implements OrderStorage {
     order: InsertOrder,
     items: Omit<InsertOrderItem, "orderId">[]
   ): Promise<Order> {
+    return await db.transaction(async (trx) => {
+      return await this.createOrderWithTransaction(trx, order, items);
+    });
+  }
+
+  async createOrderWithTransaction(
+    trx: any,
+    order: InsertOrder,
+    items: Omit<InsertOrderItem, "orderId">[]
+  ): Promise<Order> {
     // Generate order ID
     const orderId = await IdGenerator.generateOrderId();
 
-    const [newOrder] = await db.insert(orders).values({
+    const [newOrder] = await trx.insert(orders).values({
       ...order,
       id: orderId,
     }).returning();
@@ -99,7 +109,7 @@ export class OrderRepository implements OrderStorage {
     for (const item of items) {
       const itemId = IdGenerator.generateItemIdFromOrder(orderId, itemIndex - 1);
 
-      const [newOrderItem] = await db.insert(orderItems).values({
+      const [newOrderItem] = await trx.insert(orderItems).values({
         ...item,
         id: itemId,
         orderId: newOrder.id,
@@ -107,7 +117,8 @@ export class OrderRepository implements OrderStorage {
       }).returning();
 
       // Create initial item status history
-      await storage.itemHistory(
+      await storage.itemHistoryWithTransaction(
+        trx,
         newOrderItem.id,
         "pending",
         "pending",

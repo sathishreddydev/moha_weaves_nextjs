@@ -5,34 +5,31 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/formatters";
-import { Tag, Calendar, Percent, DollarSign, Truck, Search } from "lucide-react";
+import { Tag, Calendar, Search } from "lucide-react";
 import { toast } from "sonner";
 import AllCouponsModal from "./AllCouponsModal";
-
-interface Coupon {
-  id: string;
-  code: string;
-  name: string;
-  description?: string;
-  type: "percentage" | "fixed" | "free_shipping";
-  value: string;
-  minOrderAmount?: string;
-  maxDiscount?: string;
-  usageLimit?: number;
-  usedCount: number;
-  perUserLimit?: number;
-  validFrom: string;
-  validUntil: string;
-  createdAt: string;
-}
+import {
+  Coupon,
+  getCouponDisplay,
+  getCouponIcon,
+  getCouponColor,
+  isExpiringSoon,
+  getCouponStatus,
+  getCouponStatusBadge,
+  getDiscountValue,
+} from "./couponUtils";
 
 interface AvailableCouponsProps {
   orderAmount: number;
   onCouponSelect: (couponCode: string) => void;
 }
 
-export default function AvailableCoupons({ orderAmount, onCouponSelect }: AvailableCouponsProps) {
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
+export default function AvailableCoupons({
+  orderAmount,
+  onCouponSelect,
+}: AvailableCouponsProps) {
+  const [availableCoupons, setAvailableCoupons] = useState<Coupon[]>([]);
+  const [usedCoupons, setUsedCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAllModal, setShowAllModal] = useState(false);
 
@@ -43,15 +40,20 @@ export default function AvailableCoupons({ orderAmount, onCouponSelect }: Availa
   const fetchAvailableCoupons = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/coupon/available?orderAmount=${orderAmount}`);
-      
+      const response = await fetch(
+        `/api/coupon/available?orderAmount=${orderAmount}`,
+      );
+
       if (!response.ok) {
         throw new Error("Failed to fetch coupons");
       }
 
       const data = await response.json();
-      const sortedCoupons = sortCouponsByBest(data.coupons || []);
-      setCoupons(sortedCoupons);
+      const sortedAvailable = sortCouponsByBest(data.available || []);
+      const sortedUsed = sortCouponsByBest(data.used || []);
+
+      setAvailableCoupons(sortedAvailable);
+      setUsedCoupons(sortedUsed);
     } catch (error) {
       console.error("Error fetching coupons:", error);
       // Don't show error toast for this, it's not critical
@@ -79,7 +81,10 @@ export default function AvailableCoupons({ orderAmount, onCouponSelect }: Availa
     });
   };
 
-  const getDiscountValue = (coupon: Coupon, currentOrderAmount: number): number => {
+  const getDiscountValue = (
+    coupon: Coupon,
+    currentOrderAmount: number,
+  ): number => {
     if (coupon.type === "percentage") {
       return (currentOrderAmount * Number(coupon.value)) / 100;
     } else if (coupon.type === "fixed") {
@@ -94,53 +99,7 @@ export default function AvailableCoupons({ orderAmount, onCouponSelect }: Availa
     onCouponSelect(couponCode);
   };
 
-  const getCouponDisplay = (coupon: Coupon) => {
-    switch (coupon.type) {
-      case "percentage":
-        return `${coupon.value}% OFF`;
-      case "fixed":
-        return `₹${coupon.value} OFF`;
-      case "free_shipping":
-        return "FREE SHIPPING";
-      default:
-        return coupon.value;
-    }
-  };
-
-  const getCouponIcon = (type: string) => {
-    switch (type) {
-      case "percentage":
-        return <Percent className="h-4 w-4" />;
-      case "fixed":
-        return <DollarSign className="h-4 w-4" />;
-      case "free_shipping":
-        return <Truck className="h-4 w-4" />;
-      default:
-        return <Tag className="h-4 w-4" />;
-    }
-  };
-
-  const getCouponColor = (type: string) => {
-    switch (type) {
-      case "percentage":
-        return "bg-blue-100 text-blue-800";
-      case "fixed":
-        return "bg-green-100 text-green-800";
-      case "free_shipping":
-        return "bg-purple-100 text-purple-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const isExpiringSoon = (validUntil: string) => {
-    const expiryDate = new Date(validUntil);
-    const now = new Date();
-    const diffTime = expiryDate.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays <= 3;
-  };
-
+  
   if (loading) {
     return (
       <Card>
@@ -163,26 +122,33 @@ export default function AvailableCoupons({ orderAmount, onCouponSelect }: Availa
     );
   }
 
-  if (coupons.length === 0) {
+  const allCoupons = [...availableCoupons, ...usedCoupons];
+  if (availableCoupons.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Tag className="h-5 w-5" />
-            Available Coupons
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-500 text-center py-4">
-            No coupons available at the moment
-          </p>
-        </CardContent>
-      </Card>
+      <>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Tag className="h-5 w-5" />
+              Available Coupons
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-500 text-center py-4">
+              No coupons available at the moment
+            </p>
+          </CardContent>
+        </Card>
+      </>
     );
   }
 
-  const bestCoupon = coupons[0]; // First coupon is the best after sorting
-  const hasMoreCoupons = coupons.length > 1;
+  const bestCoupon = availableCoupons[0]; // First available coupon is the best
+  const hasMoreCoupons = allCoupons.length > 1;
+
+  // Get coupon status for best coupon
+  const bestCouponStatus = getCouponStatus(bestCoupon, usedCoupons, orderAmount);
+  const isBestCouponDisabled = bestCouponStatus !== "available";
 
   return (
     <>
@@ -211,13 +177,17 @@ export default function AvailableCoupons({ orderAmount, onCouponSelect }: Availa
                     🏆 Best Deal
                   </Badge>
                 </div>
-                
-                <h4 className="font-medium text-gray-900 mb-1">{bestCoupon.name}</h4>
-                
+
+                <h4 className="font-medium text-gray-900 mb-1">
+                  {bestCoupon.name}
+                </h4>
+
                 {bestCoupon.description && (
-                  <p className="text-sm text-gray-600 mb-2">{bestCoupon.description}</p>
+                  <p className="text-sm text-gray-600 mb-2">
+                    {bestCoupon.description}
+                  </p>
                 )}
-                
+
                 <div className="flex items-center gap-4 text-xs text-gray-500">
                   <span className="flex items-center gap-1">
                     <Tag className="h-3 w-3" />
@@ -233,13 +203,20 @@ export default function AvailableCoupons({ orderAmount, onCouponSelect }: Availa
                   )}
                 </div>
               </div>
-              
+
               <Button
                 size="sm"
-                onClick={() => handleApplyCoupon(bestCoupon.code)}
-                className="ml-3 flex-shrink-0"
+                onClick={() =>
+                  !isBestCouponDisabled && handleApplyCoupon(bestCoupon.code)
+                }
+                disabled={isBestCouponDisabled}
+                className={`ml-3 flex-shrink-0 ${
+                  isBestCouponDisabled
+                    ? "bg-gray-100 text-gray-500 hover:bg-gray-100 cursor-not-allowed"
+                    : ""
+                }`}
               >
-                Apply
+                {isBestCouponDisabled ? "Unavailable" : "Apply"}
               </Button>
             </div>
           </div>
@@ -252,7 +229,7 @@ export default function AvailableCoupons({ orderAmount, onCouponSelect }: Availa
                 className="w-full"
               >
                 <Search className="h-4 w-4 mr-2" />
-                See All Coupons ({coupons.length})
+                See All Coupons ({allCoupons.length})
               </Button>
             </div>
           )}
@@ -263,7 +240,9 @@ export default function AvailableCoupons({ orderAmount, onCouponSelect }: Availa
       <AllCouponsModal
         isOpen={showAllModal}
         onClose={() => setShowAllModal(false)}
-        coupons={coupons}
+        coupons={allCoupons}
+        availableCoupons={availableCoupons}
+        usedCoupons={usedCoupons}
         onCouponSelect={handleApplyCoupon}
         orderAmount={orderAmount}
       />

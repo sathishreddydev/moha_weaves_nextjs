@@ -9,6 +9,7 @@ import { db } from "@/lib/db";
 import { orders } from "@/shared";
 import { eq } from "drizzle-orm";
 import { calculatePricing, getEffectivePrice } from "@/lib/pricing-utils";
+import { couponsService } from "../coupon/couponsService";
 
 export async function POST(req: NextRequest) {
     try {
@@ -86,8 +87,8 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Create order (stock already deducted)
-        const order = await orderService.createOrder(
+        // Create order (stock already deducted) with coupon usage tracking
+        const order = await couponsService.createOrderWithCoupon(
             {
                 userId: user.id,
                 totalAmount: pricing.subtotal.toString(),
@@ -106,7 +107,10 @@ export async function POST(req: NextRequest) {
                 productId: item.productId,
                 quantity: item.quantity,
                 price: getEffectivePrice(item.product).toString(),
-            }))
+            })),
+            couponId,
+            user.id,
+            pricing.discountAmount.toString()
         );
 
         // Clear cart only after successful order creation
