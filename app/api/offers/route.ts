@@ -6,9 +6,9 @@ import { and, desc, eq, gte, lte } from "drizzle-orm";
 export async function GET() {
   try {
     const now = new Date();
-    
-    // Get active sales/offers from database
-    const activeSales = await db
+
+    // ✅ Fetch ALL offers
+    const allSales = await db
       .select({
         id: sales.id,
         name: sales.name,
@@ -23,42 +23,68 @@ export async function GET() {
         isActive: sales.isActive,
         isFeatured: sales.isFeatured,
         bannerImage: sales.bannerImage,
-        categoryName: categories.name
+        categoryName: categories.name,
+        createdAt: sales.createdAt,
       })
       .from(sales)
       .leftJoin(categories, eq(categories.id, sales.categoryId))
-      .where(
-        and(
-          eq(sales.isActive, true),
-          gte(sales.validUntil, now),
-          lte(sales.validFrom, now)
-        )
-      )
       .orderBy(desc(sales.isFeatured), desc(sales.createdAt));
 
-    // Get the highest priority offer (featured first)
-    const currentOffer = activeSales.length > 0 ? activeSales[0] : null;
+    // ✅ Split active / inactive
+    const activeSales = allSales.filter(
+      (o) =>
+        o.isActive &&
+        new Date(o.validFrom) <= now &&
+        new Date(o.validUntil) >= now
+    );
 
-    // Format the offer for banner display
-    const formattedOffer = currentOffer ? {
-      id: currentOffer.id,
-      title: formatOfferTitle(currentOffer),
-      description: currentOffer.description || formatOfferDescription(currentOffer),
-      backgroundColor: getOfferBackgroundColor(currentOffer.offerType),
+    const inactiveSales = allSales.filter(
+      (o) =>
+        !o.isActive ||
+        new Date(o.validFrom) > now ||
+        new Date(o.validUntil) < now
+    );
+
+    // ✅ Pick best offer (featured already sorted)
+    const currentOffer = activeSales?.[0] || null;
+
+    // ✅ Formatter
+    const formatOffer = (offer: any) => ({
+      id: offer.id,
+      title: formatOfferTitle(offer),
+      description:
+        offer.description || formatOfferDescription(offer),
+      backgroundColor: getOfferBackgroundColor(offer.offerType),
       textColor: "#ffffff",
-      link: currentOffer.categoryId ? `/collections/${currentOffer.categoryName?.toLowerCase()}` : null,
-      isActive: currentOffer.isActive,
-      priority: currentOffer.isFeatured ? 1 : 2
-    } : null;
-
-    return NextResponse.json({
-      offer: formattedOffer,
-      hasOffer: !!formattedOffer,
-      totalActiveOffers: activeSales.length
+      link:
+        offer.categoryId && offer.categoryName
+          ? `/collections/${offer.categoryName.toLowerCase()}`
+          : null,
+      isActive: offer.isActive,
+      isFeatured: offer.isFeatured,
+      validFrom: offer.validFrom,
+      validUntil: offer.validUntil,
     });
 
+    const formattedOffer = currentOffer
+      ? formatOffer(currentOffer)
+      : null;
+
+    return NextResponse.json({
+      // ✅ single banner
+      offer: formattedOffer,
+
+      // ✅ lists
+      activeOffers: activeSales.map(formatOffer),
+      inactiveOffers: inactiveSales.map(formatOffer),
+
+      hasOffer: Boolean(formattedOffer),
+      totalActiveOffers: activeSales.length,
+      totalOffers: allSales.length,
+    });
   } catch (error) {
     console.error("Error fetching offers:", error);
+
     return NextResponse.json(
       { message: "Failed to fetch offers" },
       { status: 500 }
@@ -84,17 +110,17 @@ function formatOfferTitle(sale: any): string {
 function formatOfferDescription(sale: any): string {
   switch (sale.offerType) {
     case 'percentage':
-      return sale.minOrderAmount 
+      return sale.minOrderAmount
         ? `Get ${sale.discountValue}% off on orders above ¥${sale.minOrderAmount}`
         : `Get ${sale.discountValue}% off on selected items`;
     case 'flat':
-      return sale.minOrderAmount 
+      return sale.minOrderAmount
         ? `Flat ¥${sale.discountValue} off on orders above ¥${sale.minOrderAmount}`
         : `Flat ¥${sale.discountValue} off on selected items`;
     case 'flash_sale':
       return `Limited time offer - Don't miss out!`;
     case 'category':
-      return sale.categoryName 
+      return sale.categoryName
         ? `Special discounts on ${sale.categoryName}`
         : `Special discounts on selected categories`;
     default:
@@ -103,16 +129,17 @@ function formatOfferDescription(sale: any): string {
 }
 
 function getOfferBackgroundColor(offerType: string): string {
-  switch (offerType) {
-    case 'percentage':
-      return '#ef4444'; // red
-    case 'flat':
-      return '#3b82f6'; // blue  
-    case 'flash_sale':
-      return '#f59e0b'; // amber
-    case 'category':
-      return '#10b981'; // green
-    default:
-      return '#6b7280'; // gray
-  }
+  return '#991b1b';
+  // switch (offerType) {
+  //   case 'percentage':
+  //     return '#ef4444'; // red
+  //   case 'flat':
+  //     return '#3b82f6'; // blue  
+  //   case 'flash_sale':
+  //     return '#f59e0b'; // amber
+  //   case 'category':
+  //     return '#10b981'; // green
+  //   default:
+  //     return '#6b7280'; // gray
+  // }
 }

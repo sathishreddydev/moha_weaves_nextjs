@@ -179,8 +179,8 @@ export default function Header() {
                 >
                   <Heart className="w-6 h-6 lg:w-5 lg:h-5" />
                   {wishlistCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                      {wishlistCount > 99 ? "99+" : wishlistCount}
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] rounded-full h-3 w-3 flex items-center justify-center">
+                      {wishlistCount > 9 ? "9+" : wishlistCount}
                     </span>
                   )}
                 </button>
@@ -192,8 +192,8 @@ export default function Header() {
                 >
                   <ShoppingBag className="w-6 h-6 lg:w-5 lg:h-5" />
                   {cartCount > 0 && (
-                    <span className="absolute -top-3 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                      {cartCount > 99 ? "99+" : cartCount}
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] rounded-full h-3 w-3 flex items-center justify-center">
+                      {cartCount > 9 ? "9+" : cartCount}
                     </span>
                   )}
                 </button>

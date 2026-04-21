@@ -35,20 +35,22 @@ export default function HeroSection() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') {
+      if (e.key === "ArrowLeft") {
         e.preventDefault();
-        setActiveIndex((prev) => (prev - 1 + categoriesData.length) % categoriesData.length);
-      } else if (e.key === 'ArrowRight') {
+        setActiveIndex(
+          (prev) => (prev - 1 + categoriesData.length) % categoriesData.length,
+        );
+      } else if (e.key === "ArrowRight") {
         e.preventDefault();
         setActiveIndex((prev) => (prev + 1) % categoriesData.length);
-      } else if (e.key === ' ') {
+      } else if (e.key === " ") {
         e.preventDefault();
-        setIsPaused(prev => !prev);
+        setIsPaused((prev) => !prev);
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [categoriesData.length]);
 
   const scrollToContent = () => {
@@ -59,7 +61,9 @@ export default function HeroSection() {
   const handleSubcategoryClick = (category: any, subcategory: any) => {
     const params = new URLSearchParams();
     params.set("subcategories", subcategory.name.toLowerCase());
-    router.push(`/collections/${encodeURIComponent(category.name)}?${params.toString()}`);
+    router.push(
+      `/collections/${encodeURIComponent(category.name)}?${params.toString()}`,
+    );
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -181,7 +185,7 @@ export default function HeroSection() {
                     handleSubcategoryClick(categoriesData[activeIndex], sub)
                   }
                   style={{ animationDelay: `${sIdx * 100}ms` }}
-                  className="group bg-white/10 backdrop-blur-md border border-white/20 px-4 md:px-6 py-3 md:py-4 rounded-full flex items-center gap-3 md:gap-4 hover:bg-white hover:text-black transition-all duration-500 animate-in fade-in slide-in-from-bottom-4"
+                  className="group bg-white/10 backdrop-blur-md border border-white/20 px-4 md:px-6 py-3 md:py-4 rounded-full flex items-center gap-3 md:gap-4 text-white hover:bg-white hover:text-black transition-all duration-500 animate-in fade-in slide-in-from-bottom-4"
                 >
                   <div className="text-left">
                     <p className="text-[8px] md:text-[10px] uppercase tracking-widest opacity-60 group-hover:opacity-100">
@@ -189,8 +193,12 @@ export default function HeroSection() {
                     </p>
                     <p className="font-medium text-xs md:text-sm">{sub.name}</p>
                   </div>
+
                   <div className="w-6 h-6 md:w-8 md:h-8 rounded-full border border-white/20 flex items-center justify-center group-hover:border-black/20 group-hover:rotate-45 transition-all">
-                    <ArrowUpRight size={10} className="md:size-14" />
+                    <ArrowUpRight
+                      size={10}
+                      className="text-white group-hover:text-black w-5 h-5 md:w-10 md:h-10"
+                    />
                   </div>
                 </button>
               ),
