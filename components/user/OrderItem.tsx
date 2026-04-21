@@ -1,13 +1,14 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "../ui/button";
 import {
-  Clock,
-  Map,
-  Package,
-  RefreshCw,
-  RotateCcw,
+  MapPin,
   Star,
+  Clock,
+  Package,
+  Map,
   XCircle,
+  RotateCcw,
+  RefreshCw,
 } from "lucide-react";
 
 export function OrderItem({
@@ -54,7 +55,30 @@ export function OrderItem({
               </div>
             </div>
             <div className="text-right">
-              <p className="text-xs font-bold">₹{item.price}</p>
+              {/* Enhanced Pricing Display */}
+              {item.productPrice &&
+              item.discountedPrice &&
+              item.productPrice !== item.discountedPrice ? (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1 justify-end">
+                    <span className="text-xs text-gray-400 line-through">
+                      ₹{parseFloat(item.productPrice).toFixed(2)}
+                    </span>
+                    <span className="text-xs font-bold text-green-600">
+                      ₹{parseFloat(item.discountedPrice).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <p className="text-xs font-bold">
+                    ₹{parseFloat(item.price).toFixed(2)}
+                  </p>
+                  <div className="text-[10px] text-gray-500">
+                    Qty: {item.quantity}
+                  </div>
+                </div>
+              )}
               {item.status !== "delivered" && (
                 <button className="text-[10px] font-bold text-indigo-600 hover:underline mt-1 flex items-center gap-1">
                   <Map className="w-3 h-3" />

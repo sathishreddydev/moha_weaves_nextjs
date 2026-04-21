@@ -266,8 +266,28 @@ export class CouponsRepository implements ICouponsRepository {
     ) {
         return await db.transaction(async (trx) => {
             try {
-                // Create order first
-                const order = await orderService.createOrderWithTransaction(trx, orderData, orderItems);
+                // Get coupon details if provided
+                let couponDetails = null;
+                if (couponId) {
+                    const [coupon] = await trx
+                        .select()
+                        .from(coupons)
+                        .where(eq(coupons.id, couponId));
+                    
+                    couponDetails = coupon;
+                }
+
+                // Add coupon details to order data
+                const enhancedOrderData = {
+                    ...orderData,
+                    couponCode: couponDetails?.code || null,
+                    couponType: couponDetails?.type || null,
+                    couponValue: couponDetails?.value || null,
+                };
+
+                // Create order with coupon details
+                console.log('Passing orderItems to createOrderWithTransaction:', orderItems);
+                const order = await orderService.createOrderWithTransaction(trx, enhancedOrderData, orderItems);
                 
                 // Apply coupon if provided
                 if (couponId && userId && discountAmount && parseFloat(discountAmount) > 0) {

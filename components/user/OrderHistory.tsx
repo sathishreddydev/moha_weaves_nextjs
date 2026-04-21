@@ -126,7 +126,7 @@ export default function OrderHistory() {
       >
         <ArrowLeft className="w-6 h-6 text-gray-500" color="#1F2937" />
 
-        <h1 className="text-xl font-semibold text-gray-900">Addresses</h1>
+        <h1 className="text-xl font-semibold text-gray-900">Order History</h1>
       </div>
       <div>
         {loading ? (

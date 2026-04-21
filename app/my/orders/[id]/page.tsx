@@ -8,7 +8,7 @@ import { OrderItem } from "@/components/user/OrderItem";
 import LiveChat from "@/components/user/LiveChat";
 import ProfileSidebar from "@/components/user/ProfileSidebar";
 import ShippingAddress from "@/components/user/shippingAddress";
-import { OrderWithItems } from "@/shared";
+import { OrderWithItems, ShippingAddress as ShippingAddressType } from "@/shared";
 import {
   ArrowLeft,
   CreditCard,
@@ -20,6 +20,7 @@ import {
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { CouponBadge } from "@/components/orders/CouponBadge";
 
 export default function OrderDetailsPage() {
   const params = useParams();
@@ -265,43 +266,55 @@ function OrderDetailsContent({
         </div>
 
         {/* Content */}
-        <div className="flex justify-between gap-4">
+        <div className="space-y-4">
+          {/* Coupon Information */}
+          <CouponBadge
+            couponCode={order.couponCode}
+            couponType={order.couponType}
+            couponValue={order.couponValue}
+            discountAmount={order.discountAmount}
+            className="justify-center"
+          />
+
           {/* Order Details */}
-          <div className="flex items-center justify-between gap-4 sm:gap-8">
-            {/* Order ID */}
-            <div>
-              <p className="text-xs text-gray-500">Order ID</p>
-              <p className="font-medium text-xs"># {order.id}</p>
-            </div>
+          <div className="flex justify-between gap-4">
+            {/* Order Details */}
+            <div className="flex items-center justify-between gap-4 sm:gap-8">
+              {/* Order ID */}
+              <div>
+                <p className="text-xs text-gray-500">Order ID</p>
+                <p className="font-medium text-xs"># {order.id}</p>
+              </div>
 
-            {/* Total Amount */}
-            <div className="hidden sm:block">
-              <p className="text-xs text-gray-500">Total Amount</p>
-              <p className="font-medium text-xs">
-                ₹{parseFloat(order.finalAmount).toFixed(2)}
-              </p>
-            </div>
+              {/* Total Amount */}
+              <div className="hidden sm:block">
+                <p className="text-xs text-gray-500">Total Amount</p>
+                <p className="font-medium text-xs">
+                  ₹{parseFloat(order.finalAmount).toFixed(2)}
+                </p>
+              </div>
 
-            {/* Shipping Address */}
-            <div className="hidden sm:block">
-              <div className="max-w-xs">
-                <p className="text-xs text-gray-500">Shipping Address</p>
-                <ShippingAddress address={order.shippingAddress || ""} />
+              {/* Shipping Address */}
+              <div className="hidden sm:block">
+                <div className="max-w-xs">
+                  <p className="text-xs text-gray-500">Shipping Address</p>
+                  <ShippingAddress address={order.shippingAddress || ""} />
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Button */}
-          <div>
-            <Button
-              onClick={onDownloadInvoice}
-              variant="outline"
-              size="sm"
-              className="rounded-3xl w-full sm:w-auto flex items-center justify-center gap-2"
-            >
-              <Download className="w-4 h-4" />
-              Invoice
-            </Button>
+            {/* Button */}
+            <div>
+              <Button
+                onClick={onDownloadInvoice}
+                variant="outline"
+                size="sm"
+                className="rounded-3xl w-full sm:w-auto flex items-center justify-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Invoice
+              </Button>
+            </div>
           </div>
         </div>
       </Card>
@@ -351,6 +364,25 @@ function OrderDetailsContent({
             </span>
           </div>
           <div className="flex justify-between text-xs">
+            <span className="text-gray-600">Total Savings</span>
+            <span className="font-medium text-green-600">
+              ₹{(() => {
+                // Calculate item-level savings (difference between original price and discounted price)
+                const itemSavings = order.items.reduce((total, item) => {
+                  if (item.productPrice && item.discountedPrice) {
+                    return total + (parseFloat(item.productPrice) - parseFloat(item.discountedPrice)) * item.quantity;
+                  }
+                  return total;
+                }, 0);
+                
+                // Add coupon discount if available
+                const couponDiscount = parseFloat(order?.discountAmount || '0');
+                
+                return (itemSavings + couponDiscount).toFixed(2);
+              })()}
+            </span>
+          </div>
+          <div className="flex justify-between text-xs">
             <span className="text-gray-600">Shipping</span>
             <span className="font-medium text-green-600">FREE</span>
           </div>
@@ -375,7 +407,9 @@ function OrderDetailsContent({
             Shipping Address
           </h3>
           <div className="text-xs whitespace-pre-line">
-            {order.shippingAddress || ""}
+            {typeof order.shippingAddress === 'object' && order.shippingAddress !== null
+              ? `${(order.shippingAddress as ShippingAddressType).name || ''}\n${(order.shippingAddress as ShippingAddressType).address || ''}\n${(order.shippingAddress as ShippingAddressType).locality || ''}, ${(order.shippingAddress as ShippingAddressType).city || ''}\n${(order.shippingAddress as ShippingAddressType).pincode || ''}\n${(order.shippingAddress as ShippingAddressType).phone || ''}`.replace(/\n+/g, '\n').trim()
+              : order.shippingAddress || ""}
           </div>
         </Card>
       </div>
@@ -391,8 +425,8 @@ function OrderDetailsContent({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <span className="text-xs font-bold text-blue-600 uppercase">
-                    {order.paymentDetails.method}
+                  <span className="text-[10px] font-bold text-blue-600 uppercase leading-none">
+                    {order.paymentDetails.method?.slice(0, 2) || 'PA'}
                   </span>
                 </div>
                 <div>

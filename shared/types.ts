@@ -177,6 +177,16 @@ export type WishlistItemWithProduct = WishlistItem & {
   product: ProductWithDetails;
 };
 
+// Define shipping address object type
+export type ShippingAddress = {
+  name?: string;
+  address?: string;
+  locality?: string;
+  city?: string;
+  pincode?: string;
+  phone?: string;
+};
+
 export type OrderWithItems = Order & {
   customerName?: string;
   paymentId?: string;
@@ -187,9 +197,16 @@ export type OrderWithItems = Order & {
     subtype?: string;
     razorpayPaymentId?: string;
   };
+  couponCode?: string | null;
+  couponType?: string | null;
+  couponValue?: string | null;
+  shippingAddress?: string | ShippingAddress;
   items: (OrderItem & { 
     product: ProductWithDetails;
     returnEligibility?: { itemId: string; eligible: boolean; reason?: string; remainingDays?: number };
+    productPrice?: string | null;
+    discountedPrice?: string | null;
+    offerDetails?: any | null;
   })[];
 };
 

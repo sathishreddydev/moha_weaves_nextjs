@@ -39,6 +39,10 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
 
         const { shippingAddress, phone, notes, couponId } = body;
+        
+        // Debug logging for shipping address
+        console.log('Shipping address type:', typeof shippingAddress);
+        console.log('Shipping address value:', shippingAddress);
 
         const cartItems = await cartServices.getCartItems(session.user.id);
 
@@ -87,7 +91,7 @@ export async function POST(req: NextRequest) {
                 discountAmount: discountAmount.toString(),
                 finalAmount: finalAmount.toString(),
                 couponId,
-                shippingAddress,
+                shippingAddress: typeof shippingAddress === 'object' ? JSON.stringify(shippingAddress) : shippingAddress,
                 phone,
                 notes,
                 status: "created",
@@ -102,11 +106,17 @@ export async function POST(req: NextRequest) {
                 const effectivePrice =
                     (item.product as any).discountedPrice ?? originalPrice;
 
-                return {
+                const orderItem = {
                     productId: item.productId,
                     quantity: item.quantity,
                     price: effectivePrice.toString(),
+                    productPrice: item.product.price.toString(),
+                    discountedPrice: effectivePrice.toString(),
+                    offerDetails: (item.product as any).activeSale || null,
                 };
+                
+                console.log('Order item data:', orderItem);
+                return orderItem;
             }),
             validCoupon?.id,
             session.user.id,

@@ -97,6 +97,8 @@ export class OrderRepository implements OrderStorage {
     order: InsertOrder,
     items: Omit<InsertOrderItem, "orderId">[]
   ): Promise<Order> {
+    console.log('createOrderWithTransaction received items:', items);
+    
     // Generate order ID
     const orderId = await IdGenerator.generateOrderId();
 
@@ -109,12 +111,16 @@ export class OrderRepository implements OrderStorage {
     for (const item of items) {
       const itemId = IdGenerator.generateItemIdFromOrder(orderId, itemIndex - 1);
 
+      console.log('Creating order item with data:', item);
+      
       const [newOrderItem] = await trx.insert(orderItems).values({
         ...item,
         id: itemId,
         orderId: newOrder.id,
         status: "pending"
       }).returning();
+      
+      console.log('Created order item:', newOrderItem);
 
       // Create initial item status history
       await storage.itemHistoryWithTransaction(
@@ -275,12 +281,59 @@ export class OrderRepository implements OrderStorage {
   }
 
   async getOrder(id: string): Promise<OrderWithItems | undefined> {
-    const [order] = await db.select().from(orders).where(eq(orders.id, id));
+    // Select order with safe column access
+    const [order] = await db
+      .select({
+        id: orders.id,
+        userId: orders.userId,
+        totalAmount: orders.totalAmount,
+        discountAmount: orders.discountAmount,
+        finalAmount: orders.finalAmount,
+        status: orders.status,
+        paymentStatus: orders.paymentStatus,
+        paymentMethod: orders.paymentMethod,
+        razorpayPaymentId: orders.razorpayPaymentId,
+        shippingAddress: orders.shippingAddress,
+        phone: orders.phone,
+        trackingNumber: orders.trackingNumber,
+        estimatedDelivery: orders.estimatedDelivery,
+        deliveredAt: orders.deliveredAt,
+        couponId: orders.couponId,
+        // New coupon fields with fallbacks
+        couponCode: orders.couponCode,
+        couponType: orders.couponType,
+        couponValue: orders.couponValue,
+        notes: orders.notes,
+        returnEligibleUntil: orders.returnEligibleUntil,
+        createdAt: orders.createdAt,
+        updatedAt: orders.updatedAt,
+      })
+      .from(orders)
+      .where(eq(orders.id, id));
+    
     if (!order) return undefined;
 
-    // Get order items first
+    // Get order items with safe column access
     const orderItemsData = await db
-      .select()
+      .select({
+        id: orderItems.id,
+        orderId: orderItems.orderId,
+        productId: orderItems.productId,
+        variantId: orderItems.variantId,
+        quantity: orderItems.quantity,
+        price: orderItems.price,
+        // New pricing fields with fallbacks
+        productPrice: orderItems.productPrice,
+        discountedPrice: orderItems.discountedPrice,
+        offerDetails: orderItems.offerDetails,
+        status: orderItems.status,
+        trackingNumber: orderItems.trackingNumber,
+        shippedAt: orderItems.shippedAt,
+        deliveredAt: orderItems.deliveredAt,
+        returnEligibleUntil: orderItems.returnEligibleUntil,
+        createdAt: orderItems.createdAt,
+        updatedAt: orderItems.updatedAt,
+      })
       .from(orderItems)
       .where(eq(orderItems.orderId, order.id));
 
@@ -324,8 +377,21 @@ export class OrderRepository implements OrderStorage {
       })
     );
     const paymentData = order.razorpayPaymentId ? await paymentInfo({ razorpayPaymentId: order.razorpayPaymentId }) : null;
+    
+    // Parse shipping address from JSON string if needed
+    let parsedShippingAddress = order.shippingAddress;
+    try {
+      parsedShippingAddress = typeof order.shippingAddress === 'string' && order.shippingAddress.startsWith('{') 
+        ? JSON.parse(order.shippingAddress) 
+        : order.shippingAddress;
+    } catch (e) {
+      // If parsing fails, keep original value
+      console.warn('Failed to parse shipping address:', e);
+    }
+    
     return {
       ...order,
+      shippingAddress: parsedShippingAddress,
       paymentDetails: paymentData || undefined,
       items: orderItemsData.map((item) => {
         const statusObj = itemStatuses.find((s) => s.orderItemId === item.id);
@@ -337,6 +403,8 @@ export class OrderRepository implements OrderStorage {
           currentStatus: statusObj?.currentStatus || item.status,
           returnEligibility: eligibility || { itemId: item.id, eligible: false },
           product: createOrderHistoryProduct(product) as any,
+          productPrice: item.productPrice ? item.productPrice.toString() : null,
+          discountedPrice: item.discountedPrice ? item.discountedPrice.toString() : null,
         };
       }),
     };

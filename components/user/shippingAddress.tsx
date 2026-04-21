@@ -1,14 +1,27 @@
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 
-const ShippingAddress = ({ address }: { address: string }) => {
+const ShippingAddress = ({ address }: { address: string | any }) => {
+  const addressData = useMemo(() => {
+    if (!address) return { name: 'No address', address: '' };
+    
+    if (typeof address === "object") return address;
+    
+    if (typeof address === "string") {
+      try {
+        return JSON.parse(address);
+      } catch (error) {
+        console.warn('Failed to parse address JSON:', error);
+        return { name: address, address: address };
+      }
+    }
+    
+    return { name: 'Invalid address', address: '' };
+  }, [address]);
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState("bottom-right");
   const ref = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const lines = address.split("\n");
-  const name = lines[0];
 
   // Close on outside click
   useEffect(() => {
@@ -68,7 +81,7 @@ const ShippingAddress = ({ address }: { address: string }) => {
         className="text-xs font-semibold cursor-pointer flex items-center"
         onClick={() => setOpen((prev) => !prev)}
       >
-        {name}
+        {addressData.name}
         <span>
           {open ? (
             <ChevronUp className="h-4 w-4" />
@@ -87,7 +100,9 @@ const ShippingAddress = ({ address }: { address: string }) => {
             : "opacity-0 scale-95 pointer-events-none"
         }`}
       >
-        {address}
+        {addressData.name && addressData.name !== "No address" 
+          ? `${addressData.name}\n${addressData.address || ""}${addressData.locality ? `\n${addressData.locality}` : ""}${addressData.city ? `\n${addressData.city}` : ""}${addressData.pincode ? `\n${addressData.pincode}` : ""}${addressData.phone ? `\nPhone: ${addressData.phone}` : ""}`.replace(/\n+/g, '\n').trim()
+          : "No address details available"}
       </div>
     </div>
   );

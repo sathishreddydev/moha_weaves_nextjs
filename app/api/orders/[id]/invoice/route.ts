@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { orderService } from "../../orderService";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth/server";
+import jsPDF from 'jspdf';
 
 export async function GET(
   req: NextRequest,
@@ -43,14 +44,14 @@ export async function GET(
       );
     }
 
-    // Generate a simple HTML invoice
-    const invoiceHtml = generateInvoiceHTML(order);
+    // Generate PDF invoice
+    const pdfBuffer = generatePDFInvoice(order);
 
-    // Convert HTML to PDF response
-    return new NextResponse(invoiceHtml, {
+    // Return PDF response
+    return new NextResponse(pdfBuffer, {
       headers: {
-        'Content-Type': 'text/html',
-        'Content-Disposition': `inline; filename="invoice-${id}.html"`,
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="invoice-${id}.pdf"`,
       },
     });
   } catch (error) {
@@ -62,238 +63,113 @@ export async function GET(
   }
 }
 
-function generateInvoiceHTML(order: any) {
-  const formatDate = (date: Date | string) => {
-    const d = new Date(date);
-    return d.toLocaleDateString('en-IN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  const formatCurrency = (amount: string) => {
-    return `¥${parseFloat(amount).toFixed(2)}`;
-  };
-
-  return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice #${order.id}</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .invoice-container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 40px;
-            border-bottom: 2px solid #e5e5e5;
-            padding-bottom: 20px;
-        }
-        .logo {
-            font-size: 24px;
-            font-weight: bold;
-            color: #333;
-        }
-        .invoice-info {
-            text-align: right;
-        }
-        .invoice-number {
-            font-size: 18px;
-            font-weight: bold;
-            color: #333;
-        }
-        .invoice-date {
-            color: #666;
-            margin-top: 5px;
-        }
-        .billing-section {
-            margin-bottom: 30px;
-        }
-        .section-title {
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 16px;
-        }
-        .address {
-            color: #666;
-            line-height: 1.5;
-        }
-        .items-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 30px;
-        }
-        .items-table th {
-            background-color: #f8f9fa;
-            padding: 12px;
-            text-align: left;
-            border-bottom: 2px solid #e5e5e5;
-            font-weight: bold;
-            color: #333;
-        }
-        .items-table td {
-            padding: 12px;
-            border-bottom: 1px solid #e5e5e5;
-        }
-        .items-table .text-right {
-            text-align: right;
-        }
-        .summary-section {
-            margin-left: auto;
-            width: 300px;
-        }
-        .summary-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            padding: 5px 0;
-        }
-        .summary-row.total {
-            border-top: 2px solid #e5e5e5;
-            padding-top: 10px;
-            font-weight: bold;
-            font-size: 18px;
-        }
-        .footer {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #e5e5e5;
-            text-align: center;
-            color: #666;
-            font-size: 14px;
-        }
-        .status-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-        .status-paid {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        .status-pending {
-            background-color: #fff3cd;
-            color: #856404;
-        }
-        @media print {
-            body {
-                background-color: white;
-                padding: 0;
-            }
-            .invoice-container {
-                box-shadow: none;
-                border-radius: 0;
-                padding: 20px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="invoice-container">
-        <div class="header">
-            <div class="logo">
-                Moha Weaves
-            </div>
-            <div class="invoice-info">
-                <div class="invoice-number">Invoice #${order.id}</div>
-                <div class="invoice-date">Date: ${formatDate(order.createdAt)}</div>
-            </div>
-        </div>
-
-        <div class="billing-section">
-            <div class="section-title">Billing Information</div>
-            <div class="address">
-                <strong>Order Status:</strong> <span class="status-badge ${order.paymentStatus === 'paid' ? 'status-paid' : 'status-pending'}">${order.paymentStatus}</span><br>
-                <strong>Payment Method:</strong> ${order.paymentMethod || 'N/A'}<br>
-                ${order.razorpayPaymentId ? `<strong>Payment ID:</strong> ${order.razorpayPaymentId}<br>` : ''}
-            </div>
-        </div>
-
-        <div class="billing-section">
-            <div class="section-title">Shipping Information</div>
-            <div class="address">
-                ${order.shippingAddress}<br>
-                <strong>Phone:</strong> ${order.phone}<br>
-                ${order.trackingNumber ? `<strong>Tracking Number:</strong> ${order.trackingNumber}<br>` : ''}
-                ${order.estimatedDelivery ? `<strong>Estimated Delivery:</strong> ${formatDate(order.estimatedDelivery)}<br>` : ''}
-            </div>
-        </div>
-
-        <table class="items-table">
-            <thead>
-                <tr>
-                    <th>Product</th>
-                    <th>Quantity</th>
-                    <th>Price</th>
-                    <th class="text-right">Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${order.items?.map((item: any) => `
-                    <tr>
-                        <td>
-                            <strong>${item.product?.name || 'Product'}</strong><br>
-                            ${item.product?.category?.name || ''} ${item.product?.color?.name ? `| ${item.product.color.name}` : ''}
-                            ${(() => {
-                              if (item.variantId && item.product?.variants) {
-                                const selectedVariant = item.product.variants.find((v: any) => v.id === item.variantId);
-                                return selectedVariant?.size ? `<br>Size: ${selectedVariant.size}` : '';
-                              }
-                              return '';
-                            })()}
-                        </td>
-                        <td>${item.quantity}</td>
-                        <td>${formatCurrency(item.price)}</td>
-                        <td class="text-right">${formatCurrency((parseFloat(item.price) * item.quantity).toString())}</td>
-                    </tr>
-                `).join('') || ''}
-            </tbody>
-        </table>
-
-        <div class="summary-section">
-            <div class="summary-row">
-                <span>Subtotal:</span>
-                <span>${formatCurrency(order.totalAmount)}</span>
-            </div>
-            ${order.discountAmount && parseFloat(order.discountAmount) > 0 ? `
-                <div class="summary-row">
-                    <span>Discount:</span>
-                    <span style="color: green;">-${formatCurrency(order.discountAmount)}</span>
-                </div>
-            ` : ''}
-            <div class="summary-row total">
-                <span>Total:</span>
-                <span>${formatCurrency(order.finalAmount)}</span>
-            </div>
-        </div>
-
-        <div class="footer">
-            <p>Thank you for your order! This is a computer-generated invoice and does not require a signature.</p>
-            <p>For any queries, please contact our customer support.</p>
-        </div>
-    </div>
-</body>
-</html>
-  `;
+function generatePDFInvoice(order: any): Uint8Array {
+  const doc = new jsPDF();
+  
+  // Set font
+  doc.setFont('helvetica');
+  
+  // Company Header
+  doc.setFontSize(20);
+  doc.text('Moha Weaves', 105, 20, { align: 'center' });
+  
+  doc.setFontSize(14);
+  doc.text(`Invoice #${order.id}`, 105, 30, { align: 'center' });
+  
+  // Order Information
+  doc.setFontSize(12);
+  doc.text('Order Information', 20, 50);
+  doc.setFontSize(10);
+  doc.text(`Order ID: #${order.id}`, 20, 58);
+  doc.text(`Date: ${new Date(order.createdAt).toLocaleDateString('en-IN')}`, 20, 65);
+  doc.text(`Status: ${order.status}`, 20, 72);
+  doc.text(`Payment Method: ${order.paymentMethod || 'Razorpay'}`, 20, 79);
+  
+  // Shipping Information
+  doc.setFontSize(12);
+  doc.text('Shipping Information', 120, 50);
+  doc.setFontSize(10);
+  const shipping = typeof order.shippingAddress === 'object' ? order.shippingAddress : {};
+  doc.text(`Name: ${shipping.name || 'N/A'}`, 120, 58);
+  doc.text(`Address: ${shipping.address || 'N/A'}`, 120, 65);
+  doc.text(`City: ${shipping.city || 'N/A'}`, 120, 72);
+  doc.text(`Pincode: ${shipping.pincode || 'N/A'}`, 120, 79);
+  doc.text(`Phone: ${order.phone || 'N/A'}`, 120, 86);
+  
+  // Items Table Header
+  let yPosition = 100;
+  doc.setFontSize(12);
+  doc.text('Order Items', 20, yPosition);
+  yPosition += 10;
+  
+  doc.setFontSize(10);
+  doc.text('Product', 20, yPosition);
+  doc.text('Qty', 100, yPosition);
+  doc.text('Price', 120, yPosition);
+  doc.text('Total', 160, yPosition);
+  yPosition += 7;
+  
+  // Draw line under header
+  doc.line(20, yPosition, 190, yPosition);
+  yPosition += 5;
+  
+  // Items
+  order.items?.forEach((item: any) => {
+    const productName = item.product?.name || 'Product';
+    const quantity = item.quantity.toString();
+    const price = `₹${parseFloat(item.price).toFixed(2)}`;
+    const total = `₹${(parseFloat(item.price) * item.quantity).toFixed(2)}`;
+    
+    // Split long product names if needed
+    const splitName = doc.splitTextToSize(productName, 70);
+    
+    doc.text(splitName, 20, yPosition);
+    doc.text(quantity, 100, yPosition);
+    doc.text(price, 120, yPosition);
+    doc.text(total, 160, yPosition);
+    
+    yPosition += splitName.length * 5 + 3;
+    
+    // Add variant info if available
+    if (item.variantId && item.product?.variants) {
+      const selectedVariant = item.product.variants.find((v: any) => v.id === item.variantId);
+      if (selectedVariant?.size) {
+        doc.setFontSize(9);
+        doc.text(`Size: ${selectedVariant.size}`, 25, yPosition);
+        doc.setFontSize(10);
+        yPosition += 5;
+      }
+    }
+  });
+  
+  // Price Summary
+  yPosition += 10;
+  doc.line(20, yPosition, 190, yPosition);
+  yPosition += 8;
+  
+  doc.text('Price Summary', 140, yPosition);
+  yPosition += 8;
+  
+  const subtotal = order.totalAmount || '0';
+  doc.text(`Subtotal: ₹${parseFloat(subtotal).toFixed(2)}`, 140, yPosition);
+  yPosition += 6;
+  
+  if (order.discountAmount && parseFloat(order.discountAmount) > 0) {
+    doc.setTextColor(0, 128, 0);
+    doc.text(`Discount: -₹${parseFloat(order.discountAmount).toFixed(2)}`, 140, yPosition);
+    doc.setTextColor(0, 0, 0);
+    yPosition += 6;
+  }
+  
+  doc.setFontSize(12);
+  doc.text(`Total: ₹${parseFloat(order.finalAmount).toFixed(2)}`, 140, yPosition);
+  
+  // Footer
+  yPosition = 270;
+  doc.setFontSize(9);
+  doc.setTextColor(100, 100, 100);
+  doc.text('Thank you for your order! This is a computer-generated invoice.', 105, yPosition, { align: 'center' });
+  doc.text('For any queries, please contact our customer support.', 105, yPosition + 5, { align: 'center' });
+  
+  return new Uint8Array(doc.output('arraybuffer'));
 }

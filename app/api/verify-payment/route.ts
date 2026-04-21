@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
                 totalAmount: pricing.subtotal.toString(),
                 discountAmount: pricing.discountAmount.toString(),
                 finalAmount: pricing.totalAmount.toString(),
-                shippingAddress,
+                shippingAddress: typeof shippingAddress === 'object' ? JSON.stringify(shippingAddress) : shippingAddress,
                 phone,
                 notes,
                 couponId,
@@ -103,11 +103,21 @@ export async function POST(req: NextRequest) {
                 paymentMethod: "razorpay",
                 razorpayPaymentId,
             },
-            cartItems.cart.map((item) => ({
-                productId: item.productId,
-                quantity: item.quantity,
-                price: getEffectivePrice(item.product).toString(),
-            })),
+            cartItems.cart.map((item) => {
+                const originalPrice = typeof item.product.price === "string" 
+                    ? parseFloat(item.product.price) 
+                    : item.product.price;
+                const effectivePrice = getEffectivePrice(item.product);
+                
+                return {
+                    productId: item.productId,
+                    quantity: item.quantity,
+                    price: effectivePrice.toString(),
+                    productPrice: item.product.price.toString(),
+                    discountedPrice: effectivePrice.toString(),
+                    offerDetails: (item.product as any).activeSale || null,
+                };
+            }),
             couponId,
             user.id,
             pricing.discountAmount.toString()
