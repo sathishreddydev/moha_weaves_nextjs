@@ -60,12 +60,11 @@ export function calculatePricing(
   };
 }
 
-/**
- * Validate stock availability atomically
- */
+
 export async function validateStockAvailability(
   cartItems: CartItemWithProduct[]
 ): Promise<{ valid: boolean; message?: string; productId?: string }> {
+  // Basic client-side validation - check cached stock values
   for (const item of cartItems) {
     if (item.product.onlineStock < item.quantity) {
       return {

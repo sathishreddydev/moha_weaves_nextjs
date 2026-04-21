@@ -113,29 +113,6 @@ export class OrderRepository implements OrderStorage {
         "pending",
         "Order created"
       );
-
-      // Deduct from online stock and total stock
-      await db
-        .update(products)
-        .set({
-          onlineStock: sql`${products.onlineStock} - ${item.quantity}`,
-          totalStock: sql`${products.totalStock} - ${item.quantity}`,
-        })
-        .where(eq(products.id, item.productId));
-
-      // Record stock movement (negative for deduction)
-      await db.insert(stockMovements).values({
-        productId: item.productId,
-        quantity: -item.quantity,
-        movementType: "sale",
-        source: "online",
-        orderRefId: newOrder.id,
-        storeId: null,
-      });
-
-      // Check for low stock and create alert
-      await storage.checkAndCreateStockAlert(item.productId);
-
       itemIndex++;
     }
 

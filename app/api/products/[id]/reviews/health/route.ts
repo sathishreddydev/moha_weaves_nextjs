@@ -1,0 +1,30 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { productReviews } from "@/shared";
+import { sql } from "drizzle-orm";
+
+export async function GET() {
+  try {
+    // Simple database connection test
+    const result = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(productReviews)
+      .limit(1);
+
+    return NextResponse.json({
+      status: "healthy",
+      database: "connected",
+      reviewCount: result[0]?.count || 0,
+    });
+  } catch (error) {
+    console.error("Reviews API health check failed:", error);
+    return NextResponse.json(
+      {
+        status: "unhealthy",
+        database: "disconnected",
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
+  }
+}

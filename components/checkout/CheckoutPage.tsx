@@ -234,7 +234,7 @@ export default function CheckoutPage() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Button
-                    onClick={() => router.push("/orders")}
+                    onClick={() => router.push("/my/orders")}
                     className="w-full sm:w-auto"
                   >
                     View Orders

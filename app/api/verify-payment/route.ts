@@ -4,10 +4,11 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth/server";
 import { cartServices } from "../cart/cartService";
 import { orderService } from "../orders/orderService";
+import { stockTransactionService } from "@/lib/services/stockTransactionService";
 import { db } from "@/lib/db";
 import { orders } from "@/shared";
 import { eq } from "drizzle-orm";
-import { calculatePricing, validateStockAvailability, getEffectivePrice } from "@/lib/pricing-utils";
+import { calculatePricing, getEffectivePrice } from "@/lib/pricing-utils";
 
 export async function POST(req: NextRequest) {
     try {
@@ -47,8 +48,8 @@ export async function POST(req: NextRequest) {
 
         const cartItems = await cartServices.getCartItems(user.id);
 
-        // Validate stock availability using shared utility
-        const stockValidation = await validateStockAvailability(cartItems.cart);
+        // Validate stock availability using stock transaction service
+        const stockValidation = await stockTransactionService.validateStockAvailability(cartItems.cart);
         if (!stockValidation.valid) {
             return NextResponse.json(
                 { 
@@ -69,35 +70,49 @@ export async function POST(req: NextRequest) {
         // Calculate pricing using shared utility
         const pricing = calculatePricing(cartItems.cart, coupon);
 
-        // Create order and clear cart in a single transaction
-        const result = await db.transaction(async (tx) => {
-            const order = await orderService.createOrder(
-                {
-                    userId: user.id,
-                    totalAmount: pricing.subtotal.toString(),
-                    discountAmount: pricing.discountAmount.toString(),
-                    finalAmount: pricing.totalAmount.toString(),
-                    shippingAddress,
-                    phone,
-                    notes,
-                    couponId,
-                    status: "created",
-                    paymentStatus: "paid",
-                    paymentMethod: "razorpay",
-                    razorpayPaymentId,
-                },
-                cartItems.cart.map((item) => ({
-                    productId: item.productId,
-                    quantity: item.quantity,
-                    price: getEffectivePrice(item.product).toString(),
-                }))
-            );
+        // Atomically validate and deduct stock first
+        const stockResult = await stockTransactionService.validateAndDeductStock(
+            cartItems.cart,
+            razorpayOrderId
+        );
 
-            // Clear cart only after successful order creation
-            await cartServices.clearCart(user.id);
-            
-            return order;
-        });
+        if (!stockResult.success) {
+            return NextResponse.json(
+                { 
+                    message: stockResult.message,
+                    productId: stockResult.productId 
+                },
+                { status: 400 }
+            );
+        }
+
+        // Create order (stock already deducted)
+        const order = await orderService.createOrder(
+            {
+                userId: user.id,
+                totalAmount: pricing.subtotal.toString(),
+                discountAmount: pricing.discountAmount.toString(),
+                finalAmount: pricing.totalAmount.toString(),
+                shippingAddress,
+                phone,
+                notes,
+                couponId,
+                status: "created",
+                paymentStatus: "paid",
+                paymentMethod: "razorpay",
+                razorpayPaymentId,
+            },
+            cartItems.cart.map((item) => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                price: getEffectivePrice(item.product).toString(),
+            }))
+        );
+
+        // Clear cart only after successful order creation
+        await cartServices.clearCart(user.id);
+        
+        const result = order;
 
         return NextResponse.json({
             orderId: result.id,

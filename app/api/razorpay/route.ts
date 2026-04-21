@@ -4,7 +4,8 @@ import { couponsService } from "../coupon/couponsService";
 import { razorpay } from "@/lib/razorpay/razorpayClient";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth/server";
-import { calculatePricing, validateStockAvailability } from "@/lib/pricing-utils";
+import { calculatePricing } from "@/lib/pricing-utils";
+import { stockTransactionService } from "@/lib/services/stockTransactionService";
 
 export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
@@ -28,8 +29,8 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Validate stock availability using shared utility
-        const stockValidation = await validateStockAvailability(cartItems.cart);
+        // Validate stock availability using stock transaction service
+        const stockValidation = await stockTransactionService.validateStockAvailability(cartItems.cart);
         if (!stockValidation.valid) {
             return NextResponse.json(
                 { 
