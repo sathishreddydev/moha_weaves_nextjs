@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   images: {
     remotePatterns: [
       {
@@ -10,6 +11,11 @@ const nextConfig = {
       {
         protocol: "https",
         hostname: "i.pinimg.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "http",
+        hostname: "103.127.146.58",
         pathname: "/**",
       },
       {
@@ -35,12 +41,12 @@ const nextConfig = {
 
               "style-src 'self' 'unsafe-inline'",
 
-              "img-src 'self' data: blob: https:",
+              "img-src 'self' data: blob: https: http:",
 
               "font-src 'self'",
 
               // API calls
-              "connect-src 'self' https://api.razorpay.com https://*.razorpay.com",
+              "connect-src 'self' https://api.razorpay.com https://*.razorpay.com http://103.127.146.58:5000",
 
               // Razorpay payment popup
               "frame-src 'self' https://checkout.razorpay.com https://api.razorpay.com",
@@ -51,6 +57,12 @@ const nextConfig = {
       },
     ];
   },
-};
 
-module.exports = nextConfig;
+  env: {
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+    NEXT_PUBLIC_IMAGE_URL: process.env.NEXT_PUBLIC_IMAGE_URL,
+    NEXT_PUBLIC_RAZORPAY_KEY_ID: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+  }
+}
+
+module.exports = nextConfig
