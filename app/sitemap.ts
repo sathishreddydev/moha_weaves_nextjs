@@ -5,13 +5,17 @@ import { createSlug } from '@/lib/utils/slug'
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
   
-  // Get all products for sitemap
-  const products = await productService.getProductsByRole({}, 'user')
-  
-  // Get categories for sitemap
-  const filtersResponse = await fetch(`${baseUrl}/api/filters`)
-  const filtersData = await filtersResponse.json()
-  const categories = filtersData.categories || []
+  try {
+    // Get all products for sitemap
+    const products = await productService.getProductsByRole({}, 'user')
+    
+    // Get categories for sitemap
+    const filtersResponse = await fetch(`${baseUrl}/api/filters`)
+    if (!filtersResponse.ok) {
+      throw new Error('Failed to fetch filters')
+    }
+    const filtersData = await filtersResponse.json()
+    const categories = filtersData.categories || []
 
   // Static pages
   const staticPages = [
@@ -71,4 +75,31 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   })
 
   return [...staticPages, ...categoryPages, ...subcategoryPages, ...productPages]
+  } catch (error) {
+    console.error('Error generating sitemap:', error)
+    
+    // Return static pages only if dynamic data fails
+    const staticPages = [
+      {
+        url: baseUrl,
+        lastModified: new Date(),
+        changeFrequency: 'daily' as const,
+        priority: 1,
+      },
+      {
+        url: `${baseUrl}/collections`,
+        lastModified: new Date(),
+        changeFrequency: 'daily' as const,
+        priority: 0.8,
+      },
+      {
+        url: `${baseUrl}/categories`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.7,
+      },
+    ]
+    
+    return staticPages
+  }
 }
