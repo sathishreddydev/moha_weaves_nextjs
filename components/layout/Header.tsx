@@ -146,7 +146,7 @@ export default function Header() {
         }`}
       >
         <div className="flex justify-between items-center">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
             <button
               onClick={handleMobileMenuToggle}
               className="md:hidden touch-manipulation active:scale-95 transition-transform"
@@ -155,7 +155,6 @@ export default function Header() {
             >
               <Menu className="w-6 h-6" />
             </button>
-
             <Link href="/" className="text-xl font-bold text-primary-600">
               Moha
             </Link>

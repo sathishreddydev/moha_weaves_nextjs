@@ -21,7 +21,7 @@ export default function ShopCategories() {
   }, [categories, fetchFilters]);
 
   return (
-    <section>
+    <section className="px-6">
       <div>
         <div className="flex items-center justify-between mb-4">
           <div>

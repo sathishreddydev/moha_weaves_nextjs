@@ -69,7 +69,7 @@ export default function ProductSection({
   if (loading) {
     return (
       <section>
-        <div className="max-w-7xl mx-auto lg:px-10 px-5">
+        <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="font-serif tracking-wide transition-colors text-2xl">
@@ -103,7 +103,7 @@ export default function ProductSection({
 
   if (products.length === 0) {
     return (
-      <section>
+      <section className="px-6">
         <div>
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -149,8 +149,8 @@ export default function ProductSection({
   }
 
   return (
-    <section>
-      <div className="max-w-7xl mx-auto lg:px-10 px-5">
+    <section className="px-6">
+      <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1
