@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { cart, CartItemWithProduct, InsertCartItem } from "@/shared";
 import { and, eq, sql } from "drizzle-orm";
 import { productService } from "../products/productService";
+import { getAvailableStock } from "@/lib/stock-utils";
 
 
 
@@ -82,15 +83,8 @@ export class CartRepository {
       throw new Error("Product not found");
     }
 
-    let availableStock = 0;
-    if (item.variantId) {
-      // Get variant stock from product variants
-      const variant = product.variants?.find(v => v.id === item.variantId);
-      availableStock = variant?.onlineStock || 0;
-    } else {
-      // Calculate total stock from all variants
-      availableStock = product.variants?.reduce((sum, variant) => sum + (variant.onlineStock || 0), 0) || 0;
-    }
+    // Use common stock utility
+    const availableStock = getAvailableStock(product, item.variantId);
 
     const currentQuantity = existing?.quantity || 0;
     const newQuantity = currentQuantity + (item.quantity || 1);
@@ -138,15 +132,8 @@ export class CartRepository {
       throw new Error("Product not found");
     }
 
-    let availableStock = 0;
-    if (cartItem.variantId) {
-      // Get variant stock from product variants
-      const variant = product.variants?.find(v => v.id === cartItem.variantId);
-      availableStock = variant?.onlineStock || 0;
-    } else {
-      // Calculate total stock from all variants
-      availableStock = product.variants?.reduce((sum, variant) => sum + (variant.onlineStock || 0), 0) || 0;
-    }
+    // Use common stock utility
+    const availableStock = getAvailableStock(product, cartItem.variantId);
 
     // Validate stock
     if (quantity > availableStock) {

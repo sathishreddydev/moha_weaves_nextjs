@@ -204,7 +204,6 @@ export default function CartControls({
       </div>
     );
   }
-
   return (
     <Button
       onClick={handleAddToCart}

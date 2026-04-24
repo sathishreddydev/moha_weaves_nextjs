@@ -1,4 +1,5 @@
 import { GuestCartItem, guestStorage } from './guest-storage';
+import { getAvailableStock } from './stock-utils';
 
 interface GuestCartSyncOptions {
   validateStock?: boolean;
@@ -98,9 +99,7 @@ export async function syncGuestCart(
       };
 
       // Adjust quantity if stock is insufficient
-      const availableStock = item.variantId 
-        ? (product as any).variants?.find((v: any) => v.id === item.variantId)?.onlineStock || 0
-        : product.onlineStock;
+      const availableStock = getAvailableStock(product as any, item.variantId);
 
       if (options.validateStock && item.quantity > availableStock) {
         updatedItem.quantity = Math.max(1, availableStock);
@@ -158,9 +157,7 @@ export async function validateGuestCartForCheckout(): Promise<{
       isValid = false;
     }
 
-    const availableStock = item.variantId 
-      ? (item.product as any).variants?.find((v: any) => v.id === item.variantId)?.onlineStock || 0
-      : item.product?.onlineStock || 0;
+    const availableStock = getAvailableStock(item.product as any, item.variantId);
 
     if (item.quantity > availableStock) {
       issues.push(`Insufficient stock for ${item.product?.name || item.productId}`);

@@ -1,6 +1,7 @@
 "use client";
 
 import { ProductWithDetails } from "@/shared";
+import { isInStock, getStockStatus, getStockStatusColor } from "@/lib/stock-utils";
 
 interface SpecificationsProps {
   product: ProductWithDetails;
@@ -56,15 +57,9 @@ export default function Specifications({ product }: SpecificationsProps) {
         <div className="flex justify-between border-b border-gray-100">
           <span className="text-gray-600">Availability</span>
           <span
-            className={`font-medium ${
-              product.variants?.some(v => v.onlineStock > 0)
-                ? "text-green-600"
-                : "text-red-600"
-            }`}
+            className={`font-medium ${getStockStatusColor(product)}`}
           >
-            {product.variants?.some(v => v.onlineStock > 0)
-              ? "In Stock"
-              : "Out of Stock"}
+            {getStockStatus(product)}
           </span>
         </div>
       </div>

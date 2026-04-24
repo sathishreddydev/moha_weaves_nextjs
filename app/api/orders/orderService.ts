@@ -122,6 +122,55 @@ export class OrderRepository implements OrderStorage {
       
       console.log('Created order item:', newOrderItem);
 
+      // 🔴 CRITICAL: Add stock deduction logic
+      let stockUpdated = false;
+      
+      if (item.variantId) {
+        // Deduct from variant stock
+        const [updatedVariant] = await trx
+          .update(productVariants)
+          .set({
+            onlineStock: sql`${productVariants.onlineStock} - ${item.quantity}`,
+          })
+          .where(eq(productVariants.id, item.variantId))
+          .returning({ onlineStock: productVariants.onlineStock })
+          .execute();
+
+        if (!updatedVariant || updatedVariant.onlineStock < 0) {
+          throw new Error(`Insufficient stock for variant ${item.variantId}`);
+        }
+        stockUpdated = true;
+      } else {
+        // Deduct from product stock (for products without variants)
+        const [updatedProduct] = await trx
+          .update(products)
+          .set({
+            onlineStock: sql`${products.onlineStock} - ${item.quantity}`,
+            totalStock: sql`${products.totalStock} - ${item.quantity}`,
+          })
+          .where(eq(products.id, item.productId))
+          .returning({ onlineStock: products.onlineStock })
+          .execute();
+
+        if (!updatedProduct || updatedProduct.onlineStock < 0) {
+          throw new Error(`Insufficient stock for product ${item.productId}`);
+        }
+        stockUpdated = true;
+      }
+
+      // Record stock movement
+      if (stockUpdated) {
+        await trx.insert(stockMovements).values({
+          productId: item.productId,
+          variantId: item.variantId || null,
+          quantity: -item.quantity,
+          movementType: "sale",
+          source: "online",
+          orderRefId: newOrder.id,
+          storeId: null,
+        });
+      }
+
       // Create initial item status history
       await storage.itemHistoryWithTransaction(
         trx,

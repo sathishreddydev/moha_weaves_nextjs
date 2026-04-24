@@ -26,6 +26,7 @@ import Specifications from "@/components/ProductDetails/Specifications";
 import SizeGuide from "@/components/ProductDetails/SizeGuide";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import Link from "next/link";
+import { getAvailableStock, getStockStatus } from "@/lib/stock-utils";
 
 interface ProductDetailClientProps {
   product: ProductWithDetails & {
@@ -80,14 +81,9 @@ export default function ProductDetailClient({
     product.discountedPrice &&
     Number(product?.discountedPrice ?? 0) < Number(product.price);
 
-  // Stock status
-  const currentStock = selectedVariant?.onlineStock || product.onlineStock || 0;
-  const inStock = currentStock > 0;
-  const stockStatus = inStock
-    ? currentStock > 10
-      ? "In Stock"
-      : `Only ${currentStock} left`
-    : "Out of Stock";
+  // Stock status - using common utilities
+  const currentStock = getAvailableStock(product, selectedVariant?.id);
+  const stockStatus = getStockStatus(product, selectedVariant?.id);
 
   const images =
     (product?.images?.length ?? 0) > 0

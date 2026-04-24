@@ -1,4 +1,5 @@
 import { CartItemWithProduct } from "@/shared/types";
+import { getAvailableStock } from "./stock-utils";
 
 export interface PricingCalculation {
   subtotal: number;
@@ -66,10 +67,12 @@ export async function validateStockAvailability(
 ): Promise<{ valid: boolean; message?: string; productId?: string }> {
   // Basic client-side validation - check cached stock values
   for (const item of cartItems) {
-    if (item.product.onlineStock < item.quantity) {
+    const availableStock = getAvailableStock(item.product as any, item.variantId);
+    
+    if (availableStock < item.quantity) {
       return {
         valid: false,
-        message: `Insufficient stock for ${item.product.name}. Only ${item.product.onlineStock} items available.`,
+        message: `Insufficient stock for ${item.product.name}. Only ${availableStock} items available.`,
         productId: item.productId,
       };
     }
