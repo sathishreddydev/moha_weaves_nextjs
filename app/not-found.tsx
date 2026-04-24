@@ -10,7 +10,7 @@ export const metadata = {
 
 export default function NotFound() {
   return (
-    <div className="bg-gradient-to-b from-rose-50 to-white flex items-center justify-center">
+    <div className="flex items-center justify-center">
       <div className="max-w-2xl w-full text-center">
         {/* 404 Number Display */}
         <div className="relative mb-8">
@@ -31,76 +31,21 @@ export default function NotFound() {
         </p>
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-          <Button asChild size="lg" className="bg-rose-600 hover:bg-rose-700">
-            <Link href="/" className="flex items-center gap-2">
-              <Home className="w-5 h-5" />
-              Back to Home
-            </Link>
-          </Button>
-
-          <Button
-            asChild
-            variant="outline"
-            size="lg"
-            className="border-rose-200 text-rose-600 hover:bg-rose-50"
-          >
-            <Link href="/collections" className="flex items-center gap-2">
-              <ShoppingBag className="w-5 h-5" />
-              Shop Products
-            </Link>
-          </Button>
-        </div>
-
-        {/* Helpful Links */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 mb-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Maybe you're looking for:
-          </h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* <Link
-              href="/categories"
-              className="flex items-center gap-2 text-gray-600 hover:text-rose-600 transition-colors p-2 rounded hover:bg-rose-50"
-            >
-              <Search className="w-4 h-4" />
-              Browse Categories
-            </Link>
-
-            <Link
-              href="/collections"
-              className="flex items-center gap-2 text-gray-600 hover:text-rose-600 transition-colors p-2 rounded hover:bg-rose-50"
-            >
-              <ShoppingBag className="w-4 h-4" />
-              View Collections
-            </Link> */}
-
-            <Link
-              href="/my"
-              className="flex items-center gap-2 text-gray-600 hover:text-rose-600 transition-colors p-2 rounded hover:bg-rose-50"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              My Account
-            </Link>
-
-            <Link
-              href="/contact"
-              className="flex items-center gap-2 text-gray-600 hover:text-rose-600 transition-colors p-2 rounded hover:bg-rose-50"
-            >
-              <Search className="w-4 h-4" />
-              Contact Us
-            </Link>
-          </div>
-        </div>
-
-        {/* Contact Support */}
-        <div className="text-sm text-gray-500">
-          <p>Still can't find what you're looking for?</p>
+        <div className="flex gap-4 justify-center mb-12">
           <Link
-            href="/contact"
-            className="text-rose-600 hover:text-rose-700 font-medium underline"
+            href="/"
+            className="flex items-center gap-2 text-gray-700 hover:underline"
           >
-            Contact our support team
+            <Home className="w-5 h-5" />
+            Return to Home
+          </Link>
+
+          <Link
+            href="/collections"
+            className="flex items-center gap-2 text-gray-700 hover:underline"
+          >
+            <ShoppingBag className="w-5 h-5" />
+            Collections
           </Link>
         </div>
       </div>
