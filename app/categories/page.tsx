@@ -6,9 +6,10 @@ import { unstable_cache } from "next/cache";
 export async function generateMetadata(): Promise<Metadata> {
   return {
     title: "Categories - Premium Indian Ethnic Wear | Moha Weaves",
-    description: "Browse our wide range of ethnic wear categories including sarees, salwar kameez, lehengas, kurtis and more.",
+    description:
+      "Browse our wide range of ethnic wear categories including sarees, salwar kameez, lehengas, kurtis and more.",
   };
-};
+}
 
 const getCachedFilters = unstable_cache(
   async () => {
@@ -26,15 +27,16 @@ export default async function CategoriesPage() {
   const categories = filters.categories || [];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="bg-gray-50">
+      <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
             Browse Categories
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Discover our extensive collection of premium Indian ethnic wear. 
-            From traditional sarees to modern fusion wear, find your perfect style.
+            Discover our extensive collection of premium Indian ethnic wear.
+            From traditional sarees to modern fusion wear, find your perfect
+            style.
           </p>
         </div>
 
@@ -60,7 +62,7 @@ export default async function CategoriesPage() {
                   </div>
                 )}
               </div>
-              
+
               <div className="p-6">
                 <h3 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
                   {category.name}
@@ -70,30 +72,33 @@ export default async function CategoriesPage() {
                     {category.description}
                   </p>
                 )}
-                
-                {category.subcategories && category.subcategories.length > 0 && (
-                  <div className="mb-4">
-                    <p className="text-xs text-gray-500 font-medium mb-2">
-                      Subcategories ({category.subcategories.length}):
-                    </p>
-                    <div className="flex flex-wrap gap-1">
-                      {category.subcategories.slice(0, 3).map((subcategory) => (
-                        <span
-                          key={subcategory.id}
-                          className="inline-block px-2 py-1 bg-purple-50 text-purple-600 text-xs rounded-full"
-                        >
-                          {subcategory.name}
-                        </span>
-                      ))}
-                      {category.subcategories.length > 3 && (
-                        <span className="inline-block px-2 py-1 bg-gray-100 text-gray-500 text-xs rounded-full">
-                          +{category.subcategories.length - 3} more
-                        </span>
-                      )}
+
+                {category.subcategories &&
+                  category.subcategories.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-xs text-gray-500 font-medium mb-2">
+                        Subcategories ({category.subcategories.length}):
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {category.subcategories
+                          .slice(0, 3)
+                          .map((subcategory) => (
+                            <span
+                              key={subcategory.id}
+                              className="inline-block px-2 py-1 bg-purple-50 text-purple-600 text-xs rounded-full"
+                            >
+                              {subcategory.name}
+                            </span>
+                          ))}
+                        {category.subcategories.length > 3 && (
+                          <span className="inline-block px-2 py-1 bg-gray-100 text-gray-500 text-xs rounded-full">
+                            +{category.subcategories.length - 3} more
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
-                
+                  )}
+
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-purple-600 font-medium">
                     View Collection

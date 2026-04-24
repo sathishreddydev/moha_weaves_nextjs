@@ -247,8 +247,8 @@ export default function ProductDetailClient({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 sm:pb-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="bg-gray-50">
+      <div className="max-w-7xl mx-auto">
         {/* Mobile Breadcrumbs */}
         <div className="block lg:hidden mb-4 sticky top-16 z-10 bg-gray-50">
           <Breadcrumbs

@@ -1,15 +1,14 @@
+import { authOptions } from "@/auth/config/auth";
 import Footer from "@/components/layout/Footer";
-import Header from "@/components/layout/Header";
-import OffersBanner from "@/components/layout/OffersBanner";
 import GlobalSwipeNavigation from "@/components/layout/GlobalSwipeNavigation";
+import Header from "@/components/layout/Header";
 import LayoutWrapper from "@/components/layout/LayoutWrapper";
+import OffersBanner from "@/components/layout/OffersBanner";
 import { Providers } from "@/components/providers";
 import { OffersBannerProvider } from "@/hooks/use-offers-banner";
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
-import Script from "next/script";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/auth/config/auth";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });

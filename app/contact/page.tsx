@@ -1,14 +1,13 @@
 "use client";
-import { useState } from "react";
 import {
-  Phone,
-  MessageCircle,
-  FileText,
-  Truck,
-  MapPin,
   ArrowRight,
   CheckCircle2,
+  MapPin,
+  MessageCircle,
+  Phone,
+  Truck,
 } from "lucide-react";
+import { useState } from "react";
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -26,7 +25,7 @@ export default function ContactPage() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center p-6 text-center">
+      <div className="flex items-center justify-center p-6 text-center">
         <div className="max-w-md">
           <CheckCircle2 className="w-12 h-12 text-slate-900 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-slate-900 mb-2">
@@ -48,8 +47,8 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white font-sans text-slate-800 antialiased">
-      <main className="max-w-5xl mx-auto space-y-12 py-12">
+    <div>
+      <main className="max-w-5xl mx-auto space-y-12">
         <header className="border-b border-slate-100 pb-8 max-w-3xl">
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-2">
             Contact Support

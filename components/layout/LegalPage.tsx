@@ -1,6 +1,6 @@
 export default function LegalPage({ title, content }: any) {
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
       <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-12 italic">
         {title}
       </h1>

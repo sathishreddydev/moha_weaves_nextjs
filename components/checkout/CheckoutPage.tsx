@@ -80,7 +80,7 @@ export default function CheckoutPage() {
   const subtotal = calculateTotal();
   const shipping = subtotal > 0 ? (subtotal >= 999 ? 0 : 50) : 0;
   const couponDiscount = appliedCoupon?.discountAmount || 0;
-  
+
   // Calculate total savings (original price - discounted price)
   const totalDiscountedPrice = items.reduce((sum, item) => {
     const originalPrice = parseFloat(item.product.price || "0");
@@ -88,7 +88,7 @@ export default function CheckoutPage() {
     const savings = (originalPrice - discountedPrice) * item.quantity;
     return sum + savings;
   }, 0);
-  
+
   const total = subtotal + shipping - couponDiscount;
 
   useEffect(() => {
@@ -256,8 +256,8 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="bg-gray-50">
+      <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-xl sm:text-3xl font-bold text-gray-900">
             Checkout
@@ -508,22 +508,30 @@ export default function CheckoutPage() {
                         <p className="text-xs text-gray-500 mt-1">
                           Qty: {item.quantity}
                         </p>
-                        </div>
+                      </div>
 
                       {/* Price */}
                       <div className="text-right">
                         {item.product.discountedPrice ? (
                           <div className="flex flex-col items-end">
                             <span className="text-sm font-medium text-red-600">
-                              {formatPrice(item.product.discountedPrice * item.quantity)}
+                              {formatPrice(
+                                item.product.discountedPrice * item.quantity,
+                              )}
                             </span>
                             <span className="text-xs text-gray-400 line-through">
-                              {formatPrice(parseFloat(item.product.price || "0") * item.quantity)}
+                              {formatPrice(
+                                parseFloat(item.product.price || "0") *
+                                  item.quantity,
+                              )}
                             </span>
                           </div>
                         ) : (
                           <p className="text-sm font-medium">
-                            {formatPrice(parseFloat(item.product.price || "0") * item.quantity)}
+                            {formatPrice(
+                              parseFloat(item.product.price || "0") *
+                                item.quantity,
+                            )}
                           </p>
                         )}
                       </div>

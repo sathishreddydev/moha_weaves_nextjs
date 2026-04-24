@@ -1,24 +1,16 @@
 "use client";
-import React from "react";
 import {
-  RefreshCw,
-  ShieldCheck,
-  Clock,
-  Package,
   AlertCircle,
-  ArrowRight,
-  CheckCircle2,
-  Mail,
-  Truck,
   CreditCard,
-  Globe,
-  HelpCircle,
+  Mail,
+  ShieldCheck,
+  Truck
 } from "lucide-react";
 
 export default function ReturnsPolicyPage() {
   return (
-    <div className="min-h-screen bg-white font-sans text-slate-800 antialiased">
-      <main className="max-w-5xl mx-auto py-12 space-y-12">
+    <div>
+      <main className="max-w-5xl mx-auto space-y-12">
         {/* Minimalist Centered Header */}
         <header className="border-b border-slate-100 pb-8 max-w-3xl">
           {/* <h2 className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400 mb-4">

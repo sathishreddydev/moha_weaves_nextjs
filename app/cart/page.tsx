@@ -34,7 +34,7 @@ export default function CartPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
           <p className="mt-2 text-gray-600">Loading cart...</p>
@@ -44,8 +44,8 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="bg-gray-50">
+      <div className="max-w-7xl mx-auto">
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded mb-6">
             {error}

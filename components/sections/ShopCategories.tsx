@@ -22,7 +22,7 @@ export default function ShopCategories() {
 
   return (
     <section>
-      <div className="max-w-7xl mx-auto lg:px-10 px-5">
+      <div>
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1

@@ -1,22 +1,19 @@
 "use client";
-import React, { useState } from "react";
 import {
-  Search,
+  AlertCircle,
   ChevronDown,
   ChevronUp,
-  ShoppingBag,
-  Truck,
-  RefreshCw,
   CreditCard,
-  Star,
-  Mail,
-  MessageCircle,
-  MapPin,
-  ShieldCheck,
-  AlertCircle,
-  XCircle,
   FileText,
+  Mail,
+  MapPin,
+  MessageCircle,
+  RefreshCw,
+  ShieldCheck,
+  ShoppingBag,
+  XCircle
 } from "lucide-react";
+import React, { useState } from "react";
 
 interface FAQItem {
   q: string;
@@ -195,7 +192,7 @@ export default function FAQsPage() {
 
   return (
     <div className="min-h-screen bg-white font-sans text-slate-800 antialiased">
-      <main className="max-w-5xl mx-auto py-12 space-y-12">
+      <main className="max-w-5xl mx-auto space-y-12">
         {/* Header */}
         <header className="border-b border-slate-100 pb-8 max-w-3xl">
           <h2 className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400 mb-2">

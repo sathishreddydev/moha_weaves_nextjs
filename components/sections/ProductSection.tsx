@@ -36,7 +36,8 @@ export default function ProductSection({
 }: ProductSectionProps) {
   const [products, setProducts] = useState<ProductWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
-  const { items, addToWishlist, removeFromWishlist, isInWishlist, updating } = useWishlistStore();
+  const { items, addToWishlist, removeFromWishlist, isInWishlist, updating } =
+    useWishlistStore();
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -74,9 +75,7 @@ export default function ProductSection({
               <h1 className="font-serif tracking-wide transition-colors text-2xl">
                 {title}
               </h1>
-              <p className="text-muted-foreground text-xs">
-                {subtitle}
-              </p>
+              <p className="text-muted-foreground text-xs">{subtitle}</p>
             </div>
 
             <Link
@@ -105,7 +104,7 @@ export default function ProductSection({
   if (products.length === 0) {
     return (
       <section>
-        <div className="max-w-7xl mx-auto lg:px-10 px-5">
+        <div>
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1
@@ -114,9 +113,7 @@ export default function ProductSection({
               >
                 {title}
               </h1>
-              <p className="text-muted-foreground text-xs">
-                {subtitle}
-              </p>
+              <p className="text-muted-foreground text-xs">{subtitle}</p>
             </div>
 
             <Link
@@ -132,8 +129,12 @@ export default function ProductSection({
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
               <RefreshCw className="w-8 h-8 text-gray-400" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No products available</h3>
-            <p className="text-gray-500 text-sm mb-6">Check back later for new arrivals</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No products available
+            </h3>
+            <p className="text-gray-500 text-sm mb-6">
+              Check back later for new arrivals
+            </p>
             <Link
               href={viewAllLink}
               className="inline-flex items-center px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
@@ -158,9 +159,7 @@ export default function ProductSection({
             >
               {title}
             </h1>
-            <p className="text-muted-foreground text-xs">
-              {subtitle}
-            </p>
+            <p className="text-muted-foreground text-xs">{subtitle}</p>
           </div>
 
           <Link

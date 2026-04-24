@@ -33,30 +33,33 @@ export default function Footer() {
               </div>
 
               <nav className="flex flex-col gap-5">
-                <Link
-                  href="/collections"
-                  className="text-xs font-semibold text-slate-600 hover:text-slate-900 hover:tracking-widest transition-all duration-300"
-                >
-                  Collections
-                </Link>
-                <Link
-                  href="/categories"
-                  className="text-xs font-semibold text-slate-600 hover:text-slate-900 hover:tracking-widest transition-all duration-300"
-                >
-                  Categories
-                </Link>
-                <Link
-                  href="/sales"
-                  className="text-xs font-semibold text-slate-600 hover:text-slate-900 hover:tracking-widest transition-all duration-300"
-                >
+                <div>
+                  <Link
+                    href="/collections"
+                    className="inline-block text-xs font-semibold text-slate-600 hover:text-slate-900 hover:tracking-widest transition-all duration-300"
+                  >
+                    Collections
+                  </Link>
+                </div>
+                <div>
+                  <Link
+                    href="/categories"
+                    className="inline-block text-xs font-semibold text-slate-600 hover:text-slate-900 hover:tracking-widest transition-all duration-300"
+                  >
+                    Categories
+                  </Link>
+                </div>
+                {/* <Link href="/sales" className="inline-block text-xs font-semibold text-slate-600 hover:text-slate-900 hover:tracking-widest transition-all duration-300">
                   Sales & Offers
-                </Link>
-                <Link
-                  href="/about"
-                  className="text-xs font-semibold text-slate-600 hover:text-slate-900 hover:tracking-widest transition-all duration-300"
-                >
-                  About Us
-                </Link>
+                </Link> */}
+                <div>
+                  <Link
+                    href="/about"
+                    className="inline-block text-xs font-semibold text-slate-600 hover:text-slate-900 hover:tracking-widest transition-all duration-300"
+                  >
+                    About Us
+                  </Link>
+                </div>
               </nav>
             </div>
 
@@ -70,30 +73,38 @@ export default function Footer() {
               </div>
 
               <nav className="flex flex-col gap-5">
-                <Link
-                  href="/contact"
-                  className="text-xs font-semibold text-slate-600 hover:text-slate-900 hover:tracking-widest transition-all duration-300"
-                >
-                  Contact Us
-                </Link>
-                <Link
-                  href="/shipping-policy"
-                  className="text-xs font-semibold text-slate-600 hover:text-slate-900 hover:tracking-widest transition-all duration-300"
-                >
-                  Shipping Policy
-                </Link>
-                <Link
-                  href="/returns-exchange-policy"
-                  className="text-xs font-semibold text-slate-600 hover:text-slate-900 hover:tracking-widest transition-all duration-300"
-                >
-                  Returns & Exchanges
-                </Link>
-                <Link
-                  href="/faq"
-                  className="text-xs font-semibold text-slate-600 hover:text-slate-900 hover:tracking-widest transition-all duration-300"
-                >
-                  FAQ
-                </Link>
+                <div>
+                  <Link
+                    href="/contact"
+                    className="inline-block text-xs font-semibold text-slate-600 hover:text-slate-900 hover:tracking-widest transition-all duration-300"
+                  >
+                    Contact Us
+                  </Link>
+                </div>
+                <div>
+                  <Link
+                    href="/shipping-policy"
+                    className="inline-block text-xs font-semibold text-slate-600 hover:text-slate-900 hover:tracking-widest transition-all duration-300"
+                  >
+                    Shipping Policy
+                  </Link>
+                </div>
+                <div>
+                  <Link
+                    href="/returns-exchange-policy"
+                    className="inline-block text-xs font-semibold text-slate-600 hover:text-slate-900 hover:tracking-widest transition-all duration-300"
+                  >
+                    Returns & Exchanges
+                  </Link>
+                </div>
+                <div>
+                  <Link
+                    href="/faq"
+                    className="inline-block text-xs font-semibold text-slate-600 hover:text-slate-900 hover:tracking-widest transition-all duration-300"
+                  >
+                    FAQ
+                  </Link>
+                </div>
               </nav>
             </div>
           </div>
@@ -109,26 +120,30 @@ export default function Footer() {
             </p>
 
             <div className="flex gap-8">
-              <Link
-                href="#"
-                className="text-[10px] font-bold uppercase tracking-widest text-slate-700 border-b border-transparent hover:border-slate-900 transition-all pb-1"
-              >
-                Instagram
-              </Link>
-
-              <Link
-                href="#"
-                className="text-[10px] font-bold uppercase tracking-widest text-slate-700 border-b border-transparent hover:border-slate-900 transition-all pb-1"
-              >
-                Facebook
-              </Link>
-
-              <Link
-                href="#"
-                className="text-[10px] font-bold uppercase tracking-widest text-slate-700 border-b border-transparent hover:border-slate-900 transition-all pb-1"
-              >
-                Twitter
-              </Link>
+              <div>
+                <Link
+                  href="#"
+                  className="inline-block text-[10px] font-bold uppercase tracking-widest text-slate-700 border-b border-transparent hover:border-slate-900 transition-all pb-1"
+                >
+                  Instagram
+                </Link>
+              </div>
+              <div>
+                <Link
+                  href="#"
+                  className="inline-block text-[10px] font-bold uppercase tracking-widest text-slate-700 border-b border-transparent hover:border-slate-900 transition-all pb-1"
+                >
+                  Facebook
+                </Link>
+              </div>
+              <div>
+                <Link
+                  href="#"
+                  className="inline-block text-[10px] font-bold uppercase tracking-widest text-slate-700 border-b border-transparent hover:border-slate-900 transition-all pb-1"
+                >
+                  Twitter
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -144,13 +159,13 @@ export default function Footer() {
             <div className="flex gap-6">
               <Link
                 href="/privacy"
-                className="text-[9px] text-slate-600 hover:text-slate-900 uppercase tracking-widest transition-colors font-bold"
+                className="inline-block text-[9px] text-slate-600 hover:text-slate-900 uppercase tracking-widest transition-colors font-bold"
               >
                 Privacy
               </Link>
               <Link
                 href="/terms"
-                className="text-[9px] text-slate-600 hover:text-slate-900 uppercase tracking-widest transition-colors font-bold"
+                className="inline-block text-[9px] text-slate-600 hover:text-slate-900 uppercase tracking-widest transition-colors font-bold"
               >
                 Terms
               </Link>

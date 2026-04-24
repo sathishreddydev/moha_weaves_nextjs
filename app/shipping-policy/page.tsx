@@ -9,9 +9,8 @@ import {
 
 export default function ShippingPolicyPage() {
   return (
-    <div className="min-h-screen bg-white font-sans text-slate-800 antialiased">
-      <main className="max-w-5xl mx-auto py-8">
-        
+    <div>
+      <main className="max-w-5xl mx-auto">
         {/* Simple Header */}
         <header className="mb-8 md:mb-12 border-b border-slate-100 pb-6 md:pb-8">
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-2">

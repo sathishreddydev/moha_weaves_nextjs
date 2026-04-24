@@ -8,7 +8,10 @@ import { OrderItem } from "@/components/user/OrderItem";
 import LiveChat from "@/components/user/LiveChat";
 import ProfileSidebar from "@/components/user/ProfileSidebar";
 import ShippingAddress from "@/components/user/shippingAddress";
-import { OrderWithItems, ShippingAddress as ShippingAddressType } from "@/shared";
+import {
+  OrderWithItems,
+  ShippingAddress as ShippingAddressType,
+} from "@/shared";
 import {
   ArrowLeft,
   CreditCard,
@@ -136,8 +139,8 @@ export default function OrderDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div>
+      <div className="max-w-7xl mx-auto">
         {/* Mobile: Back Button + Content Only */}
         <div className="lg:hidden">
           <OrderDetailsContent
@@ -216,7 +219,10 @@ export default function OrderDetailsPage() {
           orderContext={{
             orderId,
             order,
-            productName: order.items.length === 1 ? order.items[0].product.name : undefined
+            productName:
+              order.items.length === 1
+                ? order.items[0].product.name
+                : undefined,
           }}
         />
       )}
@@ -256,7 +262,7 @@ function OrderDetailsContent({
 
           <div className="text-xs">
             <span className="mr-1">Need</span>
-            <button 
+            <button
               onClick={onHelpClick}
               className="text-blue-800 underline hover:text-blue-600"
             >
@@ -366,18 +372,24 @@ function OrderDetailsContent({
           <div className="flex justify-between text-xs">
             <span className="text-gray-600">Total Savings</span>
             <span className="font-medium text-green-600">
-              ₹{(() => {
+              ₹
+              {(() => {
                 // Calculate item-level savings (difference between original price and discounted price)
                 const itemSavings = order.items.reduce((total, item) => {
                   if (item.productPrice && item.discountedPrice) {
-                    return total + (parseFloat(item.productPrice) - parseFloat(item.discountedPrice)) * item.quantity;
+                    return (
+                      total +
+                      (parseFloat(item.productPrice) -
+                        parseFloat(item.discountedPrice)) *
+                        item.quantity
+                    );
                   }
                   return total;
                 }, 0);
-                
+
                 // Add coupon discount if available
-                const couponDiscount = parseFloat(order?.discountAmount || '0');
-                
+                const couponDiscount = parseFloat(order?.discountAmount || "0");
+
                 return (itemSavings + couponDiscount).toFixed(2);
               })()}
             </span>
@@ -407,8 +419,11 @@ function OrderDetailsContent({
             Shipping Address
           </h3>
           <div className="text-xs whitespace-pre-line">
-            {typeof order.shippingAddress === 'object' && order.shippingAddress !== null
-              ? `${(order.shippingAddress as ShippingAddressType).name || ''}\n${(order.shippingAddress as ShippingAddressType).address || ''}\n${(order.shippingAddress as ShippingAddressType).locality || ''}, ${(order.shippingAddress as ShippingAddressType).city || ''}\n${(order.shippingAddress as ShippingAddressType).pincode || ''}\n${(order.shippingAddress as ShippingAddressType).phone || ''}`.replace(/\n+/g, '\n').trim()
+            {typeof order.shippingAddress === "object" &&
+            order.shippingAddress !== null
+              ? `${(order.shippingAddress as ShippingAddressType).name || ""}\n${(order.shippingAddress as ShippingAddressType).address || ""}\n${(order.shippingAddress as ShippingAddressType).locality || ""}, ${(order.shippingAddress as ShippingAddressType).city || ""}\n${(order.shippingAddress as ShippingAddressType).pincode || ""}\n${(order.shippingAddress as ShippingAddressType).phone || ""}`
+                  .replace(/\n+/g, "\n")
+                  .trim()
               : order.shippingAddress || ""}
           </div>
         </Card>
@@ -426,7 +441,7 @@ function OrderDetailsContent({
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                   <span className="text-[10px] font-bold text-blue-600 uppercase leading-none">
-                    {order.paymentDetails.method?.slice(0, 2) || 'PA'}
+                    {order.paymentDetails.method?.slice(0, 2) || "PA"}
                   </span>
                 </div>
                 <div>
