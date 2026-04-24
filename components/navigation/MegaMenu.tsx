@@ -24,7 +24,7 @@ export default function MegaMenu({
   const [isMounted, setIsMounted] = useState(false);
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const { categories, loading, error, fetchFilters } = useFilterStore();
+  const { categories, loading, error } = useFilterStore();
   const router = useRouter();
 
   // Ensure component is mounted before adding interactivity
@@ -32,12 +32,6 @@ export default function MegaMenu({
     setIsMounted(true);
   }, []);
 
-  // Fetch filters on component mount
-  useEffect(() => {
-    if (categories.length === 0) {
-      fetchFilters();
-    }
-  }, [categories.length, fetchFilters]);
 
   // Fetch featured products with better caching
   useEffect(() => {

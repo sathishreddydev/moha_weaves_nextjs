@@ -11,14 +11,8 @@ export default function ShopCategories() {
     categories,
     loading: loadingCategories,
     error,
-    fetchFilters,
   } = useFilterStore();
 
-  useEffect(() => {
-    if (!categories || categories.length === 0) {
-      fetchFilters();
-    }
-  }, [categories, fetchFilters]);
 
   return (
     <section className="px-6">

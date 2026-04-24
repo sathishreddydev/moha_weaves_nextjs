@@ -44,7 +44,7 @@ export default function Header() {
   // Get cart and wishlist data from stores
   const { count: cartCount, fetchCart } = useCartStore();
   const { count: wishlistCount, fetchWishlist } = useWishlistStore();
-  const { categories, loading, error, fetchFilters } = useFilterStore();
+  const { categories, loading, error } = useFilterStore();
 
   // Check if mobile on mount and resize
   useEffect(() => {
@@ -62,12 +62,6 @@ export default function Header() {
     }
   }, [isAuthenticated]);
 
-  // Fetch filters for mobile menu
-  useEffect(() => {
-    if (categories.length === 0) {
-      fetchFilters();
-    }
-  }, [categories.length, fetchFilters]);
 
   // Fetch featured products for mobile menu
   useEffect(() => {

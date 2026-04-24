@@ -16,12 +16,8 @@ export default function HeroSection() {
     categories: categoriesData,
     loading,
     error,
-    fetchFilters,
   } = useFilterStore();
 
-  useEffect(() => {
-    fetchFilters();
-  }, []);
 
   useEffect(() => {
     if (isPaused || !categoriesData || categoriesData.length === 0) return;

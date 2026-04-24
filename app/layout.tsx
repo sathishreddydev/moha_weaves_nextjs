@@ -5,6 +5,7 @@ import Header from "@/components/layout/Header";
 import LayoutWrapper from "@/components/layout/LayoutWrapper";
 import OffersBanner from "@/components/layout/OffersBanner";
 import { Providers } from "@/components/providers";
+import { FilterProvider } from "@/components/providers/FilterProvider";
 import { OffersBannerProvider } from "@/hooks/use-offers-banner";
 import type { Metadata, Viewport } from "next";
 import { getServerSession } from "next-auth/next";
@@ -36,16 +37,18 @@ export default async function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <Providers session={session}>
-          <OffersBannerProvider>
-            <GlobalSwipeNavigation>
-              <OffersBanner />
-              <Header />
-              <LayoutWrapper>
-                {children}
-              </LayoutWrapper>
-              <Footer />
-            </GlobalSwipeNavigation>
-          </OffersBannerProvider>
+          <FilterProvider>
+            <OffersBannerProvider>
+              <GlobalSwipeNavigation>
+                <OffersBanner />
+                <Header />
+                <LayoutWrapper>
+                  {children}
+                </LayoutWrapper>
+                <Footer />
+              </GlobalSwipeNavigation>
+            </OffersBannerProvider>
+          </FilterProvider>
         </Providers>
       </body>
     </html>
