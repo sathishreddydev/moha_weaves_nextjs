@@ -118,8 +118,8 @@ export const authOptions = {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: process.env.NODE_ENV === 'production',
-        domain: process.env.NODE_ENV === 'production' ? '.yourdomain.com' : undefined,
+        secure: false, // Set to false for HTTP on VPS
+        // Remove domain for IP-based access
       },
     },
   },

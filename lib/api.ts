@@ -250,8 +250,8 @@ export const authApi = {
           localStorage.setItem('refresh_token', refreshToken);
 
           // Set cookies for cross-domain authentication
-          setCookie('auth_token', token, { days: 7, secure: true });
-          setCookie('refresh_token', refreshToken, { days: 30, secure: true });
+          setCookie('auth_token', token, { days: 7, secure: false });
+          setCookie('refresh_token', refreshToken, { days: 30, secure: false });
         }
       }
 
@@ -271,8 +271,8 @@ export const authApi = {
           localStorage.setItem('auth_token', token);
           localStorage.setItem('refresh_token', refreshToken);
 
-          setCookie('auth_token', token, { days: 7, secure: true });
-          setCookie('refresh_token', refreshToken, { days: 30, secure: true });
+          setCookie('auth_token', token, { days: 7, secure: false });
+          setCookie('refresh_token', refreshToken, { days: 30, secure: false });
         }
       }
 
@@ -321,8 +321,8 @@ export const authApi = {
           localStorage.setItem('auth_token', token);
           localStorage.setItem('refresh_token', newRefreshToken);
 
-          setCookie('auth_token', token, { days: 7, secure: true });
-          setCookie('refresh_token', newRefreshToken, { days: 30, secure: true });
+          setCookie('auth_token', token, { days: 7, secure: false });
+          setCookie('refresh_token', newRefreshToken, { days: 30, secure: false });
         }
       }
 

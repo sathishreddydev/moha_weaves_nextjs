@@ -134,7 +134,24 @@ docker-compose up -d --build
 1. **Environment Variables**: Never commit `.env.production` to version control
 2. **Database Passwords**: Use strong, unique passwords (already configured)
 3. **Firewall**: Configure UFW to allow only necessary ports (3000, 5432, 6379)
-4. **Regular Updates**: Keep Docker images and dependencies updated
+4. **Cookie Security**: Current setup uses `secure: false` for HTTP - change to `secure: true` when using HTTPS
+5. **Regular Updates**: Keep Docker images and dependencies updated
+
+## 🌐 Production vs Development Differences
+
+| Setting | Development | Production (VPS) |
+|---------|-------------|------------------|
+| Protocol | HTTP | HTTP |
+| Domain | localhost | 103.127.146.58 |
+| Cookie Secure | false | false |
+| Cookie Domain | undefined | undefined |
+| NextAuth URL | http://localhost:3000 | http://103.127.146.58:3000 |
+
+**For HTTPS Production Setup:**
+1. Configure SSL certificate
+2. Update `NEXTAUTH_URL` to use HTTPS
+3. Change cookie `secure: true` in both auth config and API client
+4. Update domain if using custom domain
 
 ## 🚨 Troubleshooting
 
@@ -175,6 +192,67 @@ sudo netstat -tulpn | grep :6379
 docker-compose down
 docker system prune -f
 docker-compose up -d --build
+```
+
+### 🔐 Authentication Issues (VPS Specific)
+
+**Problem**: Users can register/login but sessions don't persist on VPS
+
+**Root Cause**: Cookie configuration mismatch between local development and VPS deployment
+
+**Solutions Applied**:
+
+1. **NextAuth Cookie Configuration** (auth/config/auth.ts):
+   ```typescript
+   cookies: {
+     sessionToken: {
+       name: 'next-auth.session-token',
+       options: {
+         httpOnly: true,
+         sameSite: 'lax',
+         path: '/',
+         secure: false, // Changed for HTTP on VPS
+         // Removed domain for IP-based access
+       },
+     },
+   }
+   ```
+
+2. **API Client Cookie Security** (lib/api.ts):
+   ```typescript
+   // Changed from secure: true to secure: false
+   setCookie('auth_token', token, { days: 7, secure: false });
+   setCookie('refresh_token', refreshToken, { days: 30, secure: false });
+   ```
+
+**Testing Authentication Flow**:
+```bash
+# After deployment, test these steps:
+# 1. Register a new account
+# 2. Try to login
+# 3. Check browser console for errors
+# 4. Verify localStorage contains tokens
+# 5. Check cookies in DevTools → Application → Cookies
+```
+
+**Debugging Authentication**:
+```javascript
+// In browser console, check:
+localStorage.getItem('auth_token')
+localStorage.getItem('refresh_token')
+document.cookie // Check for session tokens
+```
+
+**If Authentication Still Fails**:
+```bash
+# Check NextAuth environment variables
+docker-compose exec nextjs env | grep NEXTAUTH
+
+# Check if admin API is accessible
+curl http://103.127.146.58:5000/api/health
+
+# Check NextAuth endpoints
+curl http://103.127.146.58:3000/api/auth/signin
 ```
 
 ## 📱 Performance Optimization
