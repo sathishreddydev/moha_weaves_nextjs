@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button } from "../ui/button";
 import { getProductUrl } from "@/lib/utils/productUrl";
+import { isNewProduct } from "@/lib/stock-utils";
 
 interface ProductCardProps {
   product:
@@ -37,13 +38,7 @@ export default function ProductCard({
 }: ProductCardProps) {
   const router = useRouter();
 
-  const isNewProduct = (createdAt: Date) => {
-    const createdDate = new Date(createdAt);
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    return createdDate >= thirtyDaysAgo;
-  };
-
+  
   const handleProductClick = () => {
     const url = getProductUrl(product);
     router.push(url);

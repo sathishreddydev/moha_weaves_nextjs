@@ -157,3 +157,15 @@ export function getQuantityOptions(product: ProductWithStock, variantId?: string
   
   return Array.from({ length: maxOptions }, (_, i) => i + 1);
 }
+
+/**
+ * Check if a product is considered "new" (created within last 30 days)
+ * @param createdAt - Product creation date
+ * @returns True if product is new
+ */
+export function isNewProduct(createdAt: Date | string): boolean {
+  const createdDate = new Date(createdAt);
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  return createdDate >= thirtyDaysAgo;
+}
