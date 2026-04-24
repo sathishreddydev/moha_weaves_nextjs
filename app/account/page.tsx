@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useAuth } from '@/auth';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useAuth } from "@/auth";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function ProtectedPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -10,7 +10,7 @@ export default function ProtectedPage() {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push('/login');
+      router.push("/login");
     }
   }, [isAuthenticated, isLoading, router]);
 
@@ -27,7 +27,7 @@ export default function ProtectedPage() {
   }
 
   return (
-    <div className="bg-gray-50">
+    <div>
       <div className="max-w-7xl mx-auto">
         <div className="bg-white shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">
@@ -35,31 +35,42 @@ export default function ProtectedPage() {
               Welcome to Your Account
             </h1>
             <p className="mt-2 text-sm text-gray-600">
-              This is a protected page. Only authenticated users can see this content.
+              This is a protected page. Only authenticated users can see this
+              content.
             </p>
           </div>
           <div className="border-t border-gray-200 px-4 py-5 sm:p-6">
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               <div className="bg-gray-50 p-6 rounded-lg">
-                <h3 className="text-lg font-medium text-gray-900">Profile Information</h3>
+                <h3 className="text-lg font-medium text-gray-900">
+                  Profile Information
+                </h3>
                 <dl className="mt-4 space-y-2">
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Name</dt>
-                    <dd className="text-sm text-gray-900">{user?.name || 'N/A'}</dd>
+                    <dd className="text-sm text-gray-900">
+                      {user?.name || "N/A"}
+                    </dd>
                   </div>
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Email</dt>
-                    <dd className="text-sm text-gray-900">{user?.email || 'N/A'}</dd>
+                    <dd className="text-sm text-gray-900">
+                      {user?.email || "N/A"}
+                    </dd>
                   </div>
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Role</dt>
-                    <dd className="text-sm text-gray-900">{user?.role || 'N/A'}</dd>
+                    <dd className="text-sm text-gray-900">
+                      {user?.role || "N/A"}
+                    </dd>
                   </div>
                 </dl>
               </div>
-              
+
               <div className="bg-gray-50 p-6 rounded-lg">
-                <h3 className="text-lg font-medium text-gray-900">Quick Actions</h3>
+                <h3 className="text-lg font-medium text-gray-900">
+                  Quick Actions
+                </h3>
                 <div className="mt-4 space-y-3">
                   <button className="w-full text-left px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                     View Orders
@@ -72,9 +83,11 @@ export default function ProtectedPage() {
                   </button>
                 </div>
               </div>
-              
+
               <div className="bg-gray-50 p-6 rounded-lg">
-                <h3 className="text-lg font-medium text-gray-900">Account Settings</h3>
+                <h3 className="text-lg font-medium text-gray-900">
+                  Account Settings
+                </h3>
                 <div className="mt-4 space-y-3">
                   <button className="w-full text-left px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                     Edit Profile

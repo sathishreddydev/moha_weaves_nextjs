@@ -210,7 +210,7 @@ export default function CheckoutPage() {
 
   if (orderPlaced && orderId) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">
           <Card className="text-center py-12">
             <CardContent className="space-y-6">
@@ -256,7 +256,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="bg-gray-50">
+    <div>
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-xl sm:text-3xl font-bold text-gray-900">

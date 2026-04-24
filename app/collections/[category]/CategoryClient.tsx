@@ -281,7 +281,7 @@ export default function CategoryClient({
   );
 
   return (
-    <div className="bg-gray-50 max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto">
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Filters Sidebar - Desktop */}
         <aside className="hidden lg:block w-64 flex-shrink-0">

@@ -106,7 +106,7 @@ export default function OrderDetailsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
@@ -123,7 +123,7 @@ export default function OrderDetailsPage() {
 
   if (error || !order) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="text-center">
