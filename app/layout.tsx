@@ -11,6 +11,7 @@ import type { Metadata, Viewport } from "next";
 import { getServerSession } from "next-auth/next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { RealtimeProvider } from "@/components/providers/RealtimeProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -37,18 +38,20 @@ export default async function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <Providers session={session}>
-          <FilterProvider>
-            <OffersBannerProvider>
-              <GlobalSwipeNavigation>
-                <OffersBanner />
-                <Header />
-                <LayoutWrapper>
-                  {children}
-                </LayoutWrapper>
-                <Footer />
-              </GlobalSwipeNavigation>
-            </OffersBannerProvider>
-          </FilterProvider>
+          <RealtimeProvider
+            rooms={["products", "categories", "orders", "inventory"]}
+          >
+            <FilterProvider>
+              <OffersBannerProvider>
+                <GlobalSwipeNavigation>
+                  <OffersBanner />
+                  <Header />
+                  <LayoutWrapper>{children}</LayoutWrapper>
+                  <Footer />
+                </GlobalSwipeNavigation>
+              </OffersBannerProvider>
+            </FilterProvider>
+          </RealtimeProvider>
         </Providers>
       </body>
     </html>

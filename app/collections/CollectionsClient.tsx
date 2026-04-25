@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useProductUpdates } from "@/hooks/useRealtime";
 import { useWishlistStore } from "@/lib/stores/wishlistStore";
 import { getProductUrl } from "@/lib/utils/productUrl";
 import {
@@ -198,9 +199,9 @@ export default function CollectionsClient({
   // Handle price range filter
   const handlePriceRangeChange = useCallback(
     (priceRange: [number, number]) => {
-      handleFilterChange({ 
+      handleFilterChange({
         minPrice: priceRange[0] === 100 ? undefined : priceRange[0],
-        maxPrice: priceRange[1] === 50000 ? undefined : priceRange[1]
+        maxPrice: priceRange[1] === 50000 ? undefined : priceRange[1],
       });
     },
     [handleFilterChange],
@@ -247,8 +248,15 @@ export default function CollectionsClient({
     },
     [isInWishlist, removeFromWishlist, addToWishlist],
   );
+  const { connected } = useProductUpdates((event) => {
+    // Auto-refresh when product data changes
+    window.location.reload();
+    // Or better: refetch data with React Query
+  });
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
+      <div>Connection: {connected ? "🟢 Live" : "🔴 Offline"}</div>
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Filters Sidebar - Desktop */}
         <aside className="hidden lg:block w-64 flex-shrink-0">
