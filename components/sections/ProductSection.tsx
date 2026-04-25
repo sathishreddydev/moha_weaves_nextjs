@@ -1,10 +1,11 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
 import ProductCard from "@/components/products/ProductCard";
 import { ProductWithDetails } from "@/shared";
+import { ProductService } from "@/lib/services/productService";
 import { ArrowRight, RefreshCw } from "lucide-react";
 import Link from "next/link";
-import { useState, useEffect } from "react";
 import { useWishlistStore } from "@/lib/stores";
 
 interface ProductSectionProps {
@@ -12,20 +13,6 @@ interface ProductSectionProps {
   subtitle: string;
   endpoint: string;
   viewAllLink: string;
-}
-
-async function getProducts(endpoint: string): Promise<ProductWithDetails[]> {
-  try {
-    const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-    const response = await fetch(`${baseUrl}${endpoint}`, {
-      cache: "no-store",
-    });
-    const data = await response.json();
-    return data.products || [];
-  } catch (error) {
-    console.error("Error fetching products:", error);
-    return [];
-  }
 }
 
 export default function ProductSection({
@@ -36,13 +23,13 @@ export default function ProductSection({
 }: ProductSectionProps) {
   const [products, setProducts] = useState<ProductWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
-  const { items, addToWishlist, removeFromWishlist, isInWishlist, updating } =
+  const { addToWishlist, removeFromWishlist, isInWishlist, updating } =
     useWishlistStore();
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const fetchedProducts = await getProducts(endpoint);
+        const fetchedProducts = await ProductService.getProducts(endpoint);
         setProducts(fetchedProducts);
       } catch (error) {
         console.error("Error fetching products:", error);

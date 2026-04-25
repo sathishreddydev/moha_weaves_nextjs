@@ -12,12 +12,7 @@ export default function HeroSection() {
   const router = useRouter();
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
-  const {
-    categories: categoriesData,
-    loading,
-    error,
-  } = useFilterStore();
-
+  const { categories: categoriesData, loading, error } = useFilterStore();
 
   useEffect(() => {
     if (isPaused || !categoriesData || categoriesData.length === 0) return;
@@ -247,9 +242,6 @@ export default function HeroSection() {
         <div className="hidden md:flex items-center gap-12 text-white/40 text-[10px] font-bold tracking-[0.3em] uppercase">
           <span className="hover:text-white cursor-pointer transition-colors">
             Instagram
-          </span>
-          <span className="text-white/20">
-            Use ← → arrows to navigate • Space to pause
           </span>
         </div>
       </div>

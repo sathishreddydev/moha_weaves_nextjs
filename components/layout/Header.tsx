@@ -1,60 +1,37 @@
 "use client";
 
 import { useAuth } from "@/auth";
-import SearchComponent from "@/components/layout/SearchComponent";
+import MobileSidebar from "@/components/layout/MobileSidebar";
 import MegaMenu from "@/components/navigation/MegaMenu";
-import { Button } from "@/components/ui/button";
-import { useCartStore, useFilterStore, useWishlistStore } from "@/lib/stores";
-import { getProductUrl } from "@/lib/utils/productUrl";
+import { useOffersBanner } from "@/hooks/use-offers-banner";
+import { useSwipeToToggleMenu } from "@/hooks/use-swipe-gesture";
+import { useCartStore, useWishlistStore } from "@/lib/stores";
 import {
   Heart,
   Menu,
   ShoppingBag,
   UserIcon,
-  X,
-  ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
 import Search from "../navigation/Search";
-import { useSwipeToToggleMenu } from "@/hooks/use-swipe-gesture";
-import { useOffersBanner } from "@/hooks/use-offers-banner";
-import { ProductWithDetails } from "@/shared";
 
 export default function Header() {
   const { isAuthenticated } = useAuth();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeMegaMenu, setActiveMegaMenu] = useState(null);
-  const [activeMobileSection, setActiveMobileSection] = useState<string | null>(
-    null,
-  );
-  const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
-  const [isMobile, setIsMobile] = useState(false);
-  const mobileMenuRef = useRef<HTMLDivElement>(null);
   const { hasOfferData, isBannerVisible } = useOffersBanner();
 
-  // Swipe gesture for mobile menu
   const swipeMenuRef = useSwipeToToggleMenu(
     () => setIsMobileMenuOpen(true), // Swipe left to open menu
     () => setIsMobileMenuOpen(false), // Swipe right to close menu
   ) as React.RefObject<HTMLDivElement>;
 
-  // Get cart and wishlist data from stores
   const { count: cartCount, fetchCart } = useCartStore();
   const { count: wishlistCount, fetchWishlist } = useWishlistStore();
-  const { categories, loading, error } = useFilterStore();
 
-  // Check if mobile on mount and resize
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
-
-  // Fetch cart and wishlist data when user is authenticated
   useEffect(() => {
     if (isAuthenticated && cartCount === 0) {
       fetchCart();
@@ -62,75 +39,9 @@ export default function Header() {
     }
   }, [isAuthenticated]);
 
-
-  // Fetch featured products for mobile menu
-  useEffect(() => {
-    if (isMobileMenuOpen && featuredProducts.length === 0) {
-      const fetchProducts = async () => {
-        const products = await getProducts("/api/products/featured");
-        setFeaturedProducts(products);
-      };
-      fetchProducts();
-    }
-  }, [isMobileMenuOpen, featuredProducts.length]);
-
-  async function getProducts(endpoint: string): Promise<ProductWithDetails[]> {
-    try {
-      const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-      const response = await fetch(`${baseUrl}${endpoint}`, {
-        cache: "no-store",
-      });
-      const data = await response.json();
-      return data.products || [];
-    } catch (error) {
-      console.error("Error fetching products:", error);
-      return [];
-    }
-  }
-  // Handle mobile menu toggle
   const handleMobileMenuToggle = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
-    setActiveMobileSection(null);
   };
-
-  // Handle keyboard events for mobile menu
-  const handleMobileMenuKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") {
-      setIsMobileMenuOpen(false);
-      setActiveMobileSection(null);
-    }
-  };
-
-  // Handle mobile section click
-  const handleMobileSectionClick = (section: string) => {
-    setActiveMobileSection(activeMobileSection === section ? null : section);
-  };
-
-  // Close mobile menu when navigating
-  const handleMobileLinkClick = () => {
-    setIsMobileMenuOpen(false);
-    setActiveMobileSection(null);
-  };
-
-  // Handle click outside to close mobile menu
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      // Check if click is outside mobile menu
-      if (
-        isMobileMenuOpen &&
-        mobileMenuRef.current &&
-        !mobileMenuRef.current.contains(event.target as Node)
-      ) {
-        setIsMobileMenuOpen(false);
-        setActiveMobileSection(null);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isMobileMenuOpen]);
 
   return (
     <div ref={swipeMenuRef}>
@@ -165,7 +76,6 @@ export default function Header() {
             />
             {isAuthenticated ? (
               <>
-                {/* Wishlist */}
                 <button
                   onClick={() => router.push("/wishlist")}
                   className="relative touch-manipulation active:scale-95 transition-transform"
@@ -178,7 +88,6 @@ export default function Header() {
                   )}
                 </button>
 
-                {/* Cart */}
                 <button
                   onClick={() => router.push("/cart")}
                   className="relative touch-manipulation active:scale-95 transition-transform"
@@ -191,9 +100,8 @@ export default function Header() {
                   )}
                 </button>
 
-                {/* User */}
                 <button
-                  onClick={() => router.push(isMobile ? "/my" : "/my/details")}
+                  onClick={() => router.push("/my")}
                   className="touch-manipulation active:scale-95 transition-transform"
                 >
                   <UserIcon className="w-6 h-6 lg:w-5 lg:h-5" />
@@ -210,167 +118,12 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Mobile Extended Header */}
-        {isMobileMenuOpen && (
-          <div
-            ref={mobileMenuRef}
-            className="md:hidden bg-white"
-            onKeyDown={handleMobileMenuKeyDown}
-          >
-            <div className="max-w-7xl mx-auto">
-              <div
-                className="py-4 space-y-2"
-                role="navigation"
-                aria-label="Mobile navigation"
-              >
-                <button
-                  onClick={() => handleMobileSectionClick("collections")}
-                  className="w-full text-left py-4 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors duration-200 flex items-center justify-between  touch-manipulation active:scale-[0.98] transition-transform"
-                  aria-expanded={activeMobileSection === "collections"}
-                  aria-controls="collections-panel"
-                >
-                  <span className="font-medium">Collections</span>
-                  <ChevronDown
-                    className={`w-4 h-4 transition-transform duration-200 ${
-                      activeMobileSection === "collections" ? "rotate-180" : ""
-                    }`}
-                    aria-hidden="true"
-                  />
-                </button>
-
-                {/* <button
-                  onClick={() => handleMobileSectionClick("categories")}
-                  className="w-full text-left px-4 py-4 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors duration-200 flex items-center justify-between  touch-manipulation active:scale-[0.98] transition-transform"
-                  aria-expanded={activeMobileSection === "categories"}
-                  aria-controls="categories-panel"
-                >
-                  <span className="font-medium">All Categories</span>
-                  <ChevronDown
-                    className={`w-4 h-4 transition-transform duration-200 ${
-                      activeMobileSection === "categories" ? "rotate-180" : ""
-                    }`}
-                    aria-hidden="true"
-                  />
-                </button> */}
-              </div>
-
-              {/* Mobile Extended Content */}
-              {activeMobileSection && (
-                <div className="pb-4 border-t border-gray-100" role="region">
-                  {activeMobileSection === "collections" && (
-                    <div id="collections-panel" className="pt-4">
-                      <div className="grid grid-cols-3 gap-3 px-4">
-                        {loading
-                          ? // Loading state for categories
-                            [1, 2, 3, 4, 5, 6].map((item) => (
-                              <div key={item} className="animate-pulse">
-                                <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-200 mb-2 mx-auto"></div>
-                                <div className="h-3 bg-gray-200 rounded mx-auto w-16 mb-1"></div>
-                              </div>
-                            ))
-                          : categories.slice(0, 6).map((category) => (
-                              <Link
-                                key={category.id}
-                                href={`/collections/${encodeURIComponent(category.name)}`}
-                                className="group p-3 rounded-lg border border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-all duration-200"
-                                onClick={handleMobileLinkClick}
-                              >
-                                <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 mb-2 mx-auto">
-                                  {category.imageUrl ? (
-                                    <img
-                                      src={category.imageUrl}
-                                      alt={category.name}
-                                      className="w-full h-full object-cover"
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center">
-                                      <span className="text-purple-600 text-xs font-medium">
-                                        {category.name.slice(0, 2)}
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-                                <h5 className="text-xs font-medium text-gray-900 text-center group-hover:text-purple-600 transition-colors">
-                                  {category.name}
-                                </h5>
-                              </Link>
-                            ))}
-                      </div>
-                      <div className="mt-4 px-4">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="uppercase tracking-wide text-slate-800 hover:text-slate-400 hover:bg-transparent"
-                          onClick={handleMobileLinkClick}
-                          asChild
-                        >
-                          <Link href="/collections">View All Collections</Link>
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeMobileSection === "categories" && (
-                    <div id="categories-panel" className="pt-4">
-                      <h4 className="px-4 text-sm font-semibold text-gray-900 mb-3">
-                        Shop by Category
-                      </h4>
-                      <div className="grid grid-cols-2 gap-3 px-4">
-                        {loading
-                          ? // Loading state for categories
-                            [1, 2, 3, 4, 5, 6].map((item) => (
-                              <div key={item} className="animate-pulse">
-                                <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-200 mb-2 mx-auto"></div>
-                                <div className="h-3 bg-gray-200 rounded mx-auto w-16 mb-1"></div>
-                              </div>
-                            ))
-                          : categories.slice(0, 6).map((category) => (
-                              <Link
-                                key={category.id}
-                                href={`/collections/${encodeURIComponent(category.name)}`}
-                                className="group p-3 rounded-lg border border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-all duration-200"
-                                onClick={handleMobileLinkClick}
-                              >
-                                <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 mb-2 mx-auto">
-                                  {category.imageUrl ? (
-                                    <img
-                                      src={category.imageUrl}
-                                      alt={category.name}
-                                      className="w-full h-full object-cover"
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center">
-                                      <span className="text-purple-600 text-xs font-medium">
-                                        {category.name.slice(0, 2)}
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-                                <h5 className="text-xs font-medium text-gray-900 text-center group-hover:text-purple-600 transition-colors">
-                                  {category.name}
-                                </h5>
-                              </Link>
-                            ))}
-                      </div>
-                      <div className="mt-4 px-4">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="uppercase tracking-wide text-slate-800 hover:text-slate-400 hover:bg-transparent"
-                          onClick={handleMobileLinkClick}
-                          asChild
-                        >
-                          <Link href="/categories">View All Categories</Link>
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </header>
+        </header>
+      
+      <MobileSidebar 
+        isOpen={isMobileMenuOpen} 
+        onClose={handleMobileMenuToggle}
+      />
     </div>
   );
 }

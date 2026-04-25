@@ -57,7 +57,7 @@ export default function Footer() {
                 <div>
                   <Link
                     scroll={true}
-                    href="/about"
+                    href="/about-us"
                     className="inline-block text-xs font-semibold text-slate-600 hover:text-slate-900 hover:tracking-widest transition-all duration-300"
                   >
                     About Us

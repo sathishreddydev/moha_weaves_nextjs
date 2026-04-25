@@ -22,7 +22,6 @@ export default function MegaMenu({
   setActiveMegaMenu,
 }: MegaMenuProps) {
   const [isMounted, setIsMounted] = useState(false);
-  const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { categories, loading, error } = useFilterStore();
   const router = useRouter();
@@ -31,26 +30,6 @@ export default function MegaMenu({
   useEffect(() => {
     setIsMounted(true);
   }, []);
-
-
-  // Fetch featured products with better caching
-  useEffect(() => {
-    if (isMounted) {
-      fetchFeaturedProducts();
-    }
-  }, [isMounted]);
-
-  const fetchFeaturedProducts = async () => {
-    try {
-      const response = await fetch("/api/products/featured");
-      const data = await response.json();
-      if (data.products) {
-        setFeaturedProducts(data.products.slice(0, 6));
-      }
-    } catch (error) {
-      console.error("Error fetching featured products:", error);
-    }
-  };
 
   const handleLinkClick = () => {
     if (!isMounted) return;
