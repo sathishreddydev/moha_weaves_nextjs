@@ -1,3 +1,5 @@
+"use client";
+
 import { RealtimeEvent, useRealtime } from '@/hooks/useRealtime';
 import React, { createContext, useContext, ReactNode } from 'react';
 
