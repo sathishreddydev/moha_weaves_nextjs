@@ -246,7 +246,7 @@ export default function ProductDetailClient({
     <div>
       <div className="max-w-7xl mx-auto">
         {/* Mobile Breadcrumbs */}
-        <div className="block lg:hidden mb-4 sticky top-16 z-10 bg-gray-50">
+        <div className="block lg:hidden mb-4 sticky top-16 z-10">
           <Breadcrumbs
             items={[
               { label: "Home", href: "/" },

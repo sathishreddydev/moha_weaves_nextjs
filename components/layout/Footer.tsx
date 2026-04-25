@@ -36,6 +36,7 @@ export default function Footer() {
                 <div>
                   <Link
                     href="/collections"
+                    scroll={true}
                     className="inline-block text-xs font-semibold text-slate-600 hover:text-slate-900 hover:tracking-widest transition-all duration-300"
                   >
                     Collections
@@ -43,6 +44,7 @@ export default function Footer() {
                 </div>
                 <div>
                   <Link
+                    scroll={true}
                     href="/categories"
                     className="inline-block text-xs font-semibold text-slate-600 hover:text-slate-900 hover:tracking-widest transition-all duration-300"
                   >
@@ -54,6 +56,7 @@ export default function Footer() {
                 </Link> */}
                 <div>
                   <Link
+                    scroll={true}
                     href="/about"
                     className="inline-block text-xs font-semibold text-slate-600 hover:text-slate-900 hover:tracking-widest transition-all duration-300"
                   >
@@ -75,6 +78,7 @@ export default function Footer() {
               <nav className="flex flex-col gap-5">
                 <div>
                   <Link
+                    scroll={true}
                     href="/contact"
                     className="inline-block text-xs font-semibold text-slate-600 hover:text-slate-900 hover:tracking-widest transition-all duration-300"
                   >
@@ -83,6 +87,7 @@ export default function Footer() {
                 </div>
                 <div>
                   <Link
+                    scroll={true}
                     href="/shipping-policy"
                     className="inline-block text-xs font-semibold text-slate-600 hover:text-slate-900 hover:tracking-widest transition-all duration-300"
                   >
@@ -91,6 +96,7 @@ export default function Footer() {
                 </div>
                 <div>
                   <Link
+                    scroll={true}
                     href="/returns-exchange-policy"
                     className="inline-block text-xs font-semibold text-slate-600 hover:text-slate-900 hover:tracking-widest transition-all duration-300"
                   >
@@ -99,6 +105,7 @@ export default function Footer() {
                 </div>
                 <div>
                   <Link
+                    scroll={true}
                     href="/faq"
                     className="inline-block text-xs font-semibold text-slate-600 hover:text-slate-900 hover:tracking-widest transition-all duration-300"
                   >
@@ -122,6 +129,7 @@ export default function Footer() {
             <div className="flex gap-8">
               <div>
                 <Link
+                  scroll={true}
                   href="#"
                   className="inline-block text-[10px] font-bold uppercase tracking-widest text-slate-700 border-b border-transparent hover:border-slate-900 transition-all pb-1"
                 >
@@ -130,6 +138,7 @@ export default function Footer() {
               </div>
               <div>
                 <Link
+                  scroll={true}
                   href="#"
                   className="inline-block text-[10px] font-bold uppercase tracking-widest text-slate-700 border-b border-transparent hover:border-slate-900 transition-all pb-1"
                 >
@@ -138,6 +147,7 @@ export default function Footer() {
               </div>
               <div>
                 <Link
+                  scroll={true}
                   href="#"
                   className="inline-block text-[10px] font-bold uppercase tracking-widest text-slate-700 border-b border-transparent hover:border-slate-900 transition-all pb-1"
                 >
@@ -158,6 +168,7 @@ export default function Footer() {
             </span>
             <div className="flex gap-6">
               <Link
+                scroll={true}
                 href="/privacy"
                 className="inline-block text-[9px] text-slate-600 hover:text-slate-900 uppercase tracking-widest transition-colors font-bold"
               >

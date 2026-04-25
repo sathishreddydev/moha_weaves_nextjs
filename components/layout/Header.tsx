@@ -140,7 +140,7 @@ export default function Header() {
         }`}
       >
         <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-4">
             <button
               onClick={handleMobileMenuToggle}
               className="md:hidden touch-manipulation active:scale-95 transition-transform"
