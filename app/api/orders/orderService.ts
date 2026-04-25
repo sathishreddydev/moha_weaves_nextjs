@@ -54,6 +54,139 @@ function createOrderHistoryProduct(product: any) {
   };
 }
 
+// Shared helper functions to eliminate code duplication
+
+// Reusable query builder for order selects
+function buildOrderSelectQuery(dbQuery: any, additionalFields = {}) {
+  return dbQuery.select({
+    id: orders.id,
+    userId: orders.userId,
+    totalAmount: orders.totalAmount,
+    discountAmount: orders.discountAmount,
+    finalAmount: orders.finalAmount,
+    status: orders.status,
+    paymentStatus: orders.paymentStatus,
+    paymentMethod: orders.paymentMethod,
+    razorpayPaymentId: orders.razorpayPaymentId,
+    shippingAddress: orders.shippingAddress,
+    phone: orders.phone,
+    email: orders.email,
+    trackingNumber: orders.trackingNumber,
+    estimatedDelivery: orders.estimatedDelivery,
+    deliveredAt: orders.deliveredAt,
+    couponId: orders.couponId,
+    couponCode: orders.couponCode,
+    couponType: orders.couponType,
+    couponValue: orders.couponValue,
+    notes: orders.notes,
+    returnEligibleUntil: orders.returnEligibleUntil,
+    shippingMethod: orders.shippingMethod,
+    delhiveryWaybill: orders.delhiveryWaybill,
+    delhiveryOrderId: orders.delhiveryOrderId,
+    delhiveryStatus: orders.delhiveryStatus,
+    shipmentType: orders.shipmentType,
+    totalShipments: orders.totalShipments,
+    completedShipments: orders.completedShipments,
+    autoProcessed: orders.autoProcessed,
+    addressValidated: orders.addressValidated,
+    customerNotified: orders.customerNotified,
+    pickupScheduled: orders.pickupScheduled,
+    autoShippingAttempts: orders.autoShippingAttempts,
+    lastAutoShippingAttempt: orders.lastAutoShippingAttempt,
+    createdAt: orders.createdAt,
+    updatedAt: orders.updatedAt,
+    ...additionalFields
+  });
+}
+
+// Reusable query builder for order items selects
+function buildOrderItemsSelectQuery(dbQuery: any, additionalFields = {}) {
+  return dbQuery.select({
+    id: orderItems.id,
+    orderId: orderItems.orderId,
+    productId: orderItems.productId,
+    variantId: orderItems.variantId,
+    quantity: orderItems.quantity,
+    price: orderItems.price,
+    productPrice: orderItems.productPrice,
+    discountedPrice: orderItems.discountedPrice,
+    offerDetails: orderItems.offerDetails,
+    status: orderItems.status,
+    trackingNumber: orderItems.trackingNumber,
+    shippedAt: orderItems.shippedAt,
+    deliveredAt: orderItems.deliveredAt,
+    returnEligibleUntil: orderItems.returnEligibleUntil,
+    shipmentId: orderItems.shipmentId,
+    delhiveryWaybill: orderItems.delhiveryWaybill,
+    delhiveryPackageId: orderItems.delhiveryPackageId,
+    weight: orderItems.weight,
+    dimensions: orderItems.dimensions,
+    createdAt: orderItems.createdAt,
+    updatedAt: orderItems.updatedAt,
+    ...additionalFields
+  });
+}
+
+// Extract item status lookup logic
+async function getItemStatuses(orderItemsData: any[]) {
+  return Promise.all(
+    orderItemsData.map(async (item) => {
+      const [latestStatus] = await db
+        .select({ newStatus: itemStatusHistory.newStatus })
+        .from(itemStatusHistory)
+        .where(eq(itemStatusHistory.orderItemId, item.id))
+        .orderBy(desc(itemStatusHistory.createdAt))
+        .limit(1);
+
+      return {
+        orderItemId: item.id,
+        currentStatus: latestStatus?.newStatus ?? item.status,
+      };
+    })
+  );
+}
+
+// Reusable item mapping function
+function mapOrderItems(
+  orderItemsData: any[], 
+  itemStatuses: any[], 
+  productMap: Map<string, any>, 
+  eligibilityMap?: any[]
+) {
+  return orderItemsData.map((item) => {
+    const statusObj = itemStatuses.find((s) => s.orderItemId === item.id);
+    const eligibility = eligibilityMap?.find(e => e.itemId === item.id);
+    const product = productMap.get(item.productId);
+    
+    return {
+      id: item.id,
+      orderId: item.orderId,
+      productId: item.productId,
+      variantId: item.variantId,
+      quantity: item.quantity,
+      price: item.price,
+      productPrice: item.productPrice ? item.productPrice.toString() : null,
+      discountedPrice: item.discountedPrice ? item.discountedPrice.toString() : null,
+      offerDetails: item.offerDetails,
+      status: item.status,
+      trackingNumber: item.trackingNumber,
+      shippedAt: item.shippedAt,
+      deliveredAt: item.deliveredAt,
+      returnEligibleUntil: item.returnEligibleUntil,
+      shipmentId: item.shipmentId,
+      delhiveryWaybill: item.delhiveryWaybill,
+      delhiveryPackageId: item.delhiveryPackageId,
+      weight: item.weight,
+      dimensions: item.dimensions,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+      currentStatus: statusObj?.currentStatus || item.status,
+      returnEligibility: eligibility || { itemId: item.id, eligible: false },
+      product: createOrderHistoryProduct(product) as any,
+    };
+  });
+}
+
 export interface OrderStorage {
   createOrder(
     order: InsertOrder,
@@ -268,121 +401,26 @@ export class OrderRepository implements OrderStorage {
     };
   }
 
-  async getBasicOrder(id: string): Promise<OrderWithItems | undefined> {
-    const [order] = await db.select().from(orders).where(eq(orders.id, id));
-    if (!order) return undefined;
-
-    // Get order items first
-    const orderItemsData = await db
-      .select()
-      .from(orderItems)
-      .where(eq(orderItems.orderId, order.id));
-
-    if (!orderItemsData.length) {
-      return {
-        ...order,
-        items: [],
-      };
-    }
-
-    // Get product IDs from order items
-    const productIds = orderItemsData.map(item => item.productId);
-
-    // Fetch products using getProductsByRole
-    const productsData = await productService.getProductsByRole(
-      { ids: productIds },
-      "user"
-    );
-
-    // Create product map for easy lookup
-    const productMap = new Map(
-      productsData.map(product => [product.id, product])
-    );
-
-    const itemStatuses = await Promise.all(
-      orderItemsData.map(async (item) => {
-        const [latestStatus] = await db
-          .select({ newStatus: itemStatusHistory.newStatus })
-          .from(itemStatusHistory)
-          .where(eq(itemStatusHistory.orderItemId, item.id))
-          .orderBy(desc(itemStatusHistory.createdAt))
-          .limit(1);
-
-        return {
-          orderItemId: item.id,
-          currentStatus: latestStatus?.newStatus ?? item.status,
-        };
-      })
-    );
-    return {
-      ...order,
-      items: orderItemsData.map((item) => {
-        const statusObj = itemStatuses.find((s) => s.orderItemId === item.id);
-        const product = productMap.get(item.productId);
-        return {
-          ...item,
-          status: item.status,
-          currentStatus: statusObj?.currentStatus || item.status,
-          product: createOrderHistoryProduct(product) as any,
-        };
-      }),
-    };
+  
+  async getOrder(id: string): Promise<OrderWithItems | undefined> {
+    return await this.getOrderWithDetails(id, true);
   }
 
-  async getOrder(id: string): Promise<OrderWithItems | undefined> {
-    // Select order with safe column access
-    const [order] = await db
-      .select({
-        id: orders.id,
-        userId: orders.userId,
-        totalAmount: orders.totalAmount,
-        discountAmount: orders.discountAmount,
-        finalAmount: orders.finalAmount,
-        status: orders.status,
-        paymentStatus: orders.paymentStatus,
-        paymentMethod: orders.paymentMethod,
-        razorpayPaymentId: orders.razorpayPaymentId,
-        shippingAddress: orders.shippingAddress,
-        phone: orders.phone,
-        trackingNumber: orders.trackingNumber,
-        estimatedDelivery: orders.estimatedDelivery,
-        deliveredAt: orders.deliveredAt,
-        couponId: orders.couponId,
-        // New coupon fields with fallbacks
-        couponCode: orders.couponCode,
-        couponType: orders.couponType,
-        couponValue: orders.couponValue,
-        notes: orders.notes,
-        returnEligibleUntil: orders.returnEligibleUntil,
-        createdAt: orders.createdAt,
-        updatedAt: orders.updatedAt,
-      })
+  async getBasicOrder(id: string): Promise<OrderWithItems | undefined> {
+    return await this.getOrderWithDetails(id, false);
+  }
+
+  // Consolidated function that handles both detailed and basic order retrieval
+  private async getOrderWithDetails(id: string, includeDetails: boolean): Promise<OrderWithItems | undefined> {
+    // Use shared query builder for order select
+    const [order] = await buildOrderSelectQuery(db)
       .from(orders)
       .where(eq(orders.id, id));
     
     if (!order) return undefined;
 
-    // Get order items with safe column access
-    const orderItemsData = await db
-      .select({
-        id: orderItems.id,
-        orderId: orderItems.orderId,
-        productId: orderItems.productId,
-        variantId: orderItems.variantId,
-        quantity: orderItems.quantity,
-        price: orderItems.price,
-        // New pricing fields with fallbacks
-        productPrice: orderItems.productPrice,
-        discountedPrice: orderItems.discountedPrice,
-        offerDetails: orderItems.offerDetails,
-        status: orderItems.status,
-        trackingNumber: orderItems.trackingNumber,
-        shippedAt: orderItems.shippedAt,
-        deliveredAt: orderItems.deliveredAt,
-        returnEligibleUntil: orderItems.returnEligibleUntil,
-        createdAt: orderItems.createdAt,
-        updatedAt: orderItems.updatedAt,
-      })
+    // Use shared query builder for order items select
+    const orderItemsData = await buildOrderItemsSelectQuery(db)
       .from(orderItems)
       .where(eq(orderItems.orderId, order.id));
 
@@ -394,7 +432,7 @@ export class OrderRepository implements OrderStorage {
     }
 
     // Get product IDs from order items
-    const productIds = orderItemsData.map(item => item.productId);
+    const productIds = orderItemsData.map((item: any) => item.productId);
 
     // Fetch products using getProductsByRole
     const productsData = await productService.getProductsByRole(
@@ -407,25 +445,18 @@ export class OrderRepository implements OrderStorage {
       productsData.map(product => [product.id, product])
     );
 
-    // Get return eligibility for all items in this order
-    const eligibilityMap = await returnService.checkOrderReturnEligibility(order.id);
+    // Get return eligibility for all items in this order (only if detailed)
+    const eligibilityMap = includeDetails 
+      ? await returnService.checkOrderReturnEligibility(order.id)
+      : undefined;
 
-    const itemStatuses = await Promise.all(
-      orderItemsData.map(async (item) => {
-        const [latestStatus] = await db
-          .select({ newStatus: itemStatusHistory.newStatus })
-          .from(itemStatusHistory)
-          .where(eq(itemStatusHistory.orderItemId, item.id))
-          .orderBy(desc(itemStatusHistory.createdAt))
-          .limit(1);
-
-        return {
-          orderItemId: item.id,
-          currentStatus: latestStatus?.newStatus ?? item.status,
-        };
-      })
-    );
-    const paymentData = order.razorpayPaymentId ? await paymentInfo({ razorpayPaymentId: order.razorpayPaymentId }) : null;
+    // Use shared item status lookup function
+    const itemStatuses = await getItemStatuses(orderItemsData);
+    
+    // Get payment data (only if detailed)
+    const paymentData = includeDetails && order.razorpayPaymentId 
+      ? await paymentInfo({ razorpayPaymentId: order.razorpayPaymentId }) 
+      : null;
     
     // Parse shipping address from JSON string if needed
     let parsedShippingAddress = order.shippingAddress;
@@ -442,20 +473,7 @@ export class OrderRepository implements OrderStorage {
       ...order,
       shippingAddress: parsedShippingAddress,
       paymentDetails: paymentData || undefined,
-      items: orderItemsData.map((item) => {
-        const statusObj = itemStatuses.find((s) => s.orderItemId === item.id);
-        const eligibility = eligibilityMap.find(e => e.itemId === item.id);
-        const product = productMap.get(item.productId);
-        return {
-          ...item,
-          status: item.status,
-          currentStatus: statusObj?.currentStatus || item.status,
-          returnEligibility: eligibility || { itemId: item.id, eligible: false },
-          product: createOrderHistoryProduct(product) as any,
-          productPrice: item.productPrice ? item.productPrice.toString() : null,
-          discountedPrice: item.discountedPrice ? item.discountedPrice.toString() : null,
-        };
-      }),
+      items: mapOrderItems(orderItemsData, itemStatuses, productMap, eligibilityMap),
     };
   }
 
