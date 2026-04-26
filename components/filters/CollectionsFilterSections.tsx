@@ -137,7 +137,7 @@ export default function CollectionsFilterSections({
           min={100}
           max={50000}
           step={100}
-          value={currentFilters.priceRange || [
+          value={[
             currentFilters.minPrice || 100,
             currentFilters.maxPrice || 50000
           ]}

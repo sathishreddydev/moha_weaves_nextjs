@@ -28,13 +28,22 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
   useEffect(() => {
     if (!autoConnect) return;
 
-    const newSocket = io('http://103.127.146.58:5000', {
+    // Use environment variable or fallback to remote server, then localhost
+    const serverUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL || 
+                     (typeof window !== 'undefined' && window.location.hostname === 'localhost' 
+                      ? 'http://localhost:5000' 
+                      : 'http://103.127.146.58:5000');
+
+    const newSocket = io(serverUrl, {
       transports: ['websocket', 'polling'],
-      withCredentials: true
+      withCredentials: true,
+      timeout: 5000,
+      reconnectionAttempts: 3,
+      reconnectionDelay: 1000
     });
 
     newSocket.on('connect', () => {
-      console.log('🔌 Connected to real-time server');
+      console.log('🔌 Connected to real-time server:', serverUrl);
       setConnected(true);
       
       // Join rooms
@@ -43,8 +52,13 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
       });
     });
 
-    newSocket.on('disconnect', () => {
-      console.log('🔌 Disconnected from real-time server');
+    newSocket.on('disconnect', (reason) => {
+      console.log('🔌 Disconnected from real-time server:', reason);
+      setConnected(false);
+    });
+
+    newSocket.on('connect_error', (error) => {
+      console.warn('🔌 WebSocket connection failed:', error.message);
       setConnected(false);
     });
 

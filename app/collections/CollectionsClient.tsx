@@ -249,9 +249,7 @@ export default function CollectionsClient({
     [isInWishlist, removeFromWishlist, addToWishlist],
   );
   const { connected } = useProductUpdates((event) => {
-    // Auto-refresh when product data changes
-    window.location.reload();
-    // Or better: refetch data with React Query
+    console.log('Product update received:', event);
   });
 
   return (

@@ -32,7 +32,7 @@ const PriceRangeSlider = React.forwardRef<
 
     React.useEffect(() => {
       setLocalValue(value)
-    }, [value])
+    }, [value[0], value[1]])
 
     const handleValueChange = (newValue: [number, number]) => {
       setLocalValue(newValue)

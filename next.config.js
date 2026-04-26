@@ -46,7 +46,7 @@ const nextConfig = {
               "font-src 'self'",
 
               // API calls
-              "connect-src 'self' https://api.razorpay.com https://*.razorpay.com http://103.127.146.58:5000",
+              "connect-src 'self' https://api.razorpay.com https://*.razorpay.com http://103.127.146.58:5000 ws://103.127.146.58:5000 ws://localhost:3000 ws://localhost:5000 ws: wss:",
 
               // Razorpay payment popup
               "frame-src 'self' https://checkout.razorpay.com https://api.razorpay.com",

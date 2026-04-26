@@ -73,7 +73,7 @@ export default async function middleware(request: NextRequest) {
       "img-src 'self' data: https: blob:",
       
       // API connections
-      "connect-src 'self' https://api.stripe.com https://api.razorpay.com https://*.razorpay.com",
+      "connect-src 'self' https://api.stripe.com https://api.razorpay.com https://*.razorpay.com http://103.127.146.58:5000 ws://103.127.146.58:5000 ws://localhost:3000 ws://localhost:5000 ws: wss:",
       
       // Payment popups/frames
       "frame-src 'self' https://js.stripe.com https://checkout.stripe.com https://checkout.razorpay.com https://api.razorpay.com",
