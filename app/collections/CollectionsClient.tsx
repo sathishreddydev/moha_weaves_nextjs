@@ -6,11 +6,10 @@ import ProductCard from "@/components/products/ProductCard";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
-  DrawerClose,
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
-  DrawerTrigger,
+  DrawerTrigger
 } from "@/components/ui/drawer";
 import {
   Select,
@@ -19,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useProductUpdates } from "@/hooks/useRealtime";
 import { useWishlistStore } from "@/lib/stores/wishlistStore";
 import { getProductUrl } from "@/lib/utils/productUrl";
 import {
@@ -28,7 +26,7 @@ import {
   Fabric,
   ProductWithDetails,
 } from "@/shared";
-import { FilterIcon, X } from "lucide-react";
+import { FilterIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
@@ -248,13 +246,9 @@ export default function CollectionsClient({
     },
     [isInWishlist, removeFromWishlist, addToWishlist],
   );
-  const { connected } = useProductUpdates((event) => {
-    console.log('Product update received:', event);
-  });
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      <div>Connection: {connected ? "🟢 Live" : "🔴 Offline"}</div>
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Filters Sidebar - Desktop */}
         <aside className="hidden lg:block w-64 flex-shrink-0">
