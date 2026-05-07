@@ -8,7 +8,7 @@ import {
   SheetTitle,
   SheetClose,
 } from "@/components/ui/sheet";
-import { useFilterStore } from "@/lib/stores";
+import { useFilterStore } from "@/lib/stores/fillterStore";
 import { ProductWithDetails } from "@/shared";
 import { ProductService } from "@/lib/services/productService";
 import { X, Search, User, Heart, ShoppingBag, HelpCircle } from "lucide-react";

@@ -1,7 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { useFilterStore } from "@/lib/stores";
+import { useFilterStore } from "@/lib/stores/fillterStore";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";

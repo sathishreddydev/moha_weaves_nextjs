@@ -1,11 +1,7 @@
 import { Metadata } from "next";
 import CollectionsClient from "./CollectionsClient";
 import StructuredData from "@/components/seo/StructuredData";
-import {
-  ProductFilters,
-  productService,
-} from "@/app/api/products/productService";
-import { getFilters } from "@/lib/sideBarFilters";
+import { ProductFilters, productService } from "@/app/api/products/productService";
 import { unstable_cache } from "next/cache";
 
 interface CollectionsPageProps {
@@ -102,12 +98,9 @@ export default async function CollectionsPage({
     params.onSale ||
     params.featured;
 
-  const [sideBarFilters, products] = await Promise.all([
-    getFilters(),
-    isFiltered
+  const products = await (isFiltered
       ? getProducts(filters) // fresh query
-      : getCachedProducts(filters), // cached homepage load
-  ]);
+      : getCachedProducts(filters)); // cached homepage load
 
   const queryString = new URLSearchParams(params).toString();
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -133,7 +126,6 @@ export default async function CollectionsPage({
         initialProducts={products || []}
         initialCount={products?.length || 0}
         initialFilters={filters}
-        initialSidebarFilters={sideBarFilters}
       />
     </>
   );

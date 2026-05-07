@@ -29,6 +29,7 @@ import { FilterIcon, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useState, useEffect } from "react";
 import { useWishlistStore } from "@/lib/stores/wishlistStore";
+import { useFilterStore } from "@/lib/stores/fillterStore";
 import { getProductUrl } from "@/lib/utils/productUrl";
 
 interface CategoryClientProps {
@@ -36,11 +37,6 @@ interface CategoryClientProps {
   initialProducts: ProductWithDetails[];
   initialCount: number;
   initialFilters: ProductFilters;
-  initialSidebarFilters: {
-    categories: CategoryWithSubcategories[];
-    colors: Color[];
-    fabrics: Fabric[];
-  };
 }
 
 export default function CategoryClient({
@@ -48,9 +44,11 @@ export default function CategoryClient({
   initialCount,
   initialFilters,
   categoryName,
-  initialSidebarFilters,
 }: CategoryClientProps) {
   const router = useRouter();
+
+  // Filter store
+  const { categories, colors, fabrics, loading: filtersLoading, error: filtersError, fetchFilters } = useFilterStore();
 
   // Wishlist store
   const {
@@ -61,7 +59,9 @@ export default function CategoryClient({
     updating,
   } = useWishlistStore();
 
-  const { categories, colors, fabrics } = initialSidebarFilters;
+  useEffect(() => {
+    fetchWishlist();
+  }, []); // Empty dependency array since fetchWishlist is stable
 
   // State management
   const [showFilters, setShowFilters] = useState(false);
@@ -75,10 +75,6 @@ export default function CategoryClient({
   const products = initialProducts || [];
   const productsCount = initialCount || 0;
 
-  // Fetch wishlist on component mount
-  useEffect(() => {
-    fetchWishlist();
-  }, [fetchWishlist]);
   // Get current category and its subcategories
   const getCurrentCategory =
     useCallback((): CategoryWithSubcategories | null => {

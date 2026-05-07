@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useWishlistStore } from "@/lib/stores/wishlistStore";
+import { useFilterStore } from "@/lib/stores/fillterStore";
 import { getProductUrl } from "@/lib/utils/productUrl";
 import {
   CategoryWithSubcategories,
@@ -34,20 +35,17 @@ interface CollectionsClientProps {
   initialProducts: ProductWithDetails[];
   initialCount: number;
   initialFilters: ProductFilters;
-  initialSidebarFilters: {
-    categories: CategoryWithSubcategories[];
-    colors: Color[];
-    fabrics: Fabric[];
-  };
 }
 
 export default function CollectionsClient({
   initialProducts,
   initialCount,
   initialFilters,
-  initialSidebarFilters,
 }: CollectionsClientProps) {
   const router = useRouter();
+
+  // Filter store
+  const { categories, colors, fabrics, loading: filtersLoading, error: filtersError, fetchFilters } = useFilterStore();
 
   // Wishlist store
   const {
@@ -58,12 +56,11 @@ export default function CollectionsClient({
     count: wishlistCount,
   } = useWishlistStore();
 
-  const { categories, colors, fabrics } = initialSidebarFilters;
   useEffect(() => {
     if (wishlistCount === 0) {
       fetchWishlist();
     }
-  }, [fetchWishlist]);
+  }, [wishlistCount]); // Only depend on wishlistCount
   // State management
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(

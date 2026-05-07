@@ -7,9 +7,9 @@ import { unstable_cache } from 'next/cache';
 export async function GET(req: NextRequest) {
   try {
     const [categoriesResult, colorsResult, fabricsResult] = await Promise.all([
-      getCachedCategoriesWithSubcategories(),
-      getCachedColors(),
-      getCachedFabrics(),
+      getCategoriesWithSubcategories(),
+      getColors(),
+      getFabrics(),
     ]);
 
     return NextResponse.json({
@@ -44,36 +44,3 @@ async function getFabrics(): Promise<Fabric[]> {
   return db.select().from(fabrics).where(eq(fabrics.isActive, true));
 }
 
-// Cached versions of the filter functions
-const getCachedCategoriesWithSubcategories = unstable_cache(
-  async () => {
-    const allCategories = await db.select().from(categories).where(eq(categories.isActive, true));
-    const allSubcategories = await db.select().from(subcategories).where(eq(subcategories.isActive, true));
-    console.log("allCategories", allCategories)
-    console.log("allSubcategories", allSubcategories)
-
-    return allCategories.map(category => ({
-      ...category,
-      subcategories: allSubcategories.filter(sub => sub.categoryId === category.id)
-    }));
-
-  },
-  ['categories-with-subcategories'],
- 
-);
-
-const getCachedColors = unstable_cache(
-  async () => {
-    return db.select().from(colors).where(eq(colors.isActive, true));
-  },
-  ['colors'],
- 
-);
-
-const getCachedFabrics = unstable_cache(
-  async () => {
-    return db.select().from(fabrics).where(eq(fabrics.isActive, true));
-  },
-  ['fabrics'],
- 
-);

@@ -6,7 +6,6 @@ import StructuredData from "@/components/seo/StructuredData";
 import { Metadata } from "next";
 import { unstable_cache } from "next/cache";
 import CategoryClient from "./CategoryClient";
-import { getFilters } from "@/lib/sideBarFilters";
 
 interface CategoryPageProps {
   params: Promise<{
@@ -127,10 +126,7 @@ export default async function CategoryPage({
     resolvedSearchParams.onSale ||
     resolvedSearchParams.featured;
 
-  const [sideBarFilters, products] = await Promise.all([
-    getFilters(),
-    isFiltered ? getProducts(filters) : getCachedCategoryProducts(filters),
-  ]);
+  const products = await (isFiltered ? getProducts(filters) : getCachedCategoryProducts(filters));
 
   const queryString = new URLSearchParams(resolvedSearchParams).toString();
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -157,7 +153,6 @@ export default async function CategoryPage({
         initialCount={products?.length || 0}
         initialFilters={filters}
         categoryName={categoryName}
-        initialSidebarFilters={sideBarFilters}
       />
     </>
   );

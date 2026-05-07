@@ -1,23 +1,45 @@
-import { Metadata } from "next";
+"use client";
+
 import Link from "next/link";
-import { getFilters } from "@/lib/sideBarFilters";
-import { unstable_cache } from "next/cache";
+import { useFilterStore } from "@/lib/stores/fillterStore";
+import { useEffect } from "react";
 
-export async function generateMetadata(): Promise<Metadata> {
-  return {
-    title: "Categories - Premium Indian Ethnic Wear | Moha Weaves",
-    description:
-      "Browse our wide range of ethnic wear categories including sarees, salwar kameez, lehengas, kurtis and more.",
-  };
-}
+export default function CategoriesPage() {
+  const { categories, loading, error, fetchFilters } = useFilterStore();
 
-const getCachedFilters = unstable_cache(async () => {
-  return await getFilters();
-}, ["categories"]);
+  
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto py-12">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading categories...</p>
+        </div>
+      </div>
+    );
+  }
 
-export default async function CategoriesPage() {
-  const filters = await getCachedFilters();
-  const categories = filters.categories || [];
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto py-12">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Error loading categories</h3>
+          <p className="text-gray-500 mb-4">{error}</p>
+          <button
+            onClick={fetchFilters}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
