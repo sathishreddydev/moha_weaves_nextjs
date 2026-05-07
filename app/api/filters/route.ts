@@ -49,17 +49,17 @@ const getCachedCategoriesWithSubcategories = unstable_cache(
   async () => {
     const allCategories = await db.select().from(categories).where(eq(categories.isActive, true));
     const allSubcategories = await db.select().from(subcategories).where(eq(subcategories.isActive, true));
+    console.log("allCategories", allCategories)
+    console.log("allSubcategories", allSubcategories)
 
     return allCategories.map(category => ({
       ...category,
       subcategories: allSubcategories.filter(sub => sub.categoryId === category.id)
     }));
+
   },
   ['categories-with-subcategories'],
-  {
-    revalidate: 3600, // 1 hour - categories don't change often
-    tags: ['filters'],
-  }
+ 
 );
 
 const getCachedColors = unstable_cache(
@@ -67,10 +67,7 @@ const getCachedColors = unstable_cache(
     return db.select().from(colors).where(eq(colors.isActive, true));
   },
   ['colors'],
-  {
-    revalidate: 3600, // 1 hour - colors don't change often
-    tags: ['filters'],
-  }
+ 
 );
 
 const getCachedFabrics = unstable_cache(
@@ -78,8 +75,5 @@ const getCachedFabrics = unstable_cache(
     return db.select().from(fabrics).where(eq(fabrics.isActive, true));
   },
   ['fabrics'],
-  {
-    revalidate: 3600, // 1 hour - fabrics don't change often
-    tags: ['filters'],
-  }
+ 
 );

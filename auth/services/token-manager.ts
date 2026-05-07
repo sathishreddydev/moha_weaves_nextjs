@@ -9,9 +9,17 @@ export class AuthTokenManager {
   static getAccessToken(): string | null {
     if (typeof window === 'undefined') return null;
     
-    // Try to get from session first
+    // First try to get from localStorage (cached token)
+    let token = localStorage.getItem('accessToken');
+    if (token) {
+      return token;
+    }
+    
+    // Try to get from NextAuth session cookie and extract access token
     const sessionData = this.getSessionFromStorage();
     if (sessionData?.accessToken) {
+      // Cache the access token in localStorage for future use
+      localStorage.setItem('accessToken', sessionData.accessToken);
       return sessionData.accessToken;
     }
     
@@ -132,6 +140,17 @@ export class AuthTokenManager {
     }
 
     return headers;
+  }
+
+  // Sync token from NextAuth session to localStorage
+  static syncTokenFromSession(): void {
+    if (typeof window === 'undefined') return;
+    
+    const sessionData = this.getSessionFromStorage();
+    if (sessionData?.accessToken) {
+      localStorage.setItem('accessToken', sessionData.accessToken);
+      console.log('✅ Access token synced from NextAuth session');
+    }
   }
 
   // Logout and clear tokens

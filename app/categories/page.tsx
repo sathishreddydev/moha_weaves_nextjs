@@ -11,16 +11,9 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-const getCachedFilters = unstable_cache(
-  async () => {
-    return await getFilters();
-  },
-  ["categories"],
-  {
-    revalidate: 3600, // 1 hour
-    tags: ["categories"],
-  },
-);
+const getCachedFilters = unstable_cache(async () => {
+  return await getFilters();
+}, ["categories"]);
 
 export default async function CategoriesPage() {
   const filters = await getCachedFilters();

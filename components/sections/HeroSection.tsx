@@ -143,11 +143,13 @@ export default function HeroSection() {
           key={cat.id}
           className={`absolute inset-0 transition-all duration-[1500ms] ease-out ${activeIndex === idx ? "opacity-100 scale-100" : "opacity-0 scale-110"}`}
         >
-          <img
-            src={cat?.imageUrl || ""}
-            className="w-full h-full object-cover brightness-[0.6]"
-            alt={cat?.name}
-          />
+          {cat?.imageUrl && (
+            <img
+              src={cat.imageUrl}
+              className="w-full h-full object-cover brightness-[0.6]"
+              alt={cat?.name}
+            />
+          )}
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />
         </div>
       ))}

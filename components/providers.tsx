@@ -2,6 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '@/auth'
+import { SocketProvider } from '@/providers/socket-provider'
 import { useState } from 'react'
 
 export function Providers({ children, session }: { children: React.ReactNode; session?: any }) {
@@ -17,7 +18,9 @@ export function Providers({ children, session }: { children: React.ReactNode; se
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider session={session}>
-        {children}
+        <SocketProvider>
+          {children}
+        </SocketProvider>
       </AuthProvider>
     </QueryClientProvider>
   )

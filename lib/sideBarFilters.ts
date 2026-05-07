@@ -8,11 +8,7 @@ export async function getFilters(): Promise<{
   try {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
-    const response = await fetch(`${baseUrl}/api/filters`, {
-      next: {
-        revalidate: 36000, 
-      },
-    });
+    const response = await fetch(`${baseUrl}/api/filters`);
 
     if (!response.ok) {
       throw new Error(`Failed to fetch filters: ${response.status} ${response.statusText}`);
@@ -22,7 +18,7 @@ export async function getFilters(): Promise<{
     return data;
   } catch (error) {
     console.error("Error fetching filters:", error);
-    
+
     // Return empty data as fallback
     return {
       categories: [],
