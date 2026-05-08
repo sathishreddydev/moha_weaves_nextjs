@@ -40,8 +40,7 @@ export class ProductService {
     return this.fetchWithCache(
       `products-${endpoint}`,
       async () => {
-        const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-        const response = await fetch(`${baseUrl}/${endpoint}`, {
+        const response = await fetch(`${endpoint}`, {
           cache: "no-store",
         });
         const data = await response.json();

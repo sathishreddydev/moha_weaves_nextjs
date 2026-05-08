@@ -7,8 +7,7 @@ import {
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 // API Configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
-const API_KEY = process.env.ADMIN_API_KEY || '';
+const API_BASE_URL = '/api';
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
 
@@ -42,7 +41,6 @@ const createApiClient = (): AxiosInstance => {
     timeout: 10000,
     headers: {
       'Content-Type': 'application/json',
-      'X-API-Key': API_KEY,
     },
     withCredentials: true, // Enable credentials for cross-domain requests
   });

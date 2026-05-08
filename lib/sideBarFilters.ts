@@ -6,9 +6,7 @@ export async function getFilters(): Promise<{
   fabrics: Fabric[];
 }> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-
-    const response = await fetch(`${baseUrl}/api/filters`);
+    const response = await fetch("/api/filters");
 
     if (!response.ok) {
       throw new Error(`Failed to fetch filters: ${response.status} ${response.statusText}`);

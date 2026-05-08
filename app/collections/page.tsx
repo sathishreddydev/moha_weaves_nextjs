@@ -99,15 +99,14 @@ export default async function CollectionsPage({
     params.featured;
 
   const products = await (isFiltered
-      ? getProducts(filters) // fresh query
-      : getCachedProducts(filters)); // cached homepage load
+    ? getProducts(filters) // fresh query
+    : getCachedProducts(filters)); // cached homepage load
 
   const queryString = new URLSearchParams(params).toString();
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
   const currentUrl = queryString
-    ? `${baseUrl}/collections?${queryString}`
-    : `${baseUrl}/collections`;
+    ? `/collections?${queryString}`
+    : `/collections`;
 
   return (
     <>

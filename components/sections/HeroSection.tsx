@@ -141,7 +141,7 @@ export default function HeroSection() {
       {categoriesData.map((cat, idx) => (
         <div
           key={cat.id}
-          className={`absolute inset-0 transition-all duration-[1500ms] ease-out ${activeIndex === idx ? "opacity-100 scale-100" : "opacity-0 scale-110"}`}
+          className={`absolute inset-0 transition-all duration-&lsqb;1500ms&rsqb; ease-out ${activeIndex === idx ? "opacity-100 scale-100" : "opacity-0 scale-110"}`}
         >
           {cat?.imageUrl && (
             <img

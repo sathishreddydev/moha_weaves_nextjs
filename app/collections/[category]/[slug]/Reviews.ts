@@ -1,8 +1,6 @@
 export async function getProductReviews(productId: string) {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-
-    const res = await fetch(`${baseUrl}/api/products/${productId}/reviews`, {
+    const res = await fetch(`/api/products/${productId}/reviews`, {
       next: { revalidate: 300 },
     });
 

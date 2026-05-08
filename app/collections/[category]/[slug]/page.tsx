@@ -44,8 +44,7 @@ export async function generateMetadata({
     product.seoKeywords ||
     `${product.name}, ${categoryName}, indian ethnic wear, mohawea, ${product.category?.name || "traditional clothing"}, ${product.color?.name || ""}, ${product.fabric?.name || ""}`;
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  const canonical = `${baseUrl}/collections/${categoryName}/${slug}`;
+  const canonical = `/collections/${categoryName}/${slug}`;
 
   return {
     title,
@@ -127,8 +126,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
     (p) => p.id !== product.id,
   );
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  const currentUrl = `${baseUrl}/collections/${categoryName}/${slug}`;
+  const currentUrl = `/collections/${categoryName}/${slug}`;
 
   return (
     <>

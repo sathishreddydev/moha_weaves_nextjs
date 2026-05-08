@@ -45,8 +45,6 @@ A Next.js 14 e-commerce platform user module built with TypeScript and Tailwind 
    ```
    NEXTAUTH_URL=http://localhost:3000
    NEXTAUTH_SECRET=your-secret-key-here
-   ADMIN_API_URL=http://localhost:8000/api
-   ADMIN_API_KEY=your-admin-api-key-here
    ```
 
 4. Run the development server:

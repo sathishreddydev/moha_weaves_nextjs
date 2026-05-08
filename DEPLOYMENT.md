@@ -42,10 +42,6 @@ The environment variables are already configured in `docker-compose.yml`. **Impo
 - `JWT_SECRET`: Production JWT secret
 - `DATABASE_URL`: `postgresql://postgres:Mohaweaves%40123@postgres:5432/moha_weaves`
 - `REDIS_URL`: `redis://redis:6379`
-- `ADMIN_API_URL`: `http://103.127.146.58:5000/api`
-
-**Only update needed:**
-- `ADMIN_API_KEY`: Replace with your actual admin API key
 
 ### 3. Deploy Application
 

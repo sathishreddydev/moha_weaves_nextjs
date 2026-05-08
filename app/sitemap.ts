@@ -3,14 +3,12 @@ import { productService } from './api/products/productService'
 import { createSlug } from '@/lib/utils/slug'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
-  
   try {
     // Get all products for sitemap
     const products = await productService.getProductsByRole({}, 'user')
     
     // Get categories for sitemap
-    const filtersResponse = await fetch(`${baseUrl}/api/filters`)
+    const filtersResponse = await fetch(`/api/filters`)
     if (!filtersResponse.ok) {
       throw new Error('Failed to fetch filters')
     }
@@ -20,19 +18,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Static pages
   const staticPages = [
     {
-      url: baseUrl,
+      url: '/',
       lastModified: new Date(),
       changeFrequency: 'daily' as const,
       priority: 1,
     },
     {
-      url: `${baseUrl}/collections`,
+      url: '/collections',
       lastModified: new Date(),
       changeFrequency: 'daily' as const,
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/categories`,
+      url: '/categories',
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.7,
@@ -41,7 +39,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Category pages
   const categoryPages = categories.map((category: any) => ({
-    url: `${baseUrl}/collections?category=${createSlug(category.name)}`,
+    url: `/collections?category=${createSlug(category.name)}`,
     lastModified: new Date(),
     changeFrequency: 'weekly' as const,
     priority: 0.9,
@@ -53,7 +51,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     if (category.subcategories) {
       category.subcategories.forEach((subcategory: any) => {
         subcategoryPages.push({
-          url: `${baseUrl}/collections?subcategory=${createSlug(subcategory.name)}`,
+          url: `/collections?subcategory=${createSlug(subcategory.name)}`,
           lastModified: new Date(),
           changeFrequency: 'weekly' as const,
           priority: 0.85,
@@ -67,7 +65,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const categorySlug = createSlug(product.category?.name || 'ethnic-wear')
     const productSlug = product.urlSlug || createSlug(product.name)
     return {
-      url: `${baseUrl}/collections/${categorySlug}/${productSlug}`,
+      url: `/collections/${categorySlug}/${productSlug}`,
       lastModified: new Date(product.updatedAt || product.createdAt),
       changeFrequency: 'weekly' as const,
       priority: 0.6,
@@ -81,19 +79,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Return static pages only if dynamic data fails
     const staticPages = [
       {
-        url: baseUrl,
+        url: '/',
         lastModified: new Date(),
         changeFrequency: 'daily' as const,
         priority: 1,
       },
       {
-        url: `${baseUrl}/collections`,
+        url: '/collections',
         lastModified: new Date(),
         changeFrequency: 'daily' as const,
         priority: 0.8,
       },
       {
-        url: `${baseUrl}/categories`,
+        url: '/categories',
         lastModified: new Date(),
         changeFrequency: 'weekly' as const,
         priority: 0.7,

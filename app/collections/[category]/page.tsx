@@ -53,11 +53,10 @@ export async function generateMetadata({
   const description = `Discover premium ${categoryName} at Mohawea. Beautiful Indian ethnic wear crafted with traditional artistry.`;
 
   const queryString = new URLSearchParams(resolvedSearchParams).toString();
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
   const canonical = queryString
-    ? `${baseUrl}/collections/${categoryName}?${queryString}`
-    : `${baseUrl}/collections/${categoryName}`;
+    ? `/collections/${categoryName}?${queryString}`
+    : `/collections/${categoryName}`;
 
   return {
     title,
@@ -90,11 +89,10 @@ export default async function CategoryPage({
   const categoryName = decodeURIComponent(resolvedParams.category);
 
   const subcategories = resolvedSearchParams.subcategories
-      ?.split(",")
-      .filter(Boolean)
-      .map(sub => decodeURIComponent(sub)); // Decode URL-encoded subcategories
+    ?.split(",")
+    .filter(Boolean)
+    .map((sub) => decodeURIComponent(sub)); // Decode URL-encoded subcategories
 
-  
   const filters: ProductFilters = {
     categories: [categoryName],
     subcategories: subcategories,
@@ -126,14 +124,15 @@ export default async function CategoryPage({
     resolvedSearchParams.onSale ||
     resolvedSearchParams.featured;
 
-  const products = await (isFiltered ? getProducts(filters) : getCachedCategoryProducts(filters));
+  const products = await (isFiltered
+    ? getProducts(filters)
+    : getCachedCategoryProducts(filters));
 
   const queryString = new URLSearchParams(resolvedSearchParams).toString();
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
   const currentUrl = queryString
-    ? `${baseUrl}/collections/${categoryName}?${queryString}`
-    : `${baseUrl}/collections/${categoryName}`;
+    ? `/collections/${categoryName}?${queryString}`
+    : `/collections/${categoryName}`;
 
   return (
     <>
