@@ -1,7 +1,10 @@
 import { Metadata } from "next";
 import CollectionsClient from "./CollectionsClient";
 import StructuredData from "@/components/seo/StructuredData";
-import { ProductFilters, productService } from "@/app/api/products/productService";
+import {
+  ProductFilters,
+  productService,
+} from "@/app/api/products/productService";
 import { unstable_cache } from "next/cache";
 
 interface CollectionsPageProps {
@@ -55,8 +58,8 @@ export async function generateMetadata({
 
   const title =
     titleParts.length > 0
-      ? `${titleParts.join(" | ")} - Premium Indian Ethnic Wear | Mohawea`
-      : "Collections - Premium Indian Ethnic Wear | Mohawea";
+      ? `${titleParts.join(" | ")} - Premium Indian Ethnic Wear | Mohaweaves`
+      : "Collections - Premium Indian Ethnic Wear | Mohaweaves";
 
   return {
     title,
@@ -71,9 +74,18 @@ export default async function CollectionsPage({
   const params = await searchParams;
 
   const filters: ProductFilters = {
-    categories: params.categories?.split(",").filter(Boolean).map(cat => decodeURIComponent(cat)),
-    colors: params.colors?.split(",").filter(Boolean).map(color => decodeURIComponent(color)),
-    fabrics: params.fabrics?.split(",").filter(Boolean).map(fabric => decodeURIComponent(fabric)),
+    categories: params.categories
+      ?.split(",")
+      .filter(Boolean)
+      .map((cat) => decodeURIComponent(cat)),
+    colors: params.colors
+      ?.split(",")
+      .filter(Boolean)
+      .map((color) => decodeURIComponent(color)),
+    fabrics: params.fabrics
+      ?.split(",")
+      .filter(Boolean)
+      .map((fabric) => decodeURIComponent(fabric)),
     search: params.search || undefined,
     minPrice: params.price?.split("-")[0]
       ? Number(params.price?.split("-")[0])

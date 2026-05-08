@@ -12,6 +12,9 @@ interface StructuredDataProps {
 }
 
 export default function StructuredData({ products, filters, currentUrl }: StructuredDataProps) {
+  // Get base URL from environment
+  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+  
   const structuredData = {
     "@context": "https://schema.org",
     "@graph": [
@@ -19,7 +22,7 @@ export default function StructuredData({ products, filters, currentUrl }: Struct
         "@type": "CollectionPage",
         name: filters ? generateCollectionTitle(filters) : "Collections",
         description: filters ? generateCollectionDescription(filters) : "Discover exquisite Indian ethnic wear",
-        url: currentUrl || "http://localhost:3000/collections",
+        url: currentUrl || `${baseUrl}/collections`,
         mainEntity: {
           "@type": "ItemList",
           numberOfItems: products.length,
@@ -27,7 +30,7 @@ export default function StructuredData({ products, filters, currentUrl }: Struct
             "@type": "Product",
             position: index + 1,
             name: product.name,
-            description: product.description || `Beautiful ${product.name} from Mohawea`,
+            description: product.description || `Beautiful ${product.name} from Mohaweaves`,
             image: product.images?.[0] || "",
             offers: {
               "@type": "Offer",
@@ -37,7 +40,7 @@ export default function StructuredData({ products, filters, currentUrl }: Struct
             },
             brand: {
               "@type": "Brand",
-              name: "Mohawea"
+              name: "Mohaweaves"
             },
             category: product.category?.name || "Indian Ethnic Wear",
             color: product.color?.name,

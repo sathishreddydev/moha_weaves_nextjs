@@ -15,9 +15,25 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXTAUTH_URL || 'http://localhost:3000'),
   title: "Moha Weaves - Handcrafted Sarees",
   description:
     "Discover exquisite handcrafted sarees celebrating India's rich textile heritage. Shop our collection of traditional and contemporary sarees.",
+  keywords: ["sarees", "handcrafted", "ethnic wear", "indian fashion", "traditional clothing"],
+  openGraph: {
+    title: "Moha Weaves - Handcrafted Sarees",
+    description: "Discover exquisite handcrafted sarees celebrating India's rich textile heritage",
+    type: "website",
+    locale: "en_US",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
+  },
 };
 
 export const viewport: Viewport = {

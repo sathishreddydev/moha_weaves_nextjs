@@ -11,21 +11,24 @@ export default function ProductStructuredData({
   currentUrl, 
   relatedProducts = [] 
 }: ProductStructuredDataProps) {
+  // Get base URL from environment
+  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+  
   const structuredData = {
     "@context": "https://schema.org",
     "@graph": [
       {
         "@type": "Product",
-        name: product.name,
-        description: product.description || `Beautiful ${product.name} from Mohawea`,
+        name: product.name, 
+        description: product.description || `Beautiful ${product.name} from Mohaweaves`,
         url: currentUrl,
         image: product.images?.length > 0 ? product.images : [],
         sku: product.sku || product.id,
         brand: {
           "@type": "Brand",
-          name: "Mohawea",
-          url: "https://mohawea.com",
-          logo: "https://mohawea.com/logo.png"
+          name: "Mohaweaves",
+          url: baseUrl,
+          logo: `${baseUrl}/logo.png`
         },
         category: product.category?.name || "Indian Ethnic Wear",
         offers: {
@@ -35,8 +38,8 @@ export default function ProductStructuredData({
           availability: product.totalStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
           seller: {
             "@type": "Organization",
-            name: "Mohawea",
-            url: "https://mohawea.com"
+            name: "Mohaweaves",
+            url: baseUrl
           },
           priceValidUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
         },
@@ -85,19 +88,19 @@ export default function ProductStructuredData({
             "@type": "ListItem",
             position: 1,
             name: "Home",
-            item: "https://mohawea.com"
+            item: baseUrl
           },
           {
             "@type": "ListItem",
             position: 2,
             name: "Collections",
-            item: "https://mohawea.com/collections"
+            item: `${baseUrl}/collections`
           },
           {
             "@type": "ListItem",
             position: 3,
             name: product.category?.name || "Indian Ethnic Wear",
-            item: `https://mohawea.com/collections/${product.category?.name?.toLowerCase() || 'ethnic-wear'}`
+            item: `${baseUrl}/collections/${product.category?.name?.toLowerCase() || 'ethnic-wear'}`
           },
           {
             "@type": "ListItem",
@@ -120,8 +123,8 @@ export default function ProductStructuredData({
         "@type": "ListItem",
         position: index + 1,
         name: relatedProduct.name,
-        item: `https://mohawea.com/collections/${relatedProduct.category?.name?.toLowerCase() || 'ethnic-wear'}/${relatedProduct.urlSlug || relatedProduct.id}`,
-        url: `https://mohawea.com/collections/${relatedProduct.category?.name?.toLowerCase() || 'ethnic-wear'}/${relatedProduct.urlSlug || relatedProduct.id}`,
+        item: `${baseUrl}/collections/${relatedProduct.category?.name?.toLowerCase() || 'ethnic-wear'}/${relatedProduct.urlSlug || relatedProduct.id}`,
+        url: `${baseUrl}/collections/${relatedProduct.category?.name?.toLowerCase() || 'ethnic-wear'}/${relatedProduct.urlSlug || relatedProduct.id}`,
         image: relatedProduct.images?.[0] || "",
         offers: {
           "@type": "Offer",

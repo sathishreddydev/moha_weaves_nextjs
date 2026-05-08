@@ -1,8 +1,8 @@
 User-agent: *
 Allow: /
 
-# Sitemap
-Sitemap: /sitemap.xml
+# Sitemap - Use absolute URL for production
+Sitemap: http://103.127.146.58:3000/sitemap.xml
 
 # Block admin and API routes
 Disallow: /api/

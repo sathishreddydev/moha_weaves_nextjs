@@ -26,7 +26,7 @@ export async function generateMetadata({
 
   if (!product) {
     return {
-      title: "Product Not Found | Mohawea",
+      title: "Product Not Found | Mohaweaves",
       description: "The product you're looking for is not available.",
     };
   }
@@ -34,22 +34,25 @@ export async function generateMetadata({
   // Use SEO data from product if available, otherwise generate
   const title =
     product.seoTitle ||
-    `${product.name} - ${categoryName.charAt(0).toUpperCase() + categoryName.slice(1)} | Mohawea`;
+    `${product.name} - ${categoryName.charAt(0).toUpperCase() + categoryName.slice(1)} | Mohaweaves`;
 
   const description =
     product.seoDescription ||
-    `Shop ${product.name} from Mohawea's ${categoryName} collection. ${product.description || "Premium quality Indian ethnic wear with traditional craftsmanship."}`;
+    `Shop ${product.name} from Mohaweaves ${categoryName} collection. ${product.description || "Premium quality Indian ethnic wear with traditional craftsmanship."}`;
 
   const keywords =
     product.seoKeywords ||
-    `${product.name}, ${categoryName}, indian ethnic wear, mohawea, ${product.category?.name || "traditional clothing"}, ${product.color?.name || ""}, ${product.fabric?.name || ""}`;
+    `${product.name}, ${categoryName}, indian ethnic wear, Mohaweaves, ${product.category?.name || "traditional clothing"}, ${product.color?.name || ""}, ${product.fabric?.name || ""}`;
 
-  const canonical = `/collections/${categoryName}/${slug}`;
+  // Get base URL from environment
+  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+  const canonical = `${baseUrl}/collections/${categoryName}/${slug}`;
 
   return {
     title,
     description,
     keywords,
+    metadataBase: new URL(baseUrl),
     openGraph: {
       title,
       description,
@@ -67,7 +70,7 @@ export async function generateMetadata({
             ]
           : [
               {
-                url: "https://mohawea.com/og-product.jpg",
+                url: `${baseUrl}/og-product.jpg`,
                 width: 1200,
                 height: 630,
                 alt: title,
@@ -81,7 +84,7 @@ export async function generateMetadata({
       images:
         product.images && product.images.length > 0
           ? [product.images[0]]
-          : ["https://mohawea.com/og-product.jpg"],
+          : [`${baseUrl}/og-product.jpg`],
     },
     alternates: { canonical },
     robots: {

@@ -48,19 +48,22 @@ export async function generateMetadata({
 
   const categoryName = decodeURIComponent(resolvedParams.category);
 
-  const title = `${categoryName.charAt(0).toUpperCase() + categoryName.slice(1)} Collection - Premium Indian Ethnic Wear | Mohawea`;
+  const title = `${categoryName.charAt(0).toUpperCase() + categoryName.slice(1)} Collection - Premium Indian Ethnic Wear | Mohaweaves`;
 
-  const description = `Discover premium ${categoryName} at Mohawea. Beautiful Indian ethnic wear crafted with traditional artistry.`;
+  const description = `Discover premium ${categoryName} at Mohaweaves. Beautiful Indian ethnic wear crafted with traditional artistry.`;
 
   const queryString = new URLSearchParams(resolvedSearchParams).toString();
 
+  // Get base URL from environment
+  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
   const canonical = queryString
-    ? `/collections/${categoryName}?${queryString}`
-    : `/collections/${categoryName}`;
+    ? `${baseUrl}/collections/${categoryName}?${queryString}`
+    : `${baseUrl}/collections/${categoryName}`;
 
   return {
     title,
     description,
+    metadataBase: new URL(baseUrl),
     alternates: { canonical },
     openGraph: {
       title,
@@ -69,7 +72,7 @@ export async function generateMetadata({
       type: "website",
       images: [
         {
-          url: "https://mohawea.com/og-collections.jpg",
+          url: `${baseUrl}/og-collections.jpg`,
           width: 1200,
           height: 630,
           alt: title,
