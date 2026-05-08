@@ -20,6 +20,12 @@ export const metadata: Metadata = {
   description:
     "Discover exquisite handcrafted sarees celebrating India's rich textile heritage. Shop our collection of traditional and contemporary sarees.",
   keywords: ["sarees", "handcrafted", "ethnic wear", "indian fashion", "traditional clothing"],
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    title: "Mohaweaves",
+    statusBarStyle: "default",
+  },
   openGraph: {
     title: "Moha Weaves - Handcrafted Sarees",
     description: "Discover exquisite handcrafted sarees celebrating India's rich textile heritage",
