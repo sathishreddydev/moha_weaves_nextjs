@@ -20,6 +20,11 @@ export const metadata: Metadata = {
   description:
     "Discover exquisite handcrafted sarees celebrating India's rich textile heritage. Shop our collection of traditional and contemporary sarees.",
   keywords: ["sarees", "handcrafted", "ethnic wear", "indian fashion", "traditional clothing"],
+  icons: {
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
+  },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

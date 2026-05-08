@@ -9,7 +9,7 @@ import {
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
-  DrawerTrigger
+  DrawerTrigger,
 } from "@/components/ui/drawer";
 import {
   Select,
@@ -31,6 +31,8 @@ import { FilterIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
+import { useSocket } from "@/providers/socket-provider";
+
 interface CollectionsClientProps {
   initialProducts: ProductWithDetails[];
   initialCount: number;
@@ -43,9 +45,17 @@ export default function CollectionsClient({
   initialFilters,
 }: CollectionsClientProps) {
   const router = useRouter();
+  const { socket } = useSocket();
 
   // Filter store
-  const { categories, colors, fabrics, loading: filtersLoading, error: filtersError, fetchFilters } = useFilterStore();
+  const {
+    categories,
+    colors,
+    fabrics,
+    loading: filtersLoading,
+    error: filtersError,
+    fetchFilters,
+  } = useFilterStore();
 
   // Wishlist store
   const {
@@ -61,6 +71,22 @@ export default function CollectionsClient({
       fetchWishlist();
     }
   }, [wishlistCount]); // Only depend on wishlistCount
+
+  // Socket event handling for product updates
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleProductEvent = (data: any) => {
+      console.log("🔥 Product event received, refetching data:", data);
+      router.refresh();
+    };
+
+    socket.on("product_event", handleProductEvent);
+
+    return () => {
+      socket.off("product_event", handleProductEvent);
+    };
+  }, [socket]);
   // State management
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(

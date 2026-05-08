@@ -1,11 +1,10 @@
-import { Metadata } from "next";
-import CollectionsClient from "./CollectionsClient";
-import StructuredData from "@/components/seo/StructuredData";
 import {
   ProductFilters,
   productService,
 } from "@/app/api/products/productService";
-import { unstable_cache } from "next/cache";
+import StructuredData from "@/components/seo/StructuredData";
+import { Metadata } from "next";
+import CollectionsClient from "./CollectionsClient";
 
 interface CollectionsPageProps {
   searchParams: Promise<{
@@ -20,17 +19,6 @@ interface CollectionsPageProps {
     page?: string;
   }>;
 }
-
-const getCachedProducts = unstable_cache(
-  async (filters: ProductFilters) => {
-    return await productService.getProductsByRole(filters, "user");
-  },
-  ["products"],
-  {
-    revalidate: 600,
-    tags: ["products"],
-  },
-);
 
 async function getProducts(filters: ProductFilters) {
   return await productService.getProductsByRole(filters, "user");
@@ -101,18 +89,7 @@ export default async function CollectionsPage({
     distributionChannel: "online",
   };
 
-  const isFiltered =
-    params.page ||
-    params.search ||
-    params.categories ||
-    params.colors ||
-    params.fabrics ||
-    params.onSale ||
-    params.featured;
-
-  const products = await (isFiltered
-    ? getProducts(filters) // fresh query
-    : getCachedProducts(filters)); // cached homepage load
+  const products = await getProducts(filters);
 
   const queryString = new URLSearchParams(params).toString();
 
