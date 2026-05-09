@@ -64,7 +64,6 @@ export const useFilterStore = create<FilterState>((set) => ({
         return;
       }
       
-      console.error('Filter fetch error:', error);
       set(
         produce((state: FilterState) => {
           state.error = error instanceof Error ? error.message : "Failed to load filters";

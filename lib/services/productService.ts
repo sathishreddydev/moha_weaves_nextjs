@@ -30,7 +30,6 @@ export class ProductService {
 
       return data;
     } catch (error) {
-      console.error(`Failed to fetch ${key}:`, error);
       throw error;
     }
   }

@@ -40,7 +40,6 @@ const getAuthHeaders = () => {
       headers['Authorization'] = `Bearer ${token}`;
     } else {
       // Remove invalid token
-      console.warn('Removing invalid JWT token from localStorage');
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
     }
@@ -52,7 +51,6 @@ const getAuthHeaders = () => {
 // Helper function to handle auth errors
 const handleAuthError = (error: any) => {
   if (error?.error === 'Unauthorized' || error?.message?.includes('invalid signature')) {
-    console.warn('Authentication failed - clearing tokens and redirecting to login');
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     // Redirect to login page
@@ -128,7 +126,6 @@ export const useCartStore = create<CartStore>((set, get) => ({
       
       // Show sync notifications if there were changes
       if (result.updated > 0 || result.removed > 0) {
-        console.log('Cart synced:', result)
       }
       
     } catch (error) {

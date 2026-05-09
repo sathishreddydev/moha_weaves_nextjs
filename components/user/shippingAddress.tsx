@@ -11,7 +11,6 @@ const ShippingAddress = ({ address }: { address: string | any }) => {
       try {
         return JSON.parse(address);
       } catch (error) {
-        console.warn('Failed to parse address JSON:', error);
         return { name: address, address: address };
       }
     }

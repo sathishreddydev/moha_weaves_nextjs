@@ -64,7 +64,6 @@ export default function CartControls({
     try {
       await addToCart(product.id, 1, selectedVariant?.id || null);
     } catch (error) {
-      console.error("Failed to add to cart:", error);
       // TODO: Show user feedback for cart errors
     }
   };
@@ -78,7 +77,6 @@ export default function CartControls({
     try {
       await addToCart(product.id, 1, selectedVariant?.id || null);
     } catch (error) {
-      console.error("Failed to increase quantity:", error);
       // TODO: Show user feedback for cart errors
     }
   };
@@ -101,7 +99,6 @@ export default function CartControls({
           await removeFromCart(cartItem.id);
         }
       } catch (error) {
-        console.error("Failed to remove from cart:", error);
         // TODO: Show user feedback for cart errors
       }
     } else {
@@ -116,7 +113,6 @@ export default function CartControls({
           await updateQuantity(cartItem.id, cartQuantity - 1);
         }
       } catch (error) {
-        console.error("Failed to decrease quantity:", error);
         // TODO: Show user feedback for cart errors
       }
     }

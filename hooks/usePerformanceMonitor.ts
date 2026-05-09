@@ -32,7 +32,6 @@ export const usePerformanceMonitor = (): UsePerformanceMonitorReturn => {
       
       // Log performance metrics
       if (process.env.NODE_ENV === 'development') {
-        console.log(`Performance: ${name} took ${metric.duration.toFixed(2)}ms`);
       }
       
       // Send to monitoring service in production
@@ -69,7 +68,6 @@ export const usePerformanceMonitor = (): UsePerformanceMonitorReturn => {
         }),
       });
     } catch (error) {
-      console.error('Failed to send performance metrics:', error);
     }
   };
 
@@ -87,7 +85,6 @@ export const usePerformanceMonitor = (): UsePerformanceMonitorReturn => {
         };
 
         if (process.env.NODE_ENV === 'development') {
-          console.log('Page load time:', pageLoadMetrics.duration.toFixed(2) + 'ms');
         }
 
         if (process.env.NODE_ENV === 'production') {

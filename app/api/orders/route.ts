@@ -4,6 +4,7 @@ import { cartServices } from "../cart/cartService";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth/server";
 import { couponsService } from "../coupon/couponsService";
+import { publishRealtimeEvent } from "@/realtime/publisher";
 
 export async function GET(req: NextRequest) {
     try {
@@ -40,10 +41,6 @@ export async function POST(req: NextRequest) {
 
         const { shippingAddress, phone, notes, couponId } = body;
         
-        // Debug logging for shipping address
-        console.log('Shipping address type:', typeof shippingAddress);
-        console.log('Shipping address value:', shippingAddress);
-
         const cartItems = await cartServices.getCartItems(session.user.id);
 
         if (cartItems.cart.length === 0) {
@@ -125,10 +122,12 @@ export async function POST(req: NextRequest) {
 
         await cartServices.clearCart(session.user.id);
 
+        
+        await publishRealtimeEvent("user_order_created");
+
         return NextResponse.json({ orderId: order.id });
 
     } catch (error) {
-        console.error("Order creation error:", error);
         
         // Handle specific database constraint violations
         if (error && typeof error === 'object' && 'code' in error) {

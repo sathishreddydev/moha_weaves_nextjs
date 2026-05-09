@@ -74,7 +74,6 @@ export const authOptions = {
             accessToken: tokens.accessToken,
           };
         } catch (error) {
-          console.error('Auth error:', error);
           return null;
         }
       },

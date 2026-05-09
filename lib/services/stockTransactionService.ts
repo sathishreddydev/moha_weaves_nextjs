@@ -110,7 +110,6 @@ export class StockTransactionService {
         return { success: true };
       } catch (error) {
         // Transaction will be automatically rolled back
-        console.error('Atomic stock operation failed:', error);
         return {
           success: false,
           message: error instanceof Error ? error.message : "Stock operation failed",
@@ -158,7 +157,6 @@ export class StockTransactionService {
 
       return { valid: true };
     } catch (error) {
-      console.error('Stock validation failed:', error);
       return {
         valid: false,
         message: "Failed to validate stock availability",

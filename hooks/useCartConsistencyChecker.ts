@@ -17,7 +17,6 @@ export const useCartConsistencyChecker = (): CartConsistencyCheckerReturn => {
       
       // Check if cart is valid
       if (!Array.isArray(cart)) {
-        console.error('Cart is not an array');
         return false;
       }
 
@@ -25,21 +24,18 @@ export const useCartConsistencyChecker = (): CartConsistencyCheckerReturn => {
       const productIds = cart.map(item => item.productId);
       const uniqueIds = new Set(productIds);
       if (productIds.length !== uniqueIds.size) {
-        console.error('Cart contains duplicate items');
         return false;
       }
 
       // Check for invalid items
       for (const item of cart) {
         if (!item.productId || !item.quantity || item.quantity <= 0) {
-          console.error('Cart contains invalid item:', item);
           return false;
         }
       }
 
       return true;
     } catch (error) {
-      console.error('Error checking cart consistency:', error);
       return false;
     }
   };
@@ -73,7 +69,6 @@ export const useCartConsistencyChecker = (): CartConsistencyCheckerReturn => {
 
       // Save fixed cart
       guestStorage.cart.set(cart);
-      console.log('Cart inconsistency fixed');
       
       // Dispatch storage event to notify other tabs
       window.dispatchEvent(new StorageEvent('storage', {
@@ -82,7 +77,6 @@ export const useCartConsistencyChecker = (): CartConsistencyCheckerReturn => {
       }));
       
     } catch (error) {
-      console.error('Error fixing cart inconsistency:', error);
     }
   };
 

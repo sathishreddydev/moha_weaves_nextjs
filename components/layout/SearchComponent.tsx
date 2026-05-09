@@ -72,7 +72,6 @@ export default function SearchComponent({
       setSearchHistory(newHistory);
       localStorage.setItem("searchHistory", JSON.stringify(newHistory));
     } catch (error) {
-      console.warn("Failed to save search history:", error);
     }
   }, []);
 
@@ -94,7 +93,6 @@ export default function SearchComponent({
         }
       }
     } catch (error) {
-      console.warn("Failed to load search history:", error);
       setSearchHistory([]);
     }
   }, []);
@@ -135,7 +133,6 @@ export default function SearchComponent({
             setShowNoResults(true);
           }
         } catch (error) {
-          console.error("Error searching products:", error);
           // Fallback to search history if API fails
           const historyMatches = searchHistory
             .filter((item) => item.toLowerCase().includes(value.toLowerCase()))
@@ -234,7 +231,6 @@ export default function SearchComponent({
         ].slice(0, 10);
         updateSearchHistory(updatedHistory);
       } catch (error) {
-        console.warn("Failed to save search history:", error);
       }
 
       // Create new URLSearchParams
@@ -308,7 +304,6 @@ export default function SearchComponent({
               .map((product: any) => {
                 // Validate product data before rendering
                 if (!product || !product.id || !product.name) {
-                  console.warn("Invalid product data:", product);
                   return null;
                 }
 

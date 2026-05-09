@@ -15,7 +15,6 @@ export async function getFilters(): Promise<{
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error("Error fetching filters:", error);
 
     // Return empty data as fallback
     return {

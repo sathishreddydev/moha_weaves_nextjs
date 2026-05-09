@@ -24,7 +24,6 @@ export class WishlistRepository {
             const product = await productService.getProductByRole(row.productId, "user");
 
             if (!product) {
-              console.warn(`Product with ID ${row.productId} not found or inactive`);
               return null;
             }
 
@@ -36,7 +35,6 @@ export class WishlistRepository {
               product,
             };
           } catch (productError) {
-            console.error(`Error fetching product ${row.productId}:`, productError);
             return null;
           }
         })
@@ -47,7 +45,6 @@ export class WishlistRepository {
         count: wishlistItems.length,
       };
     } catch (error) {
-      console.error('Error building wishlist:', error);
       return {
         wishlist: [],
         count: 0,
@@ -77,7 +74,6 @@ export class WishlistRepository {
 
       return await this.buildWishlist(item.userId);
     } catch (error) {
-      console.error('Error adding to wishlist:', error);
       throw new Error('Failed to add item to wishlist');
     }
   }
@@ -90,7 +86,6 @@ export class WishlistRepository {
 
       return await this.buildWishlist(userId);
     } catch (error) {
-      console.error('Error removing from wishlist:', error);
       throw new Error('Failed to remove item from wishlist');
     }
   }
@@ -104,7 +99,6 @@ export class WishlistRepository {
 
       return !!result;
     } catch (error) {
-      console.error('Error checking wishlist status:', error);
       return false;
     }
   }
@@ -119,7 +113,6 @@ export class WishlistRepository {
 
       return result?.count ?? 0;
     } catch (error) {
-      console.error('Error getting wishlist count:', error);
       return 0;
     }
   }

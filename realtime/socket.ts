@@ -9,7 +9,7 @@ class SocketService {
 
   constructor() {
     this.socketUrl =
-      process.env.NEXT_PUBLIC_SOCKET_URL ||
+      process.env.ADMIN_PUBLIC_SOCKET_URL ||
       "http://localhost:5000";
   }
 
@@ -42,35 +42,20 @@ class SocketService {
 
     // CONNECTED
     this.socket.on("connect", () => {
-      console.log(
-        "✅ Socket connected:",
-        this.socket?.id
-      );
     });
 
     // DISCONNECTED
     this.socket.on("disconnect", (reason) => {
-      console.log(
-        "❌ Socket disconnected:",
-        reason
-      );
     });
 
     // CONNECTION ERROR
     this.socket.on("connect_error", (error) => {
-      console.error(
-        "🚨 Socket connection error:",
-        error.message
-      );
     });
 
     // RECONNECT ATTEMPT
     this.socket.io.on(
       "reconnect_attempt",
       (attempt) => {
-        console.log(
-          `🔄 Reconnect attempt: ${attempt}`
-        );
       }
     );
 
@@ -78,9 +63,6 @@ class SocketService {
     this.socket.io.on(
       "reconnect",
       (attempt) => {
-        console.log(
-          `✅ Reconnected after ${attempt} attempts`
-        );
       }
     );
 
@@ -97,8 +79,6 @@ class SocketService {
       this.socket.disconnect();
 
       this.socket = null;
-
-      console.log("🔌 Socket disconnected manually");
     }
   }
 
@@ -116,11 +96,6 @@ class SocketService {
   emit(event: string, data?: any): void {
 
     if (!this.socket?.connected) {
-
-      console.warn(
-        `⚠️ Cannot emit "${event}" — socket not connected`
-      );
-
       return;
     }
 
@@ -134,11 +109,6 @@ class SocketService {
   ): void {
 
     if (!this.socket) {
-
-      console.warn(
-        `⚠️ Cannot listen "${event}" — socket not initialized`
-      );
-
       return;
     }
 

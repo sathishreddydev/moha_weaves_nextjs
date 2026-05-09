@@ -77,7 +77,6 @@ export default function CollectionsClient({
     if (!socket) return;
 
     const handleProductEvent = (data: any) => {
-      console.log("🔥 Product event received, refetching data:", data);
       router.refresh();
     };
 

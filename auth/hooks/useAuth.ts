@@ -52,7 +52,6 @@ export function useAuth() {
       router.refresh();
       return { success: true };
     } catch (error) {
-      console.error('Login error:', error);
       return { success: false, error: 'Login failed' };
     }
   }, [router]);
@@ -63,7 +62,6 @@ export function useAuth() {
       router.push('/login');
       router.refresh();
     } catch (error) {
-      console.error('Logout error:', error);
     }
   }, [router]);
 

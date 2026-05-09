@@ -95,7 +95,6 @@ class ErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: any, errorInfo: any) {
-    console.error("MobileSidebar Error:", error, errorInfo);
   }
 
   render() {
@@ -135,7 +134,6 @@ export default function MobileSidebar({
       const products = await ProductService.getProducts("/api/products/new");
       setNewProducts(products);
     } catch (error) {
-      console.error("Failed to fetch new products:", error);
       setNewProducts([]);
     } finally {
       setNewProductsLoading(false);

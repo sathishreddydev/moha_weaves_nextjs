@@ -23,7 +23,6 @@ export class IdGenerator {
 
             return maxSeq + 1;
         } catch (error) {
-            console.error("Error getting order sequence:", error);
             // Fallback to in-memory sequence
             this.orderSequence++;
             return this.orderSequence;
@@ -49,7 +48,6 @@ export class IdGenerator {
 
             return (result as any)[0]?.count || 0 + 1;
         } catch (error) {
-            console.error("Error getting item sequence:", error);
             // Fallback to in-memory sequence
             this.itemSequence++;
             return this.itemSequence;

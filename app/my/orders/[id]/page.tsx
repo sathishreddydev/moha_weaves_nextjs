@@ -99,7 +99,6 @@ export default function OrderDetailsPage() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (err) {
-      console.error("Failed to download invoice:", err);
       alert("Failed to download invoice. Please try again.");
     }
   };

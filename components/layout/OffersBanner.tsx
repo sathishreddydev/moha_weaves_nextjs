@@ -45,7 +45,6 @@ export default function OffersBanner() {
           setHasOfferData(false);
         }
       } catch (err) {
-        console.error("Failed to fetch offers:", err);
         setHasOfferData(false);
       } finally {
         setIsLoading(false);

@@ -100,7 +100,6 @@ export const guestStorage = {
         const cart = localStorage.getItem('mohaweavs_guest_cart');
         return cart ? JSON.parse(cart) : [];
       } catch (error) {
-        console.error('Error parsing guest cart:', error);
         return [];
       }
     },
@@ -110,7 +109,6 @@ export const guestStorage = {
       try {
         localStorage.setItem('mohaweavs_guest_cart', JSON.stringify(items));
       } catch (error) {
-        console.error('Error saving guest cart:', error);
       }
     },
     
@@ -168,7 +166,6 @@ export const guestStorage = {
         const wishlist = localStorage.getItem('mohaweavs_guest_wishlist');
         return wishlist ? JSON.parse(wishlist) : [];
       } catch (error) {
-        console.error('Error parsing guest wishlist:', error);
         return [];
       }
     },
@@ -178,7 +175,6 @@ export const guestStorage = {
       try {
         localStorage.setItem('mohaweavs_guest_wishlist', JSON.stringify(items));
       } catch (error) {
-        console.error('Error saving guest wishlist:', error);
       }
     },
     

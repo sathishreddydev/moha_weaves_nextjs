@@ -177,7 +177,6 @@ export default function ReviewModal({
             id="comment"
             placeholder="Share your experience with this product..."
             onChange={(e) => {
-              console.log(e.target.value);
             }}
             rows={4}
             maxLength={500}

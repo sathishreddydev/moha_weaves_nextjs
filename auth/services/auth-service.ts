@@ -69,7 +69,6 @@ export class AuthService {
 
       return users[0] || null;
     } catch (error) {
-      console.error("Error finding user:", error);
       return null;
     }
   }
@@ -82,7 +81,6 @@ export class AuthService {
     try {
       return await bcrypt.compare(password, hashedPassword);
     } catch (error) {
-      console.error("Password verification error:", error);
       return false;
     }
   }
@@ -114,7 +112,6 @@ export class AuthService {
         }
       };
     } catch (error) {
-      console.error("Session creation error:", error);
       throw error;
     }
   }
@@ -196,7 +193,6 @@ export class AuthService {
 
       return null;
     } catch (error) {
-      console.error("Refresh validation error:", error);
       return null;
     }
   }
@@ -219,7 +215,6 @@ export class AuthService {
         }
       }
     } catch (error) {
-      console.error("Revoke token error:", error);
       throw error;
     }
   }
@@ -237,7 +232,6 @@ export class AuthService {
         })
         .where(eq(tables.users.id, userId));
     } catch (error) {
-      console.error("Password update error:", error);
       throw error;
     }
   }

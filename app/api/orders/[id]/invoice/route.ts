@@ -55,7 +55,6 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("Error generating invoice:", error);
     return NextResponse.json(
       { message: "Failed to generate invoice" },
       { status: 500 }

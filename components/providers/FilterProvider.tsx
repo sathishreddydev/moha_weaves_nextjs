@@ -19,7 +19,6 @@ export function FilterProvider({ children }: { children: React.ReactNode }) {
     if (!socket) return;
 
     const handleFilterEvent = (data: any) => {
-      console.log("🔥 Filter event received, refetching filters:", data);
       fetchFilters();
     };
 

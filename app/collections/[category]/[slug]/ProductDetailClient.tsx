@@ -109,7 +109,6 @@ export default function ProductDetailClient({
         await addToWishlist(product.id);
       }
     } catch (error) {
-      console.error("Wishlist toggle error:", error);
     }
   };
 
@@ -123,7 +122,6 @@ export default function ProductDetailClient({
     } else {
       navigator.clipboard.writeText(window.location.href);
       // TODO: Show toast notification
-      console.log("Link copied to clipboard");
     }
   };
 

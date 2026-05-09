@@ -62,16 +62,11 @@ const createApiClient = (): AxiosInstance => {
 
       // Log request in development
       if (process.env.NODE_ENV === 'development') {
-        console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`, {
-          data: config.data,
-          headers: config.headers,
-        });
       }
 
       return config;
     },
     (error) => {
-      console.error('❌ Request Error:', error);
       return Promise.reject(new ApiError('Request setup failed', undefined, 'REQUEST_ERROR'));
     }
   );
@@ -82,10 +77,6 @@ const createApiClient = (): AxiosInstance => {
       // Log response in development
       if (process.env.NODE_ENV === 'development') {
         const duration = new Date().getTime() - (response.config as any).metadata?.startTime?.getTime();
-        console.log(`✅ API Response: ${response.config.method?.toUpperCase()} ${response.config.url} (${duration}ms)`, {
-          status: response.status,
-          data: response.data,
-        });
       }
 
       return response;
@@ -95,11 +86,6 @@ const createApiClient = (): AxiosInstance => {
 
       // Log error in development
       if (process.env.NODE_ENV === 'development') {
-        console.error(`❌ API Error: ${originalRequest?.method?.toUpperCase()} ${originalRequest?.url}`, {
-          status: error.response?.status,
-          data: error.response?.data,
-          message: error.message,
-        });
       }
 
       // Handle 401 Unauthorized
@@ -144,8 +130,6 @@ const createApiClient = (): AxiosInstance => {
 
           // Wait before retrying
           await new Promise(resolve => setTimeout(resolve, retryConfig.retryDelay * (originalRequest._retryCount || 1)));
-
-          console.log(`🔄 Retrying request: ${originalRequest.method?.toUpperCase()} ${originalRequest.url} (Attempt ${originalRequest._retryCount})`);
 
           return client(originalRequest);
         }

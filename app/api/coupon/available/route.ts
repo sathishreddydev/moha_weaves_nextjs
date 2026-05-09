@@ -26,7 +26,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(couponsData);
 
   } catch (error) {
-    console.error("Get available coupons error:", error);
     return NextResponse.json(
       { message: "Failed to get available coupons" },
       { status: 500 }

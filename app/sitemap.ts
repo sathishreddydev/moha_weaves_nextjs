@@ -77,7 +77,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [...staticPages, ...categoryPages, ...subcategoryPages, ...productPages]
   } catch (error) {
-    console.error('Error generating sitemap:', error)
     
     // Get base URL from environment for fallback
     const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'

@@ -82,13 +82,11 @@ export function SocketProvider({
 
     // CONNECT
     const handleConnect = () => {
-      console.log('✅ Socket connected');
       setIsConnected(true);
     };
 
     // DISCONNECT
     const handleDisconnect = () => {
-      console.log('❌ Socket disconnected');
       setIsConnected(false);
     };
 

@@ -32,7 +32,6 @@ export default function ProductSection({
         const fetchedProducts = await ProductService.getProducts(endpoint);
         setProducts(fetchedProducts);
       } catch (error) {
-        console.error("Error fetching products:", error);
       } finally {
         setLoading(false);
       }
@@ -49,7 +48,6 @@ export default function ProductSection({
         await addToWishlist(product.id);
       }
     } catch (error) {
-      console.error("Error toggling wishlist:", error);
     }
   };
 

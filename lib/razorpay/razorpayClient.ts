@@ -18,7 +18,6 @@ export const createRefund = async (options: {
     });
     return refund;
   } catch (error) {
-    console.error('Razorpay refund error:', error);
     throw error;
   }
 };
@@ -28,7 +27,6 @@ export const getRefundStatus = async (refundId: string) => {
     const refund = await razorpay.refunds.fetch(refundId);
     return refund;
   } catch (error) {
-    console.error('Razorpay fetch refund error:', error);
     throw error;
   }
 };
@@ -38,7 +36,6 @@ export const fetchPaymentDetails = async (paymentId: string) => {
     const payment = await razorpay.payments.fetch(paymentId);
     return payment;
   } catch (error) {
-    console.error('Razorpay fetch payment error:', error);
     throw error;
   }
 };

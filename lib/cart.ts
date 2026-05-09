@@ -20,7 +20,6 @@ export const guestCart = {
       const cartData = localStorage.getItem(GUEST_CART_KEY);
       return cartData ? JSON.parse(cartData) : { items: [] };
     } catch (error) {
-      console.error('Error reading guest cart:', error);
       return { items: [] };
     }
   },
@@ -31,7 +30,6 @@ export const guestCart = {
     try {
       localStorage.setItem(GUEST_CART_KEY, JSON.stringify(cart));
     } catch (error) {
-      console.error('Error saving guest cart:', error);
     }
   },
 
@@ -76,7 +74,6 @@ export const userCart = {
       if (!response.ok) throw new Error('Failed to fetch cart');
       return await response.json();
     } catch (error) {
-      console.error('Error fetching user cart:', error);
       return { items: [] };
     }
   },
@@ -91,7 +88,6 @@ export const userCart = {
       
       if (!response.ok) throw new Error('Failed to add item to cart');
     } catch (error) {
-      console.error('Error adding item to user cart:', error);
       throw error;
     }
   },
@@ -106,7 +102,6 @@ export const userCart = {
       
       if (!response.ok) throw new Error('Failed to update cart quantity');
     } catch (error) {
-      console.error('Error updating cart quantity:', error);
       throw error;
     }
   },
@@ -119,7 +114,6 @@ export const userCart = {
       
       if (!response.ok) throw new Error('Failed to remove item from cart');
     } catch (error) {
-      console.error('Error removing item from cart:', error);
       throw error;
     }
   },
@@ -132,7 +126,6 @@ export const userCart = {
       
       if (!response.ok) throw new Error('Failed to clear cart');
     } catch (error) {
-      console.error('Error clearing user cart:', error);
       throw error;
     }
   },
@@ -185,9 +178,7 @@ export const mergeGuestCartToUser = async (user: User, guestCartItems?: any[]): 
     // Clear guest cart after successful merge
     guestCart.clear();
 
-    console.log(`Successfully merged ${guestCartData.items.length} guest cart items for user ${user.id}`);
   } catch (error) {
-    console.error('Error merging guest cart to user cart:', error);
     throw error;
   }
 };

@@ -94,7 +94,6 @@ export default function AddressForm({
       onClose();
     } catch (error) {
       // Error is handled by the parent component
-      console.error('Form submission error:', error);
     }
   };
 

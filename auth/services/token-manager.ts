@@ -103,7 +103,6 @@ export class AuthTokenManager {
         throw new Error(data.error || 'Token refresh failed');
       }
     } catch (error) {
-      console.error('Token refresh failed:', error);
       
       // Clear invalid tokens and redirect to login
       localStorage.removeItem('accessToken');
@@ -149,7 +148,6 @@ export class AuthTokenManager {
     const sessionData = this.getSessionFromStorage();
     if (sessionData?.accessToken) {
       localStorage.setItem('accessToken', sessionData.accessToken);
-      console.log('✅ Access token synced from NextAuth session');
     }
   }
 

@@ -130,12 +130,10 @@ export default function RazorpayPayment({
       razorpay.open();
 
       razorpay.on("payment.failed", function (response: any) {
-        console.error("Payment failed:", response);
         setIsLoading(false);
         onError(response.error?.description || "Payment failed. Please try again.");
       });
     } catch (error) {
-      console.error("Razorpay payment error:", error);
       setIsLoading(false);
       onError(error instanceof Error ? error.message : "Payment failed. Please try again.");
     }
@@ -167,7 +165,6 @@ export default function RazorpayPayment({
       onSuccess(result.orderId);
       toast.success("Payment successful! Order placed.");
     } catch (error) {
-      console.error("Payment verification error:", error);
       setIsLoading(false);
       onError(error instanceof Error ? error.message : "Payment verification failed. Please contact support.");
     }

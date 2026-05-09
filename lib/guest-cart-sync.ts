@@ -110,7 +110,6 @@ export async function syncGuestCart(
       updatedCart.push(updatedItem);
 
     } catch (error) {
-      console.error(`Error syncing guest cart item ${item.productId}:`, error);
       errors.push(`Failed to sync ${item.product?.name || item.productId}`);
       
       if (options.removeOutOfStock) {

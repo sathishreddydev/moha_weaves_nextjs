@@ -18,7 +18,6 @@ export async function GET(req: NextRequest) {
       fabrics: fabricsResult
     });
   } catch (error) {
-    console.error('Error fetching filters:', error);
     return NextResponse.json(
       { error: 'Failed to fetch filters' },
       { status: 500 }
