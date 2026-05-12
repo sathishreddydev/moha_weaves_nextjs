@@ -122,9 +122,6 @@ export async function POST(req: NextRequest) {
 
         await cartServices.clearCart(session.user.id);
 
-        
-        await publishRealtimeEvent("user_order_created");
-
         return NextResponse.json({ orderId: order.id });
 
     } catch (error) {

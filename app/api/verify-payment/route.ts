@@ -10,6 +10,7 @@ import { orders } from "@/shared";
 import { eq } from "drizzle-orm";
 import { calculatePricing, getEffectivePrice } from "@/lib/pricing-utils";
 import { couponsService } from "../coupon/couponsService";
+import { publishRealtimeEvent } from "@/realtime/publisher";
 
 export async function POST(req: NextRequest) {
     try {
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
 
         // Check if order already exists for this payment id (idempotency)
         const existingOrder = await db.select().from(orders).where(eq(orders.razorpayPaymentId, razorpayPaymentId)).limit(1);
-        
+
         if (existingOrder.length > 0) {
             return NextResponse.json({
                 orderId: existingOrder[0].id,
@@ -53,9 +54,9 @@ export async function POST(req: NextRequest) {
         const stockValidation = await stockTransactionService.validateStockAvailability(cartItems.cart);
         if (!stockValidation.valid) {
             return NextResponse.json(
-                { 
+                {
                     message: stockValidation.message,
-                    productId: stockValidation.productId 
+                    productId: stockValidation.productId
                 },
                 { status: 400 }
             );
@@ -79,9 +80,9 @@ export async function POST(req: NextRequest) {
 
         if (!stockResult.success) {
             return NextResponse.json(
-                { 
+                {
                     message: stockResult.message,
-                    productId: stockResult.productId 
+                    productId: stockResult.productId
                 },
                 { status: 400 }
             );
@@ -104,11 +105,11 @@ export async function POST(req: NextRequest) {
                 razorpayPaymentId,
             },
             cartItems.cart.map((item) => {
-                const originalPrice = typeof item.product.price === "string" 
-                    ? parseFloat(item.product.price) 
+                const originalPrice = typeof item.product.price === "string"
+                    ? parseFloat(item.product.price)
                     : item.product.price;
                 const effectivePrice = getEffectivePrice(item.product);
-                
+
                 return {
                     productId: item.productId,
                     quantity: item.quantity,
@@ -125,14 +126,14 @@ export async function POST(req: NextRequest) {
 
         // Clear cart only after successful order creation
         await cartServices.clearCart(user.id);
-        
+
         const result = order;
+        await publishRealtimeEvent("user_order_created");
 
         return NextResponse.json({
             orderId: result.id,
             message: "Payment successful",
         });
-
     } catch (err) {
 
         return NextResponse.json(
