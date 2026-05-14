@@ -1,11 +1,11 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useCartStore } from "@/lib/stores";
+import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { formatPrice } from "@/lib/formatters";
 import { useState } from "react";
-import { X } from "lucide-react";
+import { Truck, X } from "lucide-react";
 import { getProductUrl } from "@/lib/utils/productUrl";
 
 interface MobileCartViewProps {
@@ -17,6 +17,8 @@ interface MobileCartViewProps {
   calculateTotal: () => number;
   isGuest: boolean;
 }
+
+const FREE_SHIPPING_THRESHOLD = 999;
 
 export default function MobileCartView({
   items,
@@ -33,7 +35,7 @@ export default function MobileCartView({
     if (product.discountedPrice) {
       return {
         original: parseFloat(product.price),
-        discounted: product.discountedPrice,
+        discounted: parseFloat(product.discountedPrice),
         hasDiscount: true,
       };
     }
@@ -44,10 +46,21 @@ export default function MobileCartView({
     };
   };
 
+  const subtotal = calculateTotal();
+  const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 50;
+  const total = subtotal + shipping;
+
+  const totalSavings = items.reduce((sum: number, item: any) => {
+    const p = getProductPrice(item.product);
+    return p.hasDiscount && p.discounted !== null
+      ? sum + (p.original - p.discounted) * item.quantity
+      : sum;
+  }, 0);
+
   return (
     <div className="lg:hidden">
       {/* Header */}
-      <div className="bg-white rounded-lg shadow mb-4 p-4">
+      <div className="mb-4 p-4">
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-semibold text-gray-900">
             Cart ({items.length})
@@ -58,7 +71,7 @@ export default function MobileCartView({
               disabled={updating === "all"}
               variant="outline"
               size="sm"
-              className=" touch-manipulation active:scale-95 transition-transform"
+              className="touch-manipulation active:scale-95 transition-transform"
             >
               {updating === "all" ? "Clearing..." : "Clear"}
             </Button>
@@ -86,7 +99,7 @@ export default function MobileCartView({
                 size="icon"
                 onClick={() => removeFromCart(item.id)}
                 disabled={updating === item.id}
-                className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed   touch-manipulation active:scale-95"
+                className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation active:scale-95"
                 aria-label="Remove item"
               >
                 <X className="w-4 h-4 text-gray-500 hover:text-red-600" />
@@ -152,7 +165,7 @@ export default function MobileCartView({
                 </div>
               </div>
 
-              {/* Quantity and Remove Controls */}
+              {/* Quantity and Total Controls */}
               <div className="mt-4 pt-4 border-t flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-gray-600">Qty:</span>
@@ -162,7 +175,7 @@ export default function MobileCartView({
                       disabled={updating === item.id || item.quantity <= 1}
                       variant="outline"
                       size="icon"
-                      className="h-8 w-8   touch-manipulation active:scale-95 transition-transform"
+                      className="h-8 w-8 touch-manipulation active:scale-95 transition-transform"
                     >
                       -
                     </Button>
@@ -174,13 +187,13 @@ export default function MobileCartView({
                       disabled={updating === item.id}
                       variant="outline"
                       size="icon"
-                      className="h-8 w-8   touch-manipulation active:scale-95 transition-transform"
+                      className="h-8 w-8 touch-manipulation active:scale-95 transition-transform"
                     >
                       +
                     </Button>
                   </div>
                 </div>
-                <div className="text-sm font-medium text-gray-900">
+                <div className="font-medium text-gray-900">
                   {formatPrice(
                     (price.discounted || price.original) * item.quantity,
                   )}
@@ -197,13 +210,15 @@ export default function MobileCartView({
           {/* Toggle Summary */}
           <button
             onClick={() => setShowSummary(!showSummary)}
-            className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-lg mb-3  touch-manipulation active:scale-[0.98] transition-transform"
+            className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-lg mb-3 touch-manipulation active:scale-[0.98] transition-transform"
           >
             <span className="font-medium text-gray-900">Order Summary</span>
             <div className="flex items-center space-x-2">
-              <span className="font-semibold text-lg">
-                {formatPrice(calculateTotal())}
-              </span>
+              {!showSummary && (
+                <span className="font-semibold text-lg">
+                  {formatPrice(total)}
+                </span>
+              )}
               <svg
                 className={`w-5 h-5 text-gray-600 transform transition-transform ${
                   showSummary ? "rotate-180" : ""
@@ -225,37 +240,63 @@ export default function MobileCartView({
           {/* Expanded Summary */}
           {showSummary && (
             <div className="bg-gray-50 rounded-lg p-3 mb-3 space-y-2">
+              {totalSavings > 0 && (
+                <Badge className="mb-1 bg-green-100 text-green-700 border-green-200 hover:bg-green-100 font-medium">
+                  You save {formatPrice(totalSavings)}
+                </Badge>
+              )}
               <div className="flex justify-between text-sm text-gray-600">
                 <span>Subtotal</span>
-                <span>{formatPrice(calculateTotal())}</span>
+                <span className="font-medium text-gray-900">
+                  {formatPrice(subtotal)}
+                </span>
               </div>
+              {totalSavings > 0 && (
+                <div className="flex justify-between text-sm text-green-600">
+                  <span>Item savings</span>
+                  <span>-{formatPrice(totalSavings)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm text-gray-600">
-                <span>Shipping</span>
-                <span>Calculated at checkout</span>
+                <span className="flex items-center gap-1">
+                  <Truck className="w-3.5 h-3.5" />
+                  Shipping
+                </span>
+                <span
+                  className={
+                    shipping === 0
+                      ? "font-medium text-green-600"
+                      : "font-medium text-gray-900"
+                  }
+                >
+                  {shipping === 0 ? "FREE" : formatPrice(shipping)}
+                </span>
               </div>
-              <div className="flex justify-between text-sm text-gray-600">
-                <span>Tax</span>
-                <span>Calculated at checkout</span>
-              </div>
+              {shipping > 0 && (
+                <p className="text-xs text-green-600">
+                  Add {formatPrice(FREE_SHIPPING_THRESHOLD - subtotal)} more for
+                  free shipping
+                </p>
+              )}
               <div className="border-t pt-2 mt-2">
                 <div className="flex justify-between font-semibold">
                   <span>Total</span>
-                  <span>{formatPrice(calculateTotal())}</span>
+                  <span>{formatPrice(total)}</span>
                 </div>
               </div>
             </div>
           )}
 
           {/* Checkout Button */}
-          <Button asChild className="w-full h-12  touch-manipulation active:scale-95 transition-transform" size="lg">
+          <Button
+            asChild
+            className="w-full h-12 touch-manipulation active:scale-95 transition-transform"
+            size="lg"
+          >
             {isGuest ? (
-              <Link href="/login?redirect=/checkout">
-                Sign In to Checkout • {formatPrice(calculateTotal())}
-              </Link>
+              <Link href="/login?redirect=/checkout">Sign In to Checkout</Link>
             ) : (
-              <Link href="/checkout">
-                Proceed to Checkout • {formatPrice(calculateTotal())}
-              </Link>
+              <Link href="/checkout">Proceed to Checkout</Link>
             )}
           </Button>
         </div>

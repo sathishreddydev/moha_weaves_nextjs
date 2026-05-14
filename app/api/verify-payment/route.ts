@@ -3,7 +3,6 @@ import crypto from "crypto";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth/server";
 import { cartServices } from "../cart/cartService";
-import { orderService } from "../orders/orderService";
 import { stockTransactionService } from "@/lib/services/stockTransactionService";
 import { db } from "@/lib/db";
 import { orders } from "@/shared";
@@ -50,6 +49,13 @@ export async function POST(req: NextRequest) {
 
         const cartItems = await cartServices.getCartItems(user.id);
 
+        if (cartItems.cart.length === 0) {
+            return NextResponse.json(
+                { message: "Cart is empty. Cannot create order." },
+                { status: 400 }
+            );
+        }
+
         // Validate stock availability using stock transaction service
         const stockValidation = await stockTransactionService.validateStockAvailability(cartItems.cart);
         if (!stockValidation.valid) {
@@ -65,7 +71,6 @@ export async function POST(req: NextRequest) {
         // Get coupon details if provided
         let coupon = null;
         if (couponId) {
-            const { couponsService } = await import("../coupon/couponsService");
             coupon = await couponsService.getCoupon(couponId);
         }
 
@@ -105,13 +110,16 @@ export async function POST(req: NextRequest) {
                 razorpayPaymentId,
             },
             cartItems.cart.map((item) => {
-                const originalPrice = typeof item.product.price === "string"
-                    ? parseFloat(item.product.price)
-                    : item.product.price;
-                const effectivePrice = getEffectivePrice(item.product);
+                // For variant products, use the variant's own price if set; fall back to product price
+                const variant = item.variantId
+                    ? (item.product as any).variants?.find((v: any) => v.id === item.variantId)
+                    : null;
+                const variantPrice = variant?.price ? parseFloat(variant.price) : null;
+                const effectivePrice = variantPrice ?? getEffectivePrice(item.product);
 
                 return {
                     productId: item.productId,
+                    variantId: item.variantId || undefined,
                     quantity: item.quantity,
                     price: effectivePrice.toString(),
                     productPrice: item.product.price.toString(),

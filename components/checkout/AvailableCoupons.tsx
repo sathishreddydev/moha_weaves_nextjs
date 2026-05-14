@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/formatters";
-import { Tag, Calendar, Search } from "lucide-react";
+import { Tag, Search } from "lucide-react";
 import { toast } from "sonner";
 import AllCouponsModal from "./AllCouponsModal";
 import {
@@ -81,20 +81,6 @@ export default function AvailableCoupons({
     });
   };
 
-  const getDiscountValue = (
-    coupon: Coupon,
-    currentOrderAmount: number,
-  ): number => {
-    if (coupon.type === "percentage") {
-      return (currentOrderAmount * Number(coupon.value)) / 100;
-    } else if (coupon.type === "fixed") {
-      return Number(coupon.value);
-    } else if (coupon.type === "free_shipping") {
-      return 50; // Assume shipping cost is ₹50
-    }
-    return 0;
-  };
-
   const handleApplyCoupon = (couponCode: string) => {
     onCouponSelect(couponCode);
   };
@@ -102,48 +88,21 @@ export default function AvailableCoupons({
   
   if (loading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Tag className="h-5 w-5" />
-            Available Coupons
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {[1, 2].map((i) => (
-              <div key={i} className="animate-pulse">
-                <div className="h-20 bg-gray-100 rounded-lg"></div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-2">
+        {[1, 2].map((i) => (
+          <div key={i} className="animate-pulse h-16 bg-muted rounded-lg" />
+        ))}
+      </div>
     );
+  }
+
+  // No coupons at all — hide the section entirely
+  if (availableCoupons.length === 0) {
+    return null;
   }
 
   const allCoupons = [...availableCoupons, ...usedCoupons];
-  if (availableCoupons.length === 0) {
-    return (
-      <>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Tag className="h-5 w-5" />
-              Available Coupons
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-500 text-center py-4">
-              No coupons available at the moment
-            </p>
-          </CardContent>
-        </Card>
-      </>
-    );
-  }
-
-  const bestCoupon = availableCoupons[0]; // First available coupon is the best
+  const bestCoupon = availableCoupons[0];
   const hasMoreCoupons = allCoupons.length > 1;
 
   // Get coupon status for best coupon

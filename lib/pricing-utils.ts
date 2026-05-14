@@ -21,13 +21,19 @@ export function calculatePricing(
   cartItems: CartItemWithProduct[],
   coupon?: CouponDiscount | null
 ): PricingCalculation {
-  // Calculate subtotal using discounted prices when available
+  // Calculate subtotal using variant price > discounted product price > base product price
   const subtotal = cartItems.reduce((sum, item) => {
-    const price = (item.product as any).discountedPrice 
-      ? (item.product as any).discountedPrice
-      : typeof item.product.price === "string"
-          ? parseFloat(item.product.price)
-          : item.product.price;
+    const product = item.product as any;
+
+    // For variant items, prefer the variant's own price if set
+    const variant = item.variantId
+      ? product.variants?.find((v: any) => v.id === item.variantId)
+      : null;
+    const variantPrice = variant?.price ? parseFloat(variant.price) : null;
+
+    const price = variantPrice
+      ?? (product.discountedPrice ? product.discountedPrice : null)
+      ?? (typeof product.price === "string" ? parseFloat(product.price) : product.price);
 
     return sum + price * item.quantity;
   }, 0);

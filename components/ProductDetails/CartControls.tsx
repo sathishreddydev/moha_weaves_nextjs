@@ -7,6 +7,7 @@ import { useCartStore } from "@/lib/stores";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/auth";
 import { CartItemWithProduct } from "@/shared";
+import { getAvailableStock } from "@/lib/stock-utils";
 
 interface CartControlsProps {
   product: any;
@@ -28,6 +29,7 @@ export default function CartControls({
   const [cartQuantity, setCartQuantity] = useState(0);
 
   const currentPrice = Number(product.discountedPrice || product.price);
+  const availableStock = getAvailableStock(product, selectedVariant?.id);
 
   // Check if user is logged in using NextAuth
   const isLoggedIn = isAuthenticated;
@@ -203,14 +205,14 @@ export default function CartControls({
   return (
     <Button
       onClick={handleAddToCart}
-      disabled={product.onlineStock <= 0 || updating === product.id}
+      disabled={availableStock <= 0 || updating === product.id}
       size="lg"
       className="w-full  touch-manipulation active:scale-95 transition-transform"
     >
       <ShoppingBag className="h-5 w-5 mr-2" />
       {updating === product.id
         ? "Adding..."
-        : product.onlineStock <= 0
+        : availableStock <= 0
           ? "Out of Stock"
           : "Add to Cart"}
     </Button>

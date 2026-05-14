@@ -1,10 +1,10 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useCartStore } from "@/lib/stores";
+import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { formatPrice } from "@/lib/formatters";
-import { Minus, Plus, X } from "lucide-react";
+import { Minus, Plus, X, Truck } from "lucide-react";
 import { getProductUrl } from "@/lib/utils/productUrl";
 
 interface DesktopCartViewProps {
@@ -26,11 +26,13 @@ export default function DesktopCartView({
   calculateTotal,
   isGuest,
 }: DesktopCartViewProps) {
+  const FREE_SHIPPING_THRESHOLD = 999;
+
   const getProductPrice = (product: any) => {
     if (product.discountedPrice) {
       return {
         original: parseFloat(product.price),
-        discounted: product.discountedPrice,
+        discounted: parseFloat(product.discountedPrice),
         hasDiscount: true,
       };
     }
@@ -40,6 +42,17 @@ export default function DesktopCartView({
       hasDiscount: false,
     };
   };
+
+  const subtotal = calculateTotal();
+  const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 50;
+  const total = subtotal + shipping;
+
+  const totalSavings = items.reduce((sum: number, item: any) => {
+    const p = getProductPrice(item.product);
+    return p.hasDiscount && p.discounted !== null
+      ? sum + (p.original - p.discounted) * item.quantity
+      : sum;
+  }, 0);
 
   return (
     <div className="hidden lg:block">
@@ -220,40 +233,57 @@ export default function DesktopCartView({
         <div className="lg:col-span-1">
           <div className="sticky top-24">
             <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-base font-semibold text-gray-900 mb-6">
+              <h2 className="text-base font-semibold text-gray-900 mb-4">
                 Order Summary
               </h2>
+              {totalSavings > 0 && (
+                <Badge className="mb-4 bg-green-100 text-green-700 border-green-200 hover:bg-green-100 font-medium">
+                  You save {formatPrice(totalSavings)}
+                </Badge>
+              )}
 
               <div className="space-y-3 mb-6 text-sm">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal</span>
-                  <span>{formatPrice(calculateTotal())}</span>
+                  <span className="font-medium text-gray-900">{formatPrice(subtotal)}</span>
                 </div>
+                {totalSavings > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Item savings</span>
+                    <span>-{formatPrice(totalSavings)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-gray-600">
-                  <span>Shipping</span>
-                  <span>Calculated at checkout</span>
+                  <span className="flex items-center gap-1">
+                    <Truck className="w-3.5 h-3.5" />
+                    Shipping
+                  </span>
+                  <span className={shipping === 0 ? "font-medium text-green-600" : "font-medium text-gray-900"}>
+                    {shipping === 0 ? "FREE" : formatPrice(shipping)}
+                  </span>
                 </div>
-                <div className="flex justify-between text-gray-600">
-                  <span>Tax</span>
-                  <span>Calculated at checkout</span>
-                </div>
+                {shipping > 0 && (
+                  <p className="text-xs text-green-600">
+                    Add {formatPrice(FREE_SHIPPING_THRESHOLD - subtotal)} more for free shipping
+                  </p>
+                )}
               </div>
 
               <div className="border-t pt-4 mb-6">
                 <div className="flex justify-between text-base font-semibold text-gray-900">
                   <span>Total</span>
-                  <span>{formatPrice(calculateTotal())}</span>
+                  <span>{formatPrice(total)}</span>
                 </div>
               </div>
 
               <Button asChild className="w-full mb-4" size="lg">
                 {isGuest ? (
                   <Link href="/login?redirect=/checkout">
-                    Sign In to Checkout • {formatPrice(calculateTotal())}
+                    Sign In to Checkout • {formatPrice(total)}
                   </Link>
                 ) : (
                   <Link href="/checkout">
-                    Proceed to Checkout • {formatPrice(calculateTotal())}
+                    Proceed to Checkout • {formatPrice(total)}
                   </Link>
                 )}
               </Button>

@@ -83,7 +83,6 @@ export class StockTransactionService {
 
           // Record stock movement
           await tx.insert(stockMovements).values({
-            id: crypto.randomUUID(),
             productId,
             variantId,
             quantity: -quantity,
@@ -92,19 +91,16 @@ export class StockTransactionService {
             orderRefId,
             storeId: null,
             notes: `Order ${orderRefId} - Stock deduction`,
-            createdAt: new Date(),
           });
 
-          // Update total stock for main product (if not variant)
-          if (!variantId) {
-            await tx
-              .update(products)
-              .set({
-                totalStock: sql`${products.totalStock} - ${quantity}`,
-                updatedAt: new Date(),
-              })
-              .where(eq(products.id, productId));
-          }
+          // Update total stock for main product (always, whether variant or not)
+          await tx
+            .update(products)
+            .set({
+              totalStock: sql`${products.totalStock} - ${quantity}`,
+              updatedAt: new Date(),
+            })
+            .where(eq(products.id, productId));
         }
 
         return { success: true };
@@ -190,15 +186,22 @@ export class StockTransactionService {
             .update(products)
             .set({
               onlineStock: sql`${products.onlineStock} + ${quantity}`,
-              totalStock: sql`${products.totalStock} + ${quantity}`,
               updatedAt: new Date(),
             })
             .where(eq(products.id, productId));
         }
 
+        // Always restore products.totalStock
+        await tx
+          .update(products)
+          .set({
+            totalStock: sql`${products.totalStock} + ${quantity}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(products.id, productId));
+
         // Record stock movement
         await tx.insert(stockMovements).values({
-          id: crypto.randomUUID(),
           productId,
           variantId,
           quantity: quantity, // Positive for restoration
@@ -207,7 +210,6 @@ export class StockTransactionService {
           orderRefId,
           storeId: null,
           notes: reason,
-          createdAt: new Date(),
         });
       }
     });

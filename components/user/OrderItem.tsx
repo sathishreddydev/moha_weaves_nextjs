@@ -74,9 +74,6 @@ export function OrderItem({
                   <p className="text-xs font-bold">
                     ₹{parseFloat(item.price).toFixed(2)}
                   </p>
-                  <div className="text-[10px] text-gray-500">
-                    Qty: {item.quantity}
-                  </div>
                 </div>
               )}
               {item.status !== "delivered" && (

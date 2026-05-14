@@ -365,7 +365,7 @@ function OrderDetailsContent({
           <div className="flex justify-between text-xs">
             <span className="text-gray-600">Discount</span>
             <span className="font-medium text-green-600">
-              -₹{order?.discountAmount || 0}
+              -₹{parseFloat(order?.discountAmount || "0").toFixed(2)}
             </span>
           </div>
           <div className="flex justify-between text-xs">
@@ -395,7 +395,19 @@ function OrderDetailsContent({
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-gray-600">Shipping</span>
-            <span className="font-medium text-green-600">FREE</span>
+            <span className="font-medium">
+              {(() => {
+                const subtotal = order.items.reduce(
+                  (sum, item) => sum + parseFloat(item.price) * item.quantity,
+                  0,
+                );
+                const shipping =
+                  parseFloat(order.finalAmount) +
+                  parseFloat(order.discountAmount || "0") -
+                  subtotal;
+                return shipping > 0 ? `₹${shipping.toFixed(2)}` : "FREE";
+              })()}
+            </span>
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-gray-600">Tax</span>
