@@ -10,7 +10,10 @@ export class StockTransactionService {
     cartItems: CartItemWithProduct[],
     orderRefId: string
   ): Promise<{ success: boolean; message?: string; productId?: string }> {
-    return await db.transaction(async (tx) => {
+    // Collect items to publish after the transaction commits successfully
+    const publishQueue: Array<{ productId: string; variantId: string | null }> = [];
+
+    const result = await db.transaction(async (tx) => {
       try {
         // Process each item atomically
         for (const item of cartItems) {
@@ -103,11 +106,8 @@ export class StockTransactionService {
             })
             .where(eq(products.id, productId));
 
-          // Publish real-time stock update so active cart sessions can re-validate
-          await publishRealtimeEvent("product_purchased", {
-            productId,
-            variantId: variantId || null,
-          });
+          // Queue for publish — only fires after transaction commits
+          publishQueue.push({ productId, variantId: variantId || null });
         }
 
         return { success: true };
@@ -120,6 +120,15 @@ export class StockTransactionService {
         };
       }
     });
+
+    // Publish realtime events only after transaction commits successfully
+    if (result.success) {
+      for (const item of publishQueue) {
+        await publishRealtimeEvent("product_purchased", item);
+      }
+    }
+
+    return result;
   }
 
   /**
@@ -179,7 +188,6 @@ export class StockTransactionService {
       for (const item of cartItems) {
         const { productId, quantity, variantId } = item;
 
-        // Restore stock atomically
         if (variantId) {
           await tx
             .update(productVariants)
@@ -198,7 +206,6 @@ export class StockTransactionService {
             .where(eq(products.id, productId));
         }
 
-        // Always restore products.totalStock
         await tx
           .update(products)
           .set({
@@ -207,25 +214,26 @@ export class StockTransactionService {
           })
           .where(eq(products.id, productId));
 
-        // Record stock movement
         await tx.insert(stockMovements).values({
           productId,
           variantId,
-          quantity: quantity, // Positive for restoration
+          quantity: quantity,
           movementType: "restock",
           source: "online",
           orderRefId,
           storeId: null,
           notes: reason,
         });
-
-        // Notify active product/cart sessions that stock is available again
-        await publishRealtimeEvent("product_purchased", {
-          productId,
-          variantId: variantId || null,
-        });
       }
     });
+
+    // Publish after transaction commits — notify active sessions stock is back
+    for (const item of cartItems) {
+      await publishRealtimeEvent("product_purchased", {
+        productId: item.productId,
+        variantId: item.variantId || null,
+      });
+    }
   }
 
   /**

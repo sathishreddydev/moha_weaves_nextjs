@@ -9,7 +9,6 @@ import { orders } from "@/shared";
 import { eq } from "drizzle-orm";
 import { calculatePricing, getEffectivePrice } from "@/lib/pricing-utils";
 import { couponsService } from "../coupon/couponsService";
-import { publishRealtimeEvent } from "@/realtime/publisher";
 
 export async function POST(req: NextRequest) {
   try {
@@ -144,10 +143,9 @@ export async function POST(req: NextRequest) {
 
     // Clear cart only after successful order creation
     await cartServices.clearCart(user.id);
-    const result = order;
 
     return NextResponse.json({
-      orderId: result.id,
+      orderId: order.id,
       message: "Payment successful",
     });
   } catch (err) {

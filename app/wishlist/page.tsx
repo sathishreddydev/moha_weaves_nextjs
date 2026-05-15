@@ -6,7 +6,7 @@ import { getProductUrl } from "@/lib/utils/productUrl";
 import { X } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
-import { useSocket } from "@/providers/socket-provider";
+import { useSocketStore } from "@/lib/stores/socketStore";
 
 export default function WishlistPage() {
   const {
@@ -20,7 +20,7 @@ export default function WishlistPage() {
     addToCartFromWishlist,
   } = useWishlistStore();
 
-  const { socket } = useSocket();
+  const { socket } = useSocketStore();
 
   useEffect(() => {
     fetchWishlist();

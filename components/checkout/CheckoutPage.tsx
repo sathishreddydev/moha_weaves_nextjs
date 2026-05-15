@@ -26,7 +26,6 @@ import AddressList from "./AddressList";
 import AddressForm from "../user/AddressForm";
 import RazorpayPayment from "./RazorpayPayment";
 import CouponInput from "./CouponInput";
-import { useSocket } from "@/providers/socket-provider";
 
 interface AppliedCoupon {
   id: string;
@@ -41,7 +40,6 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { items, calculateTotal, clearCart, fetchCart, hasStockIssues, validateCartStock } =
     useCartStore();
-  const { socket } = useSocket();
   const {
     addresses,
     loading: addressesLoading,
@@ -108,32 +106,6 @@ export default function CheckoutPage() {
   useEffect(() => {
     validateCartStock();
   }, [items, validateCartStock]);
-
-  // ── Socket: re-fetch cart when admin updates a product ────────────────────
-  useEffect(() => {
-    if (!socket) return;
-    socket.on("product_event", fetchCart);
-    return () => { socket.off("product_event", fetchCart); };
-  }, [socket, fetchCart]);
-
-  // ── Socket: join product rooms + re-fetch when a matching product is purchased
-  useEffect(() => {
-    if (!socket || items.length === 0) return;
-    items.forEach((item) => socket.emit("join_product_room", item.productId));
-    const handleProductPurchased = ({ productId, variantId }: { productId: string; variantId: string | null }) => {
-      const affected = items.some(
-        (item) =>
-          item.productId === productId &&
-          (variantId === null || item.variantId === variantId)
-      );
-      if (affected) fetchCart();
-    };
-    socket.on("product_purchased", handleProductPurchased);
-    return () => {
-      items.forEach((item) => socket.emit("leave_product_room", item.productId));
-      socket.off("product_purchased", handleProductPurchased);
-    };
-  }, [socket, items, fetchCart]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleAddressSubmit = async (data: any) => {

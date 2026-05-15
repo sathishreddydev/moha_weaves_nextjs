@@ -31,7 +31,7 @@ import { useCallback, useState, useEffect } from "react";
 import { useWishlistStore } from "@/lib/stores/wishlistStore";
 import { useFilterStore } from "@/lib/stores/fillterStore";
 import { getProductUrl } from "@/lib/utils/productUrl";
-import { useSocket } from "@/providers/socket-provider";
+import { useSocketStore } from "@/lib/stores/socketStore";
 
 interface CategoryClientProps {
   categoryName: string;
@@ -47,7 +47,7 @@ export default function CategoryClient({
   categoryName,
 }: CategoryClientProps) {
   const router = useRouter();
-  const { socket } = useSocket();
+  const { socket } = useSocketStore();
 
   // Filter store
   const { categories, colors, fabrics, loading: filtersLoading, error: filtersError, fetchFilters } = useFilterStore();

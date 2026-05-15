@@ -7,7 +7,7 @@ import { ProductService } from "@/lib/services/productService";
 import { ArrowRight, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useWishlistStore } from "@/lib/stores";
-import { useSocket } from "@/providers/socket-provider";
+import { useSocketStore } from "@/lib/stores/socketStore";
 
 interface ProductSectionProps {
   title: string;
@@ -26,7 +26,7 @@ export default function ProductSection({
   const [loading, setLoading] = useState(true);
   const { addToWishlist, removeFromWishlist, isInWishlist, updating } =
     useWishlistStore();
-  const { socket } = useSocket();
+  const { socket } = useSocketStore();
 
   const fetchProducts = useCallback(async () => {
     try {

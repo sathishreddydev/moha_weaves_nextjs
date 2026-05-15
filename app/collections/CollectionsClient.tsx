@@ -31,7 +31,7 @@ import { FilterIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
-import { useSocket } from "@/providers/socket-provider";
+import { useSocketStore } from "@/lib/stores/socketStore";
 
 interface CollectionsClientProps {
   initialProducts: ProductWithDetails[];
@@ -45,7 +45,7 @@ export default function CollectionsClient({
   initialFilters,
 }: CollectionsClientProps) {
   const router = useRouter();
-  const { socket } = useSocket();
+  const { socket } = useSocketStore();
 
   // Filter store
   const {

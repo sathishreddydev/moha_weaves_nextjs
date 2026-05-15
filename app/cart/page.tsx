@@ -5,7 +5,7 @@ import DesktopCartView from "@/components/cart/DesktopCartView";
 import MobileCartView from "@/components/cart/MobileCartView";
 import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/lib/stores";
-import { useSocket } from "@/providers/socket-provider";
+import { useSocketStore } from "@/lib/stores/socketStore";
 import Link from "next/link";
 import { useEffect } from "react";
 
@@ -27,7 +27,7 @@ export default function CartPage() {
     validateCartStock,
   } = useCartStore();
 
-  const { socket } = useSocket();
+  const { socket } = useSocketStore();
   const isGuest = status === "unauthenticated";
 
   // Join product rooms for all cart items so we receive product_purchased events
