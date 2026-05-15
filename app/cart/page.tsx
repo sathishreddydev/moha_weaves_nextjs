@@ -5,7 +5,6 @@ import DesktopCartView from "@/components/cart/DesktopCartView";
 import MobileCartView from "@/components/cart/MobileCartView";
 import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/lib/stores";
-import { useCartStockSync } from "@/hooks/useCartStockSync";
 import { useSocket } from "@/providers/socket-provider";
 import Link from "next/link";
 import { useEffect } from "react";
@@ -27,9 +26,6 @@ export default function CartPage() {
 
   const { socket } = useSocket();
   const isGuest = status === "unauthenticated";
-
-  // Real-time stock sync — clamps/removes items when stock runs out
-  useCartStockSync();
 
   // Re-fetch cart when admin updates a product (price, name, etc.)
   useEffect(() => {

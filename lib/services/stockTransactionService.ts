@@ -104,10 +104,9 @@ export class StockTransactionService {
             .where(eq(products.id, productId));
 
           // Publish real-time stock update so active cart sessions can re-validate
-          await publishRealtimeEvent("stock_updated", {
+          await publishRealtimeEvent("cart_stock_sync", {
             productId,
             variantId: variantId || null,
-            newStock: updated.onlineStock,
           });
         }
 

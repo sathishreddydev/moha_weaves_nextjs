@@ -12,19 +12,6 @@ interface CartState {
   count: number
 }
 
-interface StockUpdatePayload {
-  productId: string
-  variantId: string | null
-  newStock: number
-}
-
-interface StockUpdateResult {
-  /** cart item IDs whose quantity was clamped */
-  clamped: string[]
-  /** cart item IDs that were removed (stock hit 0) */
-  removed: string[]
-}
-
 interface CartActions {
   fetchCart: () => Promise<void>
   syncGuestCart: () => Promise<void>
@@ -35,8 +22,6 @@ interface CartActions {
   setUpdating: (itemId: string | null) => void
   setError: (error: string | null) => void
   calculateTotal: () => number
-  /** Apply an incoming real-time stock update to the local cart state */
-  applyStockUpdate: (payload: StockUpdatePayload) => StockUpdateResult
 }
 
 type CartStore = CartState & CartActions
@@ -404,44 +389,5 @@ export const useCartStore = create<CartStore>((set, get) => ({
       return total + (price * item.quantity);
     }, 0);
   },
-
-  applyStockUpdate: ({ productId, variantId, newStock }) => {
-    const { items } = get()
-    const clamped: string[] = []
-    const removed: string[] = []
-
-    const updatedItems = items.reduce<CartItemWithProduct[]>((acc, item) => {
-      // Only affect items matching the updated product + variant
-      const matches =
-        item.productId === productId &&
-        (variantId ? item.variantId === variantId : !item.variantId)
-
-      if (!matches) {
-        acc.push(item)
-        return acc
-      }
-
-      if (newStock <= 0) {
-        // Product is now out of stock — drop the item
-        removed.push(item.id)
-        return acc
-      }
-
-      if (item.quantity > newStock) {
-        // Clamp quantity to available stock
-        clamped.push(item.id)
-        acc.push({ ...item, quantity: newStock })
-        return acc
-      }
-
-      acc.push(item)
-      return acc
-    }, [])
-
-    if (clamped.length > 0 || removed.length > 0) {
-      set({ items: updatedItems, count: updatedItems.reduce((s, i) => s + i.quantity, 0) })
-    }
-
-    return { clamped, removed }
-  },
 }))
+
