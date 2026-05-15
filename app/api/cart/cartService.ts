@@ -39,7 +39,10 @@ export class CartRepository {
           variantId: row.variantId,
           product: {
             ...product,
-            variants: variantInfo ? [variantInfo] : product.variants,
+            // Keep ALL variants so getAvailableStock can look up by variantId correctly.
+            // If a specific variantId was requested but not found, keep the full list
+            // so stock calculations don't silently fall back to product-level stock.
+            variants: product.variants,
           },
         };
 

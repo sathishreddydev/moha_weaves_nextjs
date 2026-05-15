@@ -7,10 +7,15 @@ import { formatPrice } from "@/lib/formatters";
 import { useState } from "react";
 import { Truck, X } from "lucide-react";
 import { getProductUrl } from "@/lib/utils/productUrl";
+import { CartItemStockStatus } from "@/lib/stores/cartStore";
+import { getAvailableStock } from "@/lib/stock-utils";
+import { getEffectivePrice } from "@/lib/pricing-utils";
 
 interface MobileCartViewProps {
   items: any[];
   updating: string | null;
+  stockStatus: Record<string, CartItemStockStatus>;
+  hasStockIssues: boolean;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   removeFromCart: (itemId: string) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -23,6 +28,8 @@ const FREE_SHIPPING_THRESHOLD = 999;
 export default function MobileCartView({
   items,
   updating,
+  stockStatus,
+  hasStockIssues,
   updateQuantity,
   removeFromCart,
   clearCart,
@@ -31,31 +38,17 @@ export default function MobileCartView({
 }: MobileCartViewProps) {
   const [showSummary, setShowSummary] = useState(false);
 
-  const getProductPrice = (product: any) => {
-    if (product.discountedPrice) {
-      return {
-        original: parseFloat(product.price),
-        discounted: parseFloat(product.discountedPrice),
-        hasDiscount: true,
-      };
-    }
-    return {
-      original: parseFloat(product.price),
-      discounted: null,
-      hasDiscount: false,
-    };
-  };
-
   const subtotal = calculateTotal();
   const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 50;
   const total = subtotal + shipping;
 
   const totalSavings = items.reduce((sum: number, item: any) => {
-    const p = getProductPrice(item.product);
-    return p.hasDiscount && p.discounted !== null
-      ? sum + (p.original - p.discounted) * item.quantity
-      : sum;
+    const orig = parseFloat(item.product.price || "0");
+    const effective = getEffectivePrice(item.product);
+    return sum + (orig - effective) * item.quantity;
   }, 0);
+
+  const checkoutDisabled = hasStockIssues;
 
   return (
     <div className="lg:hidden">
@@ -82,16 +75,25 @@ export default function MobileCartView({
       {/* Cart Items */}
       <div className="space-y-4 mb-20">
         {items.map((item) => {
-          const price = getProductPrice(item.product);
+          const orig = parseFloat(item.product.price || "0");
+          const effectivePrice = getEffectivePrice(item.product);
+          const hasDiscount = effectivePrice < orig;
           const firstImage = item.product.images?.[0];
           const variantInfo = item.variantId
             ? item.product.variants?.find((v: any) => v.id === item.variantId)
             : null;
+          const itemStock = stockStatus[item.id];
+          const isOutOfStock = itemStock?.outOfStock ?? false;
+          const isLimitedStock = itemStock?.limitedStock ?? false;
+          const effectiveAvailableStock = itemStock?.availableStock
+            ?? getAvailableStock(item.product, item.variantId);
 
           return (
             <div
               key={item.id}
-              className="bg-white rounded-lg shadow p-4 relative"
+              className={`bg-white rounded-lg shadow p-4 relative ${
+                isOutOfStock ? "opacity-70 border border-red-200" : ""
+              }`}
             >
               {/* Remove Button - Top Right */}
               <Button
@@ -104,9 +106,10 @@ export default function MobileCartView({
               >
                 <X className="w-4 h-4 text-gray-500 hover:text-red-600" />
               </Button>
+
               <div className="flex space-x-4">
                 {/* Product Image */}
-                <div className="flex-shrink-0 w-20 h-20 bg-gray-100 rounded-lg overflow-hidden">
+                <div className="flex-shrink-0 w-20 h-20 bg-gray-100 rounded-lg overflow-hidden relative">
                   {firstImage ? (
                     <img
                       src={firstImage}
@@ -118,10 +121,18 @@ export default function MobileCartView({
                       <span className="text-xs text-gray-500">No image</span>
                     </div>
                   )}
+                  {/* Out of Stock overlay on image */}
+                  {isOutOfStock && (
+                    <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
+                      <span className="text-[10px] font-semibold text-red-600 bg-white/90 px-1 py-0.5 rounded text-center leading-tight">
+                        Out of Stock
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Product Details */}
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 pr-8">
                   <h3 className="font-medium text-gray-900 mb-1">
                     <Link
                       href={getProductUrl(item.product)}
@@ -144,23 +155,35 @@ export default function MobileCartView({
                     )}
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-1">
-                      {price.hasDiscount ? (
-                        <>
-                          <span className="font-medium text-red-600">
-                            {formatPrice(price.discounted || 0)}
-                          </span>
-                          <span className="text-xs text-gray-500 line-through">
-                            {formatPrice(price.original)}
-                          </span>
-                        </>
-                      ) : (
-                        <span className="font-medium text-gray-900">
-                          {formatPrice(price.original)}
+                  {/* Stock badges */}
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {isOutOfStock && (
+                      <Badge className="text-xs bg-red-100 text-red-700 border-red-300 hover:bg-red-100">
+                        Out of Stock
+                      </Badge>
+                    )}
+                    {isLimitedStock && !isOutOfStock && (
+                      <Badge className="text-xs bg-amber-100 text-amber-700 border-amber-300 hover:bg-amber-100">
+                        Only {effectiveAvailableStock} left
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="flex items-center space-x-1">
+                    {hasDiscount ? (
+                      <>
+                        <span className="font-medium text-red-600">
+                          {formatPrice(effectivePrice)}
                         </span>
-                      )}
-                    </div>
+                        <span className="text-xs text-gray-500 line-through">
+                          {formatPrice(orig)}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="font-medium text-gray-900">
+                        {formatPrice(effectivePrice)}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -172,7 +195,11 @@ export default function MobileCartView({
                   <div className="flex items-center space-x-1">
                     <Button
                       onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                      disabled={updating === item.id || item.quantity <= 1}
+                      disabled={
+                        updating === item.id ||
+                        item.quantity <= 1 ||
+                        isOutOfStock
+                      }
                       variant="outline"
                       size="icon"
                       className="h-8 w-8 touch-manipulation active:scale-95 transition-transform"
@@ -184,7 +211,11 @@ export default function MobileCartView({
                     </span>
                     <Button
                       onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      disabled={updating === item.id}
+                      disabled={
+                        updating === item.id ||
+                        isOutOfStock ||
+                        item.quantity >= effectiveAvailableStock
+                      }
                       variant="outline"
                       size="icon"
                       className="h-8 w-8 touch-manipulation active:scale-95 transition-transform"
@@ -194,9 +225,7 @@ export default function MobileCartView({
                   </div>
                 </div>
                 <div className="font-medium text-gray-900">
-                  {formatPrice(
-                    (price.discounted || price.original) * item.quantity,
-                  )}
+                  {formatPrice(effectivePrice * item.quantity)}
                 </div>
               </div>
             </div>
@@ -287,18 +316,36 @@ export default function MobileCartView({
             </div>
           )}
 
+          {/* Stock issue warning */}
+          {checkoutDisabled && (
+            <p className="text-xs text-red-600 mb-2 text-center">
+              Some items are unavailable. Please review your cart.
+            </p>
+          )}
+
           {/* Checkout Button */}
-          <Button
-            asChild
-            className="w-full h-12 touch-manipulation active:scale-95 transition-transform"
-            size="lg"
-          >
-            {isGuest ? (
+          {isGuest ? (
+            <Button
+              asChild
+              className="w-full h-12 touch-manipulation active:scale-95 transition-transform"
+              size="lg"
+            >
               <Link href="/login?redirect=/checkout">Sign In to Checkout</Link>
-            ) : (
-              <Link href="/checkout">Proceed to Checkout</Link>
-            )}
-          </Button>
+            </Button>
+          ) : (
+            <Button
+              asChild={!checkoutDisabled}
+              disabled={checkoutDisabled}
+              className="w-full h-12 touch-manipulation active:scale-95 transition-transform"
+              size="lg"
+            >
+              {checkoutDisabled ? (
+                <span>Proceed to Checkout</span>
+              ) : (
+                <Link href="/checkout">Proceed to Checkout</Link>
+              )}
+            </Button>
+          )}
         </div>
       </div>
 

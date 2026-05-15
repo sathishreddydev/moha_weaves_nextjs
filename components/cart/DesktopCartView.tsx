@@ -6,10 +6,15 @@ import Link from "next/link";
 import { formatPrice } from "@/lib/formatters";
 import { Minus, Plus, X, Truck } from "lucide-react";
 import { getProductUrl } from "@/lib/utils/productUrl";
+import { CartItemStockStatus } from "@/lib/stores/cartStore";
+import { getAvailableStock } from "@/lib/stock-utils";
+import { getEffectivePrice } from "@/lib/pricing-utils";
 
 interface DesktopCartViewProps {
   items: any[];
   updating: string | null;
+  stockStatus: Record<string, CartItemStockStatus>;
+  hasStockIssues: boolean;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   removeFromCart: (itemId: string) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -17,42 +22,30 @@ interface DesktopCartViewProps {
   isGuest: boolean;
 }
 
+const FREE_SHIPPING_THRESHOLD = 999;
+
 export default function DesktopCartView({
   items,
   updating,
+  stockStatus,
+  hasStockIssues,
   updateQuantity,
   removeFromCart,
   clearCart,
   calculateTotal,
   isGuest,
 }: DesktopCartViewProps) {
-  const FREE_SHIPPING_THRESHOLD = 999;
-
-  const getProductPrice = (product: any) => {
-    if (product.discountedPrice) {
-      return {
-        original: parseFloat(product.price),
-        discounted: parseFloat(product.discountedPrice),
-        hasDiscount: true,
-      };
-    }
-    return {
-      original: parseFloat(product.price),
-      discounted: null,
-      hasDiscount: false,
-    };
-  };
-
   const subtotal = calculateTotal();
   const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 50;
   const total = subtotal + shipping;
 
   const totalSavings = items.reduce((sum: number, item: any) => {
-    const p = getProductPrice(item.product);
-    return p.hasDiscount && p.discounted !== null
-      ? sum + (p.original - p.discounted) * item.quantity
-      : sum;
+    const orig = parseFloat(item.product.price || "0");
+    const effective = getEffectivePrice(item.product);
+    return sum + (orig - effective) * item.quantity;
   }, 0);
+
+  const checkoutDisabled = hasStockIssues;
 
   return (
     <div className="hidden lg:block">
@@ -79,23 +72,32 @@ export default function DesktopCartView({
 
               <div className="space-y-6">
                 {items.map((item) => {
-                  const price = getProductPrice(item.product);
+                  const orig = parseFloat(item.product.price || "0");
+                  const effectivePrice = getEffectivePrice(item.product);
+                  const hasDiscount = effectivePrice < orig;
                   const firstImage = item.product.images?.[0];
                   const variantInfo = item.variantId
                     ? item.product.variants?.find(
                         (v: any) => v.id === item.variantId,
                       )
                     : null;
+                  const itemStock = stockStatus[item.id];
+                  const isOutOfStock = itemStock?.outOfStock ?? false;
+                  const isLimitedStock = itemStock?.limitedStock ?? false;
+                  const effectiveAvailableStock = itemStock?.availableStock
+                    ?? getAvailableStock(item.product, item.variantId);
 
                   return (
                     <div
                       key={item.id}
-                      className="bg-white border rounded-lg shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
+                      className={`bg-white border rounded-lg shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden ${
+                        isOutOfStock ? "opacity-70 border-red-200" : ""
+                      }`}
                     >
                       <div className="p-6">
                         <div className="flex gap-6">
                           {/* Product Image */}
-                          <div className="flex-shrink-0">
+                          <div className="flex-shrink-0 relative">
                             <div className="w-20 h-28 bg-gray-100 rounded-lg overflow-hidden group">
                               {firstImage ? (
                                 <img
@@ -111,6 +113,14 @@ export default function DesktopCartView({
                                 </div>
                               )}
                             </div>
+                            {/* Out of Stock overlay on image */}
+                            {isOutOfStock && (
+                              <div className="absolute inset-0 bg-white/60 rounded-lg flex items-center justify-center">
+                                <span className="text-xs font-semibold text-red-600 bg-white/90 px-1.5 py-0.5 rounded">
+                                  Out of Stock
+                                </span>
+                              </div>
+                            )}
                           </div>
 
                           {/* Product Content */}
@@ -127,8 +137,8 @@ export default function DesktopCartView({
                                   </Link>
                                 </h3>
 
-                                {/* Product Meta */}
-                                <div className="flex flex-wrap gap-3 text-sm text-gray-600">
+                                {/* Product Meta + stock badges */}
+                                <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
                                   {variantInfo && (
                                     <span className="flex items-center gap-1">
                                       Size:{" "}
@@ -136,6 +146,16 @@ export default function DesktopCartView({
                                         {variantInfo.size}
                                       </span>
                                     </span>
+                                  )}
+                                  {isOutOfStock && (
+                                    <Badge className="text-xs bg-red-100 text-red-700 border-red-300 hover:bg-red-100">
+                                      Out of Stock
+                                    </Badge>
+                                  )}
+                                  {isLimitedStock && !isOutOfStock && (
+                                    <Badge className="text-xs bg-amber-100 text-amber-700 border-amber-300 hover:bg-amber-100">
+                                      Only {effectiveAvailableStock} left
+                                    </Badge>
                                   )}
                                 </div>
                               </div>
@@ -155,18 +175,18 @@ export default function DesktopCartView({
                             <div className="flex items-center justify-between">
                               {/* Price Info */}
                               <div className="flex items-center gap-4">
-                                {price.hasDiscount ? (
+                                {hasDiscount ? (
                                   <div className="flex items-center gap-2">
                                     <span className="text-sm font-bold text-red-600">
-                                      {formatPrice(price.discounted || 0)}
+                                      {formatPrice(effectivePrice)}
                                     </span>
                                     <span className="text-xs text-gray-500 line-through">
-                                      {formatPrice(price.original)}
+                                      {formatPrice(orig)}
                                     </span>
                                   </div>
                                 ) : (
                                   <span className="text-sm font-bold text-gray-900">
-                                    {formatPrice(price.original)}
+                                    {formatPrice(effectivePrice)}
                                   </span>
                                 )}
                               </div>
@@ -184,7 +204,9 @@ export default function DesktopCartView({
                                       updateQuantity(item.id, item.quantity - 1)
                                     }
                                     disabled={
-                                      updating === item.id || item.quantity <= 1
+                                      updating === item.id ||
+                                      item.quantity <= 1 ||
+                                      isOutOfStock
                                     }
                                   >
                                     <Minus />
@@ -198,7 +220,11 @@ export default function DesktopCartView({
                                     onClick={() =>
                                       updateQuantity(item.id, item.quantity + 1)
                                     }
-                                    disabled={updating === item.id}
+                                    disabled={
+                                      updating === item.id ||
+                                      isOutOfStock ||
+                                      item.quantity >= effectiveAvailableStock
+                                    }
                                   >
                                     <Plus />
                                   </Button>
@@ -208,14 +234,9 @@ export default function DesktopCartView({
 
                             {/* Item Total */}
                             <div className="mt-4 pt-4 border-t flex justify-between items-center">
-                              <span className="text-sm text-gray-600">
-                                Item total
-                              </span>
+                              <span className="text-sm text-gray-600">Item total</span>
                               <span className="text-lg font-bold text-gray-900">
-                                {formatPrice(
-                                  (price.discounted || price.original) *
-                                    item.quantity,
-                                )}
+                                {formatPrice(effectivePrice * item.quantity)}
                               </span>
                             </div>
                           </div>
@@ -276,17 +297,35 @@ export default function DesktopCartView({
                 </div>
               </div>
 
-              <Button asChild className="w-full mb-4" size="lg">
-                {isGuest ? (
+              {/* Stock issue warning */}
+              {checkoutDisabled && (
+                <p className="text-xs text-red-600 mb-3 text-center">
+                  Some items are unavailable. Please review your cart before checking out.
+                </p>
+              )}
+
+              {isGuest ? (
+                <Button asChild className="w-full mb-4" size="lg">
                   <Link href="/login?redirect=/checkout">
                     Sign In to Checkout • {formatPrice(total)}
                   </Link>
-                ) : (
-                  <Link href="/checkout">
-                    Proceed to Checkout • {formatPrice(total)}
-                  </Link>
-                )}
-              </Button>
+                </Button>
+              ) : (
+                <Button
+                  asChild={!checkoutDisabled}
+                  disabled={checkoutDisabled}
+                  className="w-full mb-4"
+                  size="lg"
+                >
+                  {checkoutDisabled ? (
+                    <span>Proceed to Checkout • {formatPrice(total)}</span>
+                  ) : (
+                    <Link href="/checkout">
+                      Proceed to Checkout • {formatPrice(total)}
+                    </Link>
+                  )}
+                </Button>
+              )}
 
               <div className="text-center">
                 <Button variant="outline" asChild className="w-full">

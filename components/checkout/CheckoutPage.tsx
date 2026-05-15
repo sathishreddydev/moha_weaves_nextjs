@@ -8,7 +8,6 @@ import { Separator } from "@/components/ui/separator";
 import { formatPrice } from "@/lib/formatters";
 import { useAddressStore, useCartStore } from "@/lib/stores";
 import { CartItemWithProduct, UserAddress } from "@/shared/types";
-import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -21,26 +20,27 @@ import {
   Truck,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
-import { z } from "zod";
 import AddressList from "./AddressList";
 import AddressForm from "../user/AddressForm";
 import RazorpayPayment from "./RazorpayPayment";
 import CouponInput from "./CouponInput";
 import { useSocket } from "@/providers/socket-provider";
 
-const checkoutSchema = z.object({
-  addressId: z.string().min(1, "Please select an address"),
-  notes: z.string().optional(),
-});
-type CheckoutFormData = z.infer<typeof checkoutSchema>;
+interface AppliedCoupon {
+  id: string;
+  code: string;
+  discountAmount: number;
+  type: string;
+  value: string;
+}
 
 export default function CheckoutPage() {
   const { user, status } = useAuth();
   const router = useRouter();
-  const { items, calculateTotal, clearCart, fetchCart } = useCartStore();
+  const { items, calculateTotal, clearCart, fetchCart, hasStockIssues, validateCartStock } =
+    useCartStore();
   const { socket } = useSocket();
   const {
     addresses,
@@ -58,58 +58,65 @@ export default function CheckoutPage() {
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [showAddressModal, setShowAddressModal] = useState(false);
-  const [editingAddress, setEditingAddress] = useState<UserAddress | null>(
-    null,
-  );
+  const [editingAddress, setEditingAddress] = useState<UserAddress | null>(null);
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
-  const [appliedCoupon, setAppliedCoupon] = useState<{
-    id: string;
-    code: string;
-    discountAmount: number;
-    type: string;
-    value: string;
-  } | null>(null);
+  const [notes, setNotes] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
 
-  const form = useForm<CheckoutFormData>({
-    resolver: zodResolver(checkoutSchema),
-    defaultValues: { addressId: "", notes: "" },
-  });
-
+  // ── Pricing ──────────────────────────────────────────────────────────────
   const subtotal = calculateTotal();
   const isFreeShippingCoupon = appliedCoupon?.type === "free_shipping";
-  const shipping =
-    subtotal > 0 ? (subtotal >= 999 || isFreeShippingCoupon ? 0 : 50) : 0;
+  const shipping = subtotal > 0 ? (subtotal >= 999 || isFreeShippingCoupon ? 0 : 50) : 0;
   const couponDiscount = appliedCoupon?.discountAmount || 0;
-  const totalSavings = items.reduce((sum, item) => {
-    const orig = parseFloat(item.product.price || "0");
-    const disc = item.product.discountedPrice || orig;
-    return sum + (orig - disc) * item.quantity;
-  }, 0);
   const total = subtotal + shipping - couponDiscount;
 
+  const totalSavings = items.reduce((sum, item) => {
+    const orig = parseFloat(item.product.price || "0");
+    // discountedPrice is already a number; fall back to orig if absent
+    const disc = typeof item.product.discountedPrice === "number"
+      ? item.product.discountedPrice
+      : orig;
+    return sum + (orig - disc) * item.quantity;
+  }, 0);
+
+  // ── Auth redirect ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login?redirect=/checkout");
   }, [status, router]);
 
+  // ── Empty cart redirect ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (status === "authenticated" && !orderPlaced && items.length === 0) {
+      router.push("/cart");
+    }
+  }, [status, items.length, orderPlaced, router]);
+
+  // ── Fetch addresses ───────────────────────────────────────────────────────
   useEffect(() => {
     if (status === "authenticated") fetchAddresses();
   }, [status, fetchAddresses]);
 
+  // ── Auto-select default address ───────────────────────────────────────────
   useEffect(() => {
     const defaultAddress = getDefaultAddress();
     if (defaultAddress && !selectedAddressId) {
       setSelectedAddressId(defaultAddress.id);
-      form.setValue("addressId", defaultAddress.id);
     }
-  }, [addresses, selectedAddressId, getDefaultAddress, form]);
+  }, [addresses, selectedAddressId, getDefaultAddress]);
 
-  // Re-fetch cart when admin updates a product so order summary stays fresh
+  // ── Validate stock on mount and on items change ───────────────────────────
+  useEffect(() => {
+    validateCartStock();
+  }, [items, validateCartStock]);
+
+  // ── Socket: re-fetch cart when admin updates a product ────────────────────
   useEffect(() => {
     if (!socket) return;
     socket.on("product_event", fetchCart);
     return () => { socket.off("product_event", fetchCart); };
   }, [socket, fetchCart]);
 
+  // ── Handlers ──────────────────────────────────────────────────────────────
   const handleAddressSubmit = async (data: any) => {
     try {
       if (editingAddress) {
@@ -130,22 +137,19 @@ export default function CheckoutPage() {
     try {
       await deleteAddress(addressId);
       toast.success("Address deleted");
-      if (selectedAddressId === addressId) {
-        setSelectedAddressId("");
-        form.setValue("addressId", "");
-      }
+      if (selectedAddressId === addressId) setSelectedAddressId("");
     } catch {
       toast.error("Failed to delete address");
     }
   };
 
-  const handlePaymentSuccess = (newOrderId: string) => {
+  const handlePaymentSuccess = useCallback((newOrderId: string) => {
     clearCart();
     setOrderId(newOrderId);
     setOrderPlaced(true);
-  };
+  }, [clearCart]);
 
-  // ── Loading ──────────────────────────────────────────────────────────────
+  // ── Loading ───────────────────────────────────────────────────────────────
   if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -154,7 +158,7 @@ export default function CheckoutPage() {
     );
   }
 
-  // ── Order success ────────────────────────────────────────────────────────
+  // ── Order success ─────────────────────────────────────────────────────────
   if (orderPlaced && orderId) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
@@ -164,16 +168,11 @@ export default function CheckoutPage() {
               <CheckCircle2 className="h-8 w-8 text-green-600" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground mb-1">
-                Order Placed!
-              </h1>
+              <h1 className="text-xl font-bold text-foreground mb-1">Order Placed!</h1>
               <p className="text-sm text-muted-foreground">
                 Thank you. Your order ID is:
               </p>
-              <Badge
-                variant="secondary"
-                className="mt-2 text-sm px-3 py-1 font-mono"
-              >
+              <Badge variant="secondary" className="mt-2 text-sm px-3 py-1 font-mono">
                 {orderId}
               </Badge>
             </div>
@@ -181,9 +180,7 @@ export default function CheckoutPage() {
               You'll receive a confirmation shortly.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-              <Button onClick={() => router.push("/my/orders")}>
-                View Orders
-              </Button>
+              <Button onClick={() => router.push("/my/orders")}>View Orders</Button>
               <Button variant="outline" onClick={() => router.push("/")}>
                 Continue Shopping
               </Button>
@@ -194,14 +191,15 @@ export default function CheckoutPage() {
     );
   }
 
-  // ── Price summary helper (shared between desktop + mobile) ───────────────
-  const PriceSummary = () => (
+  // ── Derived pay button state ──────────────────────────────────────────────
+  const payDisabled = !selectedAddressId || items.length === 0 || hasStockIssues;
+
+  // ── Price summary (plain JSX, not a nested component) ────────────────────
+  const priceSummary = (
     <div className="space-y-2 text-sm">
       <div className="flex justify-between text-muted-foreground">
         <span>Subtotal</span>
-        <span className="text-foreground font-medium">
-          {formatPrice(subtotal)}
-        </span>
+        <span className="text-foreground font-medium">{formatPrice(subtotal)}</span>
       </div>
       {totalSavings > 0 && (
         <div className="flex justify-between text-green-600">
@@ -214,13 +212,7 @@ export default function CheckoutPage() {
           <Truck className="h-3.5 w-3.5" />
           Shipping
         </span>
-        <span
-          className={
-            shipping === 0
-              ? "text-green-600 font-medium"
-              : "text-foreground font-medium"
-          }
-        >
+        <span className={shipping === 0 ? "text-green-600 font-medium" : "text-foreground font-medium"}>
           {shipping === 0 ? "FREE" : formatPrice(shipping)}
         </span>
       </div>
@@ -246,10 +238,10 @@ export default function CheckoutPage() {
     </div>
   );
 
-  // ── Main checkout ────────────────────────────────────────────────────────
+  // ── Main checkout ─────────────────────────────────────────────────────────
   return (
     <div className="max-w-6xl mx-auto">
-      {/* Back + title */}
+      {/* Back */}
       <div className="mb-6">
         <button
           onClick={() => router.push("/cart")}
@@ -258,13 +250,19 @@ export default function CheckoutPage() {
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
           Back to Cart
         </button>
-        {/* <h1 className="text-2xl font-bold text-foreground">Checkout</h1> */}
       </div>
+
+      {/* Stock issue banner */}
+      {hasStockIssues && (
+        <div className="mb-6 px-4 py-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
+          Some items in your cart are out of stock or have insufficient quantity.
+          Please go back to your cart and remove or update them before proceeding.
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
         {/* ── LEFT: Delivery address ── */}
         <div className="lg:col-span-3 space-y-6">
-          {/* Section header — no Card */}
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
@@ -301,10 +299,7 @@ export default function CheckoutPage() {
               <AddressList
                 addresses={addresses}
                 selectedAddressId={selectedAddressId}
-                onSelectAddress={(id) => {
-                  setSelectedAddressId(id);
-                  form.setValue("addressId", id);
-                }}
+                onSelectAddress={setSelectedAddressId}
                 onEditAddress={(addr) => {
                   setEditingAddress(addr);
                   setShowAddressModal(true);
@@ -322,14 +317,14 @@ export default function CheckoutPage() {
               />
             )}
 
-            {form.formState.errors.addressId && (
+            {!selectedAddressId && !addressesLoading && addresses.length > 0 && (
               <p className="text-xs text-destructive mt-2">
-                {form.formState.errors.addressId.message}
+                Please select a delivery address
               </p>
             )}
           </div>
 
-          {/* Mobile: order items + coupon (shown above sticky bar) */}
+          {/* Mobile: order items + coupon + notes */}
           <div className="lg:hidden space-y-4">
             <Separator />
 
@@ -346,17 +341,14 @@ export default function CheckoutPage() {
                     (v: any) => v.id === item.variantId,
                   );
                   const linePrice =
-                    (item.product.discountedPrice ||
-                      parseFloat(item.product.price || "0")) * item.quantity;
+                    (typeof item.product.discountedPrice === "number"
+                      ? item.product.discountedPrice
+                      : parseFloat(item.product.price || "0")) * item.quantity;
                   return (
                     <div key={item.id} className="flex gap-3">
                       <div className="w-14 h-14 bg-muted rounded-lg overflow-hidden flex-shrink-0">
                         {img ? (
-                          <img
-                            src={img}
-                            alt={item.product.name}
-                            className="w-full h-full object-cover"
-                          />
+                          <img src={img} alt={item.product.name} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
                             <ImageIcon className="h-5 w-5 text-muted-foreground" />
@@ -368,8 +360,7 @@ export default function CheckoutPage() {
                           {item.product.name}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {variant ? `${variant.size} · ` : ""}Qty{" "}
-                          {item.quantity}
+                          {variant ? `${variant.size} · ` : ""}Qty {item.quantity}
                         </p>
                       </div>
                       <span className="text-sm font-semibold text-foreground tabular-nums">
@@ -389,8 +380,22 @@ export default function CheckoutPage() {
               appliedCoupon={appliedCoupon}
             />
 
+            {/* Notes */}
+            <div>
+              <label className="text-sm font-medium text-foreground block mb-1.5">
+                Order Notes <span className="text-muted-foreground font-normal">(optional)</span>
+              </label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Any special instructions for your order…"
+                rows={2}
+                className="w-full text-sm rounded-lg border border-input bg-background px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+
             {/* Price summary */}
-            <PriceSummary />
+            {priceSummary}
           </div>
 
           {/* Mobile spacer for fixed bar */}
@@ -413,17 +418,14 @@ export default function CheckoutPage() {
                     (v) => v.id === item.variantId,
                   );
                   const linePrice =
-                    (item.product.discountedPrice ||
-                      parseFloat(item.product.price || "0")) * item.quantity;
+                    (typeof item.product.discountedPrice === "number"
+                      ? item.product.discountedPrice
+                      : parseFloat(item.product.price || "0")) * item.quantity;
                   return (
                     <div key={item.id} className="flex gap-3">
                       <div className="w-14 h-14 bg-muted rounded-lg overflow-hidden flex-shrink-0">
                         {img ? (
-                          <img
-                            src={img}
-                            alt={item.product.name}
-                            className="w-full h-full object-cover"
-                          />
+                          <img src={img} alt={item.product.name} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
                             <ImageIcon className="h-5 w-5 text-muted-foreground" />
@@ -435,8 +437,7 @@ export default function CheckoutPage() {
                           {item.product.name}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {variant ? `${variant.size} · ` : ""}Qty{" "}
-                          {item.quantity}
+                          {variant ? `${variant.size} · ` : ""}Qty {item.quantity}
                         </p>
                       </div>
                       <span className="text-sm font-semibold text-foreground tabular-nums">
@@ -460,22 +461,42 @@ export default function CheckoutPage() {
 
             <Separator />
 
+            {/* Notes */}
+            <div>
+              <label className="text-sm font-medium text-foreground block mb-1.5">
+                Order Notes <span className="text-muted-foreground font-normal">(optional)</span>
+              </label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Any special instructions for your order…"
+                rows={2}
+                className="w-full text-sm rounded-lg border border-input bg-background px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+
+            <Separator />
+
             {/* Price breakdown */}
-            <PriceSummary />
+            {priceSummary}
 
             {/* Pay button */}
             <RazorpayPayment
               amount={total}
               user={user}
-              selectedAddress={addresses.find(
-                (a) => a.id === selectedAddressId,
-              )}
-              notes={form.getValues("notes")}
+              selectedAddress={addresses.find((a) => a.id === selectedAddressId)}
+              notes={notes}
               couponId={appliedCoupon?.id}
               onSuccess={handlePaymentSuccess}
               onError={(e) => toast.error(e)}
-              disabled={!selectedAddressId || items.length === 0}
+              disabled={payDisabled}
             />
+
+            {hasStockIssues && (
+              <p className="text-xs text-red-600 text-center -mt-2">
+                Resolve stock issues in your cart to proceed
+              </p>
+            )}
 
             <p className="text-xs text-muted-foreground text-center">
               By placing this order you agree to our{" "}
@@ -489,15 +510,20 @@ export default function CheckoutPage() {
       {/* ── Mobile fixed pay bar ── */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-t shadow-xl">
         <div className="px-4 pt-3 pb-5 space-y-2 max-w-lg mx-auto">
+          {hasStockIssues && (
+            <p className="text-xs text-red-600 text-center">
+              Resolve stock issues in your cart to proceed
+            </p>
+          )}
           <RazorpayPayment
             amount={total}
             user={user}
             selectedAddress={addresses.find((a) => a.id === selectedAddressId)}
-            notes={form.getValues("notes")}
+            notes={notes}
             couponId={appliedCoupon?.id}
             onSuccess={handlePaymentSuccess}
             onError={(e) => toast.error(e)}
-            disabled={!selectedAddressId || items.length === 0}
+            disabled={payDisabled}
           />
         </div>
       </div>

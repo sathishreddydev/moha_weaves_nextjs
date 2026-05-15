@@ -16,18 +16,22 @@ export default function CartPage() {
     loading,
     error,
     updating,
+    stockStatus,
+    hasStockIssues,
     updateQuantity,
     removeFromCart,
     clearCart,
     calculateTotal,
     syncGuestCart,
     fetchCart,
+    validateCartStock,
   } = useCartStore();
 
   const { socket } = useSocket();
   const isGuest = status === "unauthenticated";
 
-  // Re-fetch cart when admin updates a product (price, name, etc.)
+  // Re-fetch cart when admin updates a product (price, stock, etc.)
+  // validateCartStock runs automatically via the items useEffect below
   useEffect(() => {
     if (!socket) return;
     socket.on("product_event", fetchCart);
@@ -40,6 +44,11 @@ export default function CartPage() {
       syncGuestCart();
     }
   }, [isGuest, items.length, syncGuestCart]);
+
+  // Validate stock whenever items change (add, remove, quantity update, fetch)
+  useEffect(() => {
+    validateCartStock();
+  }, [items, validateCartStock]);
 
   if (loading) {
     return (
@@ -89,6 +98,8 @@ export default function CartPage() {
             <DesktopCartView
               items={items}
               updating={updating}
+              stockStatus={stockStatus}
+              hasStockIssues={hasStockIssues}
               updateQuantity={updateQuantity}
               removeFromCart={removeFromCart}
               clearCart={clearCart}
@@ -98,6 +109,8 @@ export default function CartPage() {
             <MobileCartView
               items={items}
               updating={updating}
+              stockStatus={stockStatus}
+              hasStockIssues={hasStockIssues}
               updateQuantity={updateQuantity}
               removeFromCart={removeFromCart}
               clearCart={clearCart}

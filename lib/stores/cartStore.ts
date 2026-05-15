@@ -1,8 +1,16 @@
 import { syncGuestCart } from '@/lib/guest-cart-sync'
 import { guestStorage } from '@/lib/guest-storage'
 import { getEffectivePrice } from '@/lib/pricing-utils'
+import { getAvailableStock } from '@/lib/stock-utils'
 import { CartItemWithProduct } from '@/shared/types'
 import { create } from 'zustand'
+
+export interface CartItemStockStatus {
+  itemId: string
+  outOfStock: boolean
+  limitedStock: boolean
+  availableStock: number
+}
 
 interface CartState {
   items: CartItemWithProduct[]
@@ -10,6 +18,10 @@ interface CartState {
   error: string | null
   updating: string | null
   count: number
+  /** Per-item stock validation results, keyed by itemId */
+  stockStatus: Record<string, CartItemStockStatus>
+  /** True when any item is out of stock or has limited stock below requested qty */
+  hasStockIssues: boolean
 }
 
 interface CartActions {
@@ -22,6 +34,8 @@ interface CartActions {
   setUpdating: (itemId: string | null) => void
   setError: (error: string | null) => void
   calculateTotal: () => number
+  /** Validate all cart items against current stock. Runs synchronously against store data. */
+  validateCartStock: () => void
 }
 
 type CartStore = CartState & CartActions
@@ -64,6 +78,8 @@ export const useCartStore = create<CartStore>((set, get) => ({
   error: null,
   updating: null,
   count: 0,
+  stockStatus: {},
+  hasStockIssues: false,
 
   fetchCart: async () => {
     try {
@@ -160,6 +176,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
           count: data.data.count || 0,
           updating: null 
         })
+        get().validateCartStock()
       } else if (data.isGuest) {
         // Handle guest user - fetch product details first
         try {
@@ -222,6 +239,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
           count: guestStorage.cart.getCount(),
           updating: null 
         })
+        get().validateCartStock()
       } else {
         handleAuthError(data);
         set({ 
@@ -262,6 +280,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
           count: data.data.count || 0,
           updating: null 
         })
+        get().validateCartStock()
       } else if (data.isGuest) {
         // Handle guest user - use localStorage
         guestStorage.cart.update(itemId, quantity)
@@ -272,6 +291,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
           count: guestStorage.cart.getCount(),
           updating: null 
         })
+        get().validateCartStock()
       } else {
         handleAuthError(data);
         set({ 
@@ -301,9 +321,16 @@ export const useCartStore = create<CartStore>((set, get) => ({
       const data = await response.json()
       
       if (data.success) {
+        // Remove stale stock status entry for this item
+        const { stockStatus } = get()
+        const newStockStatus = { ...stockStatus }
+        delete newStockStatus[itemId]
+        const hasStockIssues = Object.values(newStockStatus).some((s) => s.outOfStock || s.limitedStock)
         set({ 
           items: data.data.cart || [],
           count: data.data.count || 0,
+          stockStatus: newStockStatus,
+          hasStockIssues,
           updating: null 
         })
       } else if (data.isGuest) {
@@ -311,9 +338,15 @@ export const useCartStore = create<CartStore>((set, get) => ({
         guestStorage.cart.remove(itemId)
         
         const guestCart = guestStorage.cart.get()
+        const { stockStatus } = get()
+        const newStockStatus = { ...stockStatus }
+        delete newStockStatus[itemId]
+        const hasStockIssues = Object.values(newStockStatus).some((s) => s.outOfStock || s.limitedStock)
         set({ 
           items: guestCart as any,
           count: guestStorage.cart.getCount(),
+          stockStatus: newStockStatus,
+          hasStockIssues,
           updating: null 
         })
       } else {
@@ -348,6 +381,8 @@ export const useCartStore = create<CartStore>((set, get) => ({
         set({ 
           items: [],
           count: 0,
+          stockStatus: {},
+          hasStockIssues: false,
           updating: null 
         })
       } else if (data.isGuest) {
@@ -357,6 +392,8 @@ export const useCartStore = create<CartStore>((set, get) => ({
         set({ 
           items: [],
           count: 0,
+          stockStatus: {},
+          hasStockIssues: false,
           updating: null 
         })
       } else {
@@ -372,6 +409,26 @@ export const useCartStore = create<CartStore>((set, get) => ({
         updating: null 
       })
     }
+  },
+
+  validateCartStock: () => {
+    const { items } = get()
+    if (items.length === 0) {
+      set({ stockStatus: {}, hasStockIssues: false })
+      return
+    }
+
+    // Cart items already carry fresh product/variant stock data from the last
+    // fetchCart / addToCart / updateQuantity call — no extra API round-trip needed.
+    const newStatus: Record<string, CartItemStockStatus> = {}
+    for (const item of items) {
+      const availableStock = getAvailableStock(item.product, item.variantId)
+      const outOfStock = availableStock === 0
+      const limitedStock = !outOfStock && availableStock < item.quantity
+      newStatus[item.id] = { itemId: item.id, outOfStock, limitedStock, availableStock }
+    }
+    const hasStockIssues = Object.values(newStatus).some((s) => s.outOfStock || s.limitedStock)
+    set({ stockStatus: newStatus, hasStockIssues })
   },
 
   setUpdating: (itemId: string | null) => {
