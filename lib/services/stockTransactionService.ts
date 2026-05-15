@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { products, productVariants, stockMovements } from "@/shared";
 import { eq, sql, and } from "drizzle-orm";
 import { CartItemWithProduct } from "@/shared/types";
+import { publishRealtimeEvent } from "@/realtime/publisher";
 
 export class StockTransactionService {
 
@@ -101,6 +102,13 @@ export class StockTransactionService {
               updatedAt: new Date(),
             })
             .where(eq(products.id, productId));
+
+          // Publish real-time stock update so active cart sessions can re-validate
+          await publishRealtimeEvent("stock_updated", {
+            productId,
+            variantId: variantId || null,
+            newStock: updated.onlineStock,
+          });
         }
 
         return { success: true };

@@ -5,6 +5,7 @@ import DesktopCartView from "@/components/cart/DesktopCartView";
 import MobileCartView from "@/components/cart/MobileCartView";
 import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/lib/stores";
+import { useCartStockSync } from "@/hooks/useCartStockSync";
 import Link from "next/link";
 import { useEffect } from "react";
 
@@ -24,6 +25,10 @@ export default function CartPage() {
 
   // Show guest user indicator
   const isGuest = status === "unauthenticated";
+
+  // Real-time inventory sync — listens for stock_updated socket events
+  // and automatically clamps/removes cart items when stock runs out
+  useCartStockSync();
 
   // Sync guest cart on page load for guest users
   useEffect(() => {
