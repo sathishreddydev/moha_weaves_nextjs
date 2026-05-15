@@ -123,12 +123,13 @@ export class AuthService {
     return jwt.sign(
       {
         id: user.id,
+        userId: user.id,   // server socket.ts reads userId
         email: user.email,
         role: user.role,
         tokenVersion: user.tokenVersion
       },
       secret,
-      { expiresIn: "15m" }
+      { expiresIn: "7d" }  // match React app — long enough for socket sessions
     );
   }
 

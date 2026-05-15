@@ -28,6 +28,7 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 import Link from "next/link";
 import { getAvailableStock, getStockStatus } from "@/lib/stock-utils";
 import { useSocketStore } from "@/lib/stores/socketStore";
+import { useProductPurchasedListener } from "@/hooks/useProductPurchasedListener";
 
 interface ProductDetailClientProps {
   product: ProductWithDetails & {
@@ -76,37 +77,19 @@ export default function ProductDetailClient({
   const { socket } = useSocketStore();
 
   // Re-run server component when admin updates/adds/deletes a product
-  // or when another user purchases this product (stock changes)
   useEffect(() => {
     if (!socket) return;
     socket.emit("join_product_room", product.id);
     const handleProductEvent = () => router.refresh();
-    const handleProductPurchased = ({
-      productId,
-      variantId,
-    }: {
-      productId: string;
-      variantId: string | null;
-    }) => {
-      if (productId !== product.id) return;
-
-      // If the event carries a variantId, only refresh when it matches the
-      // currently selected variant — a purchase of a different size doesn't
-      // affect the stock count the user is looking at.
-      if (variantId && selectedVariant?.id && variantId !== selectedVariant.id) {
-        return;
-      }
-
-      router.refresh();
-    };
     socket.on("product_event", handleProductEvent);
-    socket.on("product_purchased", handleProductPurchased);
     return () => {
       socket.emit("leave_product_room", product.id);
       socket.off("product_event", handleProductEvent);
-      socket.off("product_purchased", handleProductPurchased);
     };
-  }, [socket, router, product.id, selectedVariant?.id]);
+  }, [socket, router, product.id]);
+
+  // Re-run server component when another user purchases this product (stock changes)
+  useProductPurchasedListener(product.id, selectedVariant?.id, router.refresh);
 
   // Check if product is in wishlist
   const isWishlisted = isInWishlist(product.id);

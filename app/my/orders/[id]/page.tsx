@@ -24,6 +24,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CouponBadge } from "@/components/orders/CouponBadge";
+import { useOrderItemStatusListenerDetail } from "@/hooks/useProductPurchasedListener";
 
 export default function OrderDetailsPage() {
   const params = useParams();
@@ -53,12 +54,6 @@ export default function OrderDetailsPage() {
     getOrderId();
   }, [params]);
 
-  useEffect(() => {
-    if (orderId) {
-      fetchOrderDetails();
-    }
-  }, [orderId]);
-
   const fetchOrderDetails = async () => {
     try {
       setLoading(true);
@@ -80,6 +75,15 @@ export default function OrderDetailsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (orderId) {
+      fetchOrderDetails();
+    }
+  }, [orderId]);
+
+  // Directly patch item status in state — no refetch needed
+  useOrderItemStatusListenerDetail(orderId, setOrder);
 
   const downloadInvoice = async () => {
     try {

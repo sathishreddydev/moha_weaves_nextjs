@@ -27,6 +27,7 @@ import { useEffect, useState } from "react";
 import ShippingAddress from "./shippingAddress";
 import OrderSkeleton from "./OrderSkeleton";
 import { useRouter } from "next/navigation";
+import { useOrderItemStatusListenerList } from "@/hooks/useProductPurchasedListener";
 
 export default function OrderHistory() {
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
@@ -38,6 +39,7 @@ export default function OrderHistory() {
 
   const pageSizeOptions = [5, 10, 20, 50];
   const router = useRouter();
+
   const fetchOrders = async (
     page: number = currentPage,
     pageSize: number = ordersPerPage,
@@ -72,6 +74,9 @@ export default function OrderHistory() {
   useEffect(() => {
     fetchOrders();
   }, []);
+
+  // Re-validate stock when another user purchases a cart item ─────────────
+  useOrderItemStatusListenerList(setOrders);
 
   const currentOrders = orders;
 

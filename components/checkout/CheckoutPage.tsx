@@ -26,6 +26,7 @@ import AddressList from "./AddressList";
 import AddressForm from "../user/AddressForm";
 import RazorpayPayment from "./RazorpayPayment";
 import CouponInput from "./CouponInput";
+import { useCartProductPurchasedListener } from "@/hooks/useProductPurchasedListener";
 
 interface AppliedCoupon {
   id: string;
@@ -106,6 +107,9 @@ export default function CheckoutPage() {
   useEffect(() => {
     validateCartStock();
   }, [items, validateCartStock]);
+
+  // ── Re-validate stock when another user purchases a cart item ─────────────
+  useCartProductPurchasedListener(items, fetchCart);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleAddressSubmit = async (data: any) => {
