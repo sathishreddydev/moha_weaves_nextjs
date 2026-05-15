@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { productService, RoleBasedProductService } from '../productService';
+import { productService } from '../productService';
 import { isNewProduct } from '@/lib/stock-utils';
 
 export async function GET(req: NextRequest) {

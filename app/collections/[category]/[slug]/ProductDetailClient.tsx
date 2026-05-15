@@ -27,6 +27,7 @@ import SizeGuide from "@/components/ProductDetails/SizeGuide";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import Link from "next/link";
 import { getAvailableStock, getStockStatus } from "@/lib/stock-utils";
+import { useSocket } from "@/providers/socket-provider";
 
 interface ProductDetailClientProps {
   product: ProductWithDetails & {
@@ -71,6 +72,16 @@ export default function ProductDetailClient({
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
+
+  const { socket } = useSocket();
+
+  // Re-run server component when admin updates/adds/deletes a product
+  useEffect(() => {
+    if (!socket) return;
+    const handleProductEvent = () => router.refresh();
+    socket.on("product_event", handleProductEvent);
+    return () => { socket.off("product_event", handleProductEvent); };
+  }, [socket, router]);
 
   // Check if product is in wishlist
   const isWishlisted = isInWishlist(product.id);

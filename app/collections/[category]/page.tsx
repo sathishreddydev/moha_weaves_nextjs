@@ -4,7 +4,6 @@ import {
 } from "@/app/api/products/productService";
 import StructuredData from "@/components/seo/StructuredData";
 import { Metadata } from "next";
-import { unstable_cache } from "next/cache";
 import CategoryClient from "./CategoryClient";
 
 interface CategoryPageProps {
@@ -23,17 +22,6 @@ interface CategoryPageProps {
     page?: string;
   }>;
 }
-
-const getCachedCategoryProducts = unstable_cache(
-  async (filters: ProductFilters) => {
-    return productService.getProductsByRole(filters, "user");
-  },
-  ["category-products"],
-  {
-    revalidate: 600,
-    tags: ["products"],
-  },
-);
 
 async function getProducts(filters: ProductFilters) {
   return productService.getProductsByRole(filters, "user");
@@ -118,18 +106,7 @@ export default async function CategoryPage({
     distributionChannel: "online",
   };
 
-  const isFiltered =
-    resolvedSearchParams.page ||
-    resolvedSearchParams.search ||
-    resolvedSearchParams.colors ||
-    resolvedSearchParams.fabrics ||
-    resolvedSearchParams.subcategories ||
-    resolvedSearchParams.onSale ||
-    resolvedSearchParams.featured;
-
-  const products = await (isFiltered
-    ? getProducts(filters)
-    : getCachedCategoryProducts(filters));
+  const products = await getProducts(filters);
 
   const queryString = new URLSearchParams(resolvedSearchParams).toString();
 

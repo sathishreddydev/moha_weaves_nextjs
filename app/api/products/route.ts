@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { RoleBasedProductService, ProductFilters, productService } from './productService';
-import { unstable_cache } from 'next/cache';
+import { ProductFilters, productService } from './productService';
 
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     
-    // Parse query parameters
     const filters: ProductFilters = {
       search: searchParams.get('search') || undefined,
       sku: searchParams.get('sku') || undefined,
@@ -31,7 +29,6 @@ export async function GET(request: NextRequest) {
       tags: searchParams.get('tags')?.split(',').filter(Boolean) || undefined,
     };
 
-    // Get user role (you can modify this based on your auth system)
     const role = searchParams.get('role') === 'admin' ? 'admin' : 'user';
 
     const products = await productService.getProductsByRole(filters, role);
@@ -58,7 +55,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    // Parse filters from request body
+
     const filters: ProductFilters = {
       search: body.search,
       sku: body.sku,
@@ -82,19 +79,6 @@ export async function POST(request: NextRequest) {
       tags: body.tags,
     };
 
-    // Check if this is a cached request (from initial page load)
-    const useCache = body.useCache === true;
-    
-    if (useCache) {
-      // Use cached version for static data
-      const cachedProducts = await getCachedProductsData(filters);
-      return NextResponse.json({
-        success: true,
-        data: cachedProducts,
-        count: cachedProducts.length,
-      });
-    }
-
     const products = await productService.getProductsByRole(filters, 'user');
 
     return NextResponse.json({
@@ -115,15 +99,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-// Cached version for static product data
-const getCachedProductsData = unstable_cache(
-  async (filters: ProductFilters) => {
-    return await productService.getProductsByRole(filters, 'user');
-  },
-  ['products-data'],
-  {
-    revalidate: 300, // 5 minutes
-    tags: ['products'],
-  }
-);

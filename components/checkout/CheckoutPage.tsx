@@ -29,6 +29,7 @@ import AddressList from "./AddressList";
 import AddressForm from "../user/AddressForm";
 import RazorpayPayment from "./RazorpayPayment";
 import CouponInput from "./CouponInput";
+import { useSocket } from "@/providers/socket-provider";
 
 const checkoutSchema = z.object({
   addressId: z.string().min(1, "Please select an address"),
@@ -39,7 +40,8 @@ type CheckoutFormData = z.infer<typeof checkoutSchema>;
 export default function CheckoutPage() {
   const { user, status } = useAuth();
   const router = useRouter();
-  const { items, calculateTotal, clearCart } = useCartStore();
+  const { items, calculateTotal, clearCart, fetchCart } = useCartStore();
+  const { socket } = useSocket();
   const {
     addresses,
     loading: addressesLoading,
@@ -100,6 +102,13 @@ export default function CheckoutPage() {
       form.setValue("addressId", defaultAddress.id);
     }
   }, [addresses, selectedAddressId, getDefaultAddress, form]);
+
+  // Re-fetch cart when admin updates a product so order summary stays fresh
+  useEffect(() => {
+    if (!socket) return;
+    socket.on("product_event", fetchCart);
+    return () => { socket.off("product_event", fetchCart); };
+  }, [socket, fetchCart]);
 
   const handleAddressSubmit = async (data: any) => {
     try {

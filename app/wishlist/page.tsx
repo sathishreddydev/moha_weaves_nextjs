@@ -6,6 +6,7 @@ import { getProductUrl } from "@/lib/utils/productUrl";
 import { X } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
+import { useSocket } from "@/providers/socket-provider";
 
 export default function WishlistPage() {
   const {
@@ -19,9 +20,18 @@ export default function WishlistPage() {
     addToCartFromWishlist,
   } = useWishlistStore();
 
+  const { socket } = useSocket();
+
   useEffect(() => {
     fetchWishlist();
   }, [fetchWishlist]);
+
+  // Re-fetch when admin updates/deletes a product so prices and names stay fresh
+  useEffect(() => {
+    if (!socket) return;
+    socket.on("product_event", fetchWishlist);
+    return () => { socket.off("product_event", fetchWishlist); };
+  }, [socket, fetchWishlist]);
 
   const getProductPrice = (product: any) => {
     if (product.discountedPrice) {

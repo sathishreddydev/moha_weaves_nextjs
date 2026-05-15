@@ -6,6 +6,7 @@ import MobileCartView from "@/components/cart/MobileCartView";
 import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/lib/stores";
 import { useCartStockSync } from "@/hooks/useCartStockSync";
+import { useSocket } from "@/providers/socket-provider";
 import Link from "next/link";
 import { useEffect } from "react";
 
@@ -21,16 +22,23 @@ export default function CartPage() {
     clearCart,
     calculateTotal,
     syncGuestCart,
+    fetchCart,
   } = useCartStore();
 
-  // Show guest user indicator
+  const { socket } = useSocket();
   const isGuest = status === "unauthenticated";
 
-  // Real-time inventory sync — listens for stock_updated socket events
-  // and automatically clamps/removes cart items when stock runs out
+  // Real-time stock sync — clamps/removes items when stock runs out
   useCartStockSync();
 
-  // Sync guest cart on page load for guest users
+  // Re-fetch cart when admin updates a product (price, name, etc.)
+  useEffect(() => {
+    if (!socket) return;
+    socket.on("product_event", fetchCart);
+    return () => { socket.off("product_event", fetchCart); };
+  }, [socket, fetchCart]);
+
+  // Sync guest cart on page load
   useEffect(() => {
     if (isGuest && items.length > 0) {
       syncGuestCart();

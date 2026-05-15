@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import ProductCard from "@/components/products/ProductCard";
 import { ProductWithDetails } from "@/shared";
 import { ProductService } from "@/lib/services/productService";
 import { ArrowRight, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useWishlistStore } from "@/lib/stores";
+import { useSocket } from "@/providers/socket-provider";
 
 interface ProductSectionProps {
   title: string;
@@ -25,20 +26,29 @@ export default function ProductSection({
   const [loading, setLoading] = useState(true);
   const { addToWishlist, removeFromWishlist, isInWishlist, updating } =
     useWishlistStore();
+  const { socket } = useSocket();
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const fetchedProducts = await ProductService.getProducts(endpoint);
-        setProducts(fetchedProducts);
-      } catch (error) {
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProducts();
+  const fetchProducts = useCallback(async () => {
+    try {
+      const fetchedProducts = await ProductService.getProducts(endpoint);
+      setProducts(fetchedProducts);
+    } catch (error) {
+    } finally {
+      setLoading(false);
+    }
   }, [endpoint]);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  // Re-fetch when admin adds/updates/deletes a product
+  useEffect(() => {
+    if (!socket) return;
+    socket.on("product_event", fetchProducts);
+    return () => { socket.off("product_event", fetchProducts); };
+  }, [socket, fetchProducts]);
 
   const handleWishlistToggle = async (product: ProductWithDetails) => {
     try {

@@ -1,8 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { categories, Category, Color, colors, Fabric, fabrics, subcategories, Subcategory } from '@/shared';
 import { eq } from 'drizzle-orm';
-import { categories, subcategories, colors, fabrics, Category, Color, Fabric, Subcategory } from '@/shared';
-import { unstable_cache } from 'next/cache';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(req: NextRequest) {
   try {

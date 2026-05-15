@@ -31,6 +31,7 @@ import { useCallback, useState, useEffect } from "react";
 import { useWishlistStore } from "@/lib/stores/wishlistStore";
 import { useFilterStore } from "@/lib/stores/fillterStore";
 import { getProductUrl } from "@/lib/utils/productUrl";
+import { useSocket } from "@/providers/socket-provider";
 
 interface CategoryClientProps {
   categoryName: string;
@@ -46,6 +47,7 @@ export default function CategoryClient({
   categoryName,
 }: CategoryClientProps) {
   const router = useRouter();
+  const { socket } = useSocket();
 
   // Filter store
   const { categories, colors, fabrics, loading: filtersLoading, error: filtersError, fetchFilters } = useFilterStore();
@@ -62,6 +64,14 @@ export default function CategoryClient({
   useEffect(() => {
     fetchWishlist();
   }, []); // Empty dependency array since fetchWishlist is stable
+
+  // Refresh product list when admin adds/updates/deletes a product
+  useEffect(() => {
+    if (!socket) return;
+    const handleProductEvent = () => router.refresh();
+    socket.on("product_event", handleProductEvent);
+    return () => { socket.off("product_event", handleProductEvent); };
+  }, [socket, router]);
 
   // State management
   const [showFilters, setShowFilters] = useState(false);
