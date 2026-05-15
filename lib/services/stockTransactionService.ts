@@ -104,7 +104,7 @@ export class StockTransactionService {
             .where(eq(products.id, productId));
 
           // Publish real-time stock update so active cart sessions can re-validate
-          await publishRealtimeEvent("cart_stock_sync", {
+          await publishRealtimeEvent("product_purchased", {
             productId,
             variantId: variantId || null,
           });
@@ -217,6 +217,12 @@ export class StockTransactionService {
           orderRefId,
           storeId: null,
           notes: reason,
+        });
+
+        // Notify active product/cart sessions that stock is available again
+        await publishRealtimeEvent("product_purchased", {
+          productId,
+          variantId: variantId || null,
         });
       }
     });

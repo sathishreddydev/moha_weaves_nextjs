@@ -30,6 +30,30 @@ export default function CartPage() {
   const { socket } = useSocket();
   const isGuest = status === "unauthenticated";
 
+  // Join product rooms for all cart items so we receive product_purchased events
+  useEffect(() => {
+    if (!socket || items.length === 0) return;
+    items.forEach((item) => socket.emit("join_product_room", item.productId));
+    return () => {
+      items.forEach((item) => socket.emit("leave_product_room", item.productId));
+    };
+  }, [socket, items]);
+
+  // Re-validate stock only if the purchased product/variant is in our cart
+  useEffect(() => {
+    if (!socket) return;
+    const handleProductPurchased = ({ productId, variantId }: { productId: string; variantId: string | null }) => {
+      const affected = items.some(
+        (item) =>
+          item.productId === productId &&
+          (variantId === null || item.variantId === variantId)
+      );
+      if (affected) fetchCart();
+    };
+    socket.on("product_purchased", handleProductPurchased);
+    return () => { socket.off("product_purchased", handleProductPurchased); };
+  }, [socket, items, fetchCart]);
+
   // Re-fetch cart when admin updates a product (price, stock, etc.)
   // validateCartStock runs automatically via the items useEffect below
   useEffect(() => {

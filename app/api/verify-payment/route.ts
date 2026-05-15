@@ -12,141 +12,148 @@ import { couponsService } from "../coupon/couponsService";
 import { publishRealtimeEvent } from "@/realtime/publisher";
 
 export async function POST(req: NextRequest) {
-    try {
-        const session = await getServerSession(authOptions);
-        const user = session.user
-        const {
-            razorpayOrderId,
-            razorpayPaymentId,
-            razorpaySignature,
-            shippingAddress,
-            phone,
-            notes,
-            couponId,
-        } = await req.json();
+  try {
+    const session = await getServerSession(authOptions);
+    const user = session.user;
+    const {
+      razorpayOrderId,
+      razorpayPaymentId,
+      razorpaySignature,
+      shippingAddress,
+      phone,
+      notes,
+      couponId,
+    } = await req.json();
 
-        const generatedSignature = crypto
-            .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
-            .update(`${razorpayOrderId}|${razorpayPaymentId}`)
-            .digest("hex");
+    const generatedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
+      .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+      .digest("hex");
 
-        if (generatedSignature !== razorpaySignature) {
-            return NextResponse.json(
-                { message: "Payment verification failed" },
-                { status: 400 }
-            );
-        }
-
-        // Check if order already exists for this payment id (idempotency)
-        const existingOrder = await db.select().from(orders).where(eq(orders.razorpayPaymentId, razorpayPaymentId)).limit(1);
-
-        if (existingOrder.length > 0) {
-            return NextResponse.json({
-                orderId: existingOrder[0].id,
-                message: "Order already exists for this payment",
-            });
-        }
-
-        const cartItems = await cartServices.getCartItems(user.id);
-
-        if (cartItems.cart.length === 0) {
-            return NextResponse.json(
-                { message: "Cart is empty. Cannot create order." },
-                { status: 400 }
-            );
-        }
-
-        // Validate stock availability using stock transaction service
-        const stockValidation = await stockTransactionService.validateStockAvailability(cartItems.cart);
-        if (!stockValidation.valid) {
-            return NextResponse.json(
-                {
-                    message: stockValidation.message,
-                    productId: stockValidation.productId
-                },
-                { status: 400 }
-            );
-        }
-
-        // Get coupon details if provided
-        let coupon = null;
-        if (couponId) {
-            coupon = await couponsService.getCoupon(couponId);
-        }
-
-        // Calculate pricing using shared utility
-        const pricing = calculatePricing(cartItems.cart, coupon);
-
-        // Atomically validate and deduct stock first
-        const stockResult = await stockTransactionService.validateAndDeductStock(
-            cartItems.cart,
-            razorpayOrderId
-        );
-
-        if (!stockResult.success) {
-            return NextResponse.json(
-                {
-                    message: stockResult.message,
-                    productId: stockResult.productId
-                },
-                { status: 400 }
-            );
-        }
-
-        // Create order (stock already deducted) with coupon usage tracking
-        const order = await couponsService.createOrderWithCoupon(
-            {
-                userId: user.id,
-                totalAmount: pricing.subtotal.toString(),
-                discountAmount: pricing.discountAmount.toString(),
-                finalAmount: pricing.totalAmount.toString(),
-                shippingAddress: typeof shippingAddress === 'object' ? JSON.stringify(shippingAddress) : shippingAddress,
-                phone,
-                notes,
-                couponId,
-                status: "created",
-                paymentStatus: "paid",
-                paymentMethod: "razorpay",
-                razorpayPaymentId,
-            },
-            cartItems.cart.map((item) => {
-                // For variant products, use the variant's own price if set; fall back to product price
-                const variant = item.variantId
-                    ? (item.product as any).variants?.find((v: any) => v.id === item.variantId)
-                    : null;
-                const variantPrice = variant?.price ? parseFloat(variant.price) : null;
-                const effectivePrice = variantPrice ?? getEffectivePrice(item.product);
-
-                return {
-                    productId: item.productId,
-                    variantId: item.variantId || undefined,
-                    quantity: item.quantity,
-                    price: effectivePrice.toString(),
-                    productPrice: item.product.price.toString(),
-                    discountedPrice: effectivePrice.toString(),
-                    offerDetails: (item.product as any).activeSale || null,
-                };
-            }),
-            couponId,
-            user.id,
-            pricing.discountAmount.toString()
-        );
-
-        // Clear cart only after successful order creation
-        await cartServices.clearCart(user.id);
-
-        const result = order;
-        await publishRealtimeEvent("user_order_created");
-
-        return NextResponse.json({
-            orderId: result.id,
-            message: "Payment successful",
-        });
-    } catch (err) {
-
-        return NextResponse.json(
-            { message: "Payment verification failed" },
-            { status: 500 }
-        );
+    if (generatedSignature !== razorpaySignature) {
+      return NextResponse.json(
+        { message: "Payment verification failed" },
+        { status: 400 },
+      );
     }
+
+    // Check if order already exists for this payment id (idempotency)
+    const existingOrder = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.razorpayPaymentId, razorpayPaymentId))
+      .limit(1);
+
+    if (existingOrder.length > 0) {
+      return NextResponse.json({
+        orderId: existingOrder[0].id,
+        message: "Order already exists for this payment",
+      });
+    }
+
+    const cartItems = await cartServices.getCartItems(user.id);
+
+    if (cartItems.cart.length === 0) {
+      return NextResponse.json(
+        { message: "Cart is empty. Cannot create order." },
+        { status: 400 },
+      );
+    }
+
+    // Validate stock availability using stock transaction service
+    const stockValidation =
+      await stockTransactionService.validateStockAvailability(cartItems.cart);
+    if (!stockValidation.valid) {
+      return NextResponse.json(
+        {
+          message: stockValidation.message,
+          productId: stockValidation.productId,
+        },
+        { status: 400 },
+      );
+    }
+
+    // Get coupon details if provided
+    let coupon = null;
+    if (couponId) {
+      coupon = await couponsService.getCoupon(couponId);
+    }
+
+    // Calculate pricing using shared utility
+    const pricing = calculatePricing(cartItems.cart, coupon);
+
+    // Atomically validate and deduct stock first
+    const stockResult = await stockTransactionService.validateAndDeductStock(
+      cartItems.cart,
+      razorpayOrderId,
+    );
+
+    if (!stockResult.success) {
+      return NextResponse.json(
+        {
+          message: stockResult.message,
+          productId: stockResult.productId,
+        },
+        { status: 400 },
+      );
+    }
+
+    // Create order (stock already deducted) with coupon usage tracking
+    const order = await couponsService.createOrderWithCoupon(
+      {
+        userId: user.id,
+        totalAmount: pricing.subtotal.toString(),
+        discountAmount: pricing.discountAmount.toString(),
+        finalAmount: pricing.totalAmount.toString(),
+        shippingAddress:
+          typeof shippingAddress === "object"
+            ? JSON.stringify(shippingAddress)
+            : shippingAddress,
+        phone,
+        notes,
+        couponId,
+        status: "created",
+        paymentStatus: "paid",
+        paymentMethod: "razorpay",
+        razorpayPaymentId,
+      },
+      cartItems.cart.map((item) => {
+        // For variant products, use the variant's own price if set; fall back to product price
+        const variant = item.variantId
+          ? (item.product as any).variants?.find(
+              (v: any) => v.id === item.variantId,
+            )
+          : null;
+        const variantPrice = variant?.price ? parseFloat(variant.price) : null;
+        const effectivePrice = variantPrice ?? getEffectivePrice(item.product);
+
+        return {
+          productId: item.productId,
+          variantId: item.variantId || undefined,
+          quantity: item.quantity,
+          price: effectivePrice.toString(),
+          productPrice: item.product.price.toString(),
+          discountedPrice: effectivePrice.toString(),
+          offerDetails: (item.product as any).activeSale || null,
+        };
+      }),
+      couponId,
+      user.id,
+      pricing.discountAmount.toString(),
+    );
+
+    // Clear cart only after successful order creation
+    await cartServices.clearCart(user.id);
+    const result = order;
+
+    return NextResponse.json({
+      orderId: result.id,
+      message: "Payment successful",
+    });
+  } catch (err) {
+    return NextResponse.json(
+      { message: "Payment verification failed" },
+      { status: 500 },
+    );
+  }
 }

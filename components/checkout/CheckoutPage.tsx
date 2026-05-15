@@ -116,6 +116,25 @@ export default function CheckoutPage() {
     return () => { socket.off("product_event", fetchCart); };
   }, [socket, fetchCart]);
 
+  // ── Socket: join product rooms + re-fetch when a matching product is purchased
+  useEffect(() => {
+    if (!socket || items.length === 0) return;
+    items.forEach((item) => socket.emit("join_product_room", item.productId));
+    const handleProductPurchased = ({ productId, variantId }: { productId: string; variantId: string | null }) => {
+      const affected = items.some(
+        (item) =>
+          item.productId === productId &&
+          (variantId === null || item.variantId === variantId)
+      );
+      if (affected) fetchCart();
+    };
+    socket.on("product_purchased", handleProductPurchased);
+    return () => {
+      items.forEach((item) => socket.emit("leave_product_room", item.productId));
+      socket.off("product_purchased", handleProductPurchased);
+    };
+  }, [socket, items, fetchCart]);
+
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleAddressSubmit = async (data: any) => {
     try {
