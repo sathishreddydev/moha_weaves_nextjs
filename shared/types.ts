@@ -204,6 +204,7 @@ export type OrderWithItems = Order & {
   items: (OrderItem & { 
     product: ProductWithDetails;
     returnEligibility?: { itemId: string; eligible: boolean; reason?: string; remainingDays?: number };
+    exchangeEligibility?: { itemId: string; eligible: boolean; reason?: string; remainingDays?: number };
     productPrice?: string | null;
     discountedPrice?: string | null;
     offerDetails?: any | null;

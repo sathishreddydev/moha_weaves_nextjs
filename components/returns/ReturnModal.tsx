@@ -27,8 +27,6 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Badge } from "@/components/ui/badge";
 import { RotateCcw, RefreshCw, AlertCircle } from "lucide-react";
 import { OrderWithItems } from "@/shared";
 
@@ -52,13 +50,8 @@ const returnReasons = [
   { value: "other", label: "Other" },
 ];
 
-const exchangeReasons = [
-  { value: "size_issue", label: "Wrong Size" },
-  { value: "color_mismatch", label: "Wrong Color" },
-  { value: "defective", label: "Defective Product" },
-  { value: "not_as_described", label: "Not as Described" },
-  { value: "other", label: "Other" },
-];
+// Exchange uses the same return_reason DB enum — all 9 values are valid for both
+const exchangeReasons = returnReasons;
 
 export default function ReturnModal({
   open,
@@ -75,29 +68,36 @@ export default function ReturnModal({
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
     window.addEventListener("resize", checkMobile);
-
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   const orderItem = order.items?.find((item) => item.id === orderItemId);
   const maxQuantity = orderItem?.quantity || 1;
-
   const reasons = type === "exchange" ? exchangeReasons : returnReasons;
+  const label = type === "exchange" ? "Exchange" : "Return";
+
+  const resetForm = () => {
+    setReason("");
+    setReasonDetails("");
+    setQuantity(1);
+    setError("");
+  };
+
+  const handleOpenChange = (value: boolean) => {
+    if (!value) resetForm();
+    onOpenChange(value);
+  };
 
   const handleSubmit = async () => {
     if (!reason) {
       setError("Please select a reason");
       return;
     }
-
     if (!reasonDetails.trim()) {
-      setError("Please provide details about your return/exchange");
+      setError("Please provide details about your request");
       return;
     }
 
@@ -105,23 +105,16 @@ export default function ReturnModal({
     setError("");
 
     try {
-      const response = await fetch("/api/returns", {
+      const isExchange = type === "exchange";
+      const endpoint = isExchange ? "/api/exchanges" : "/api/returns";
+      const payload = isExchange
+        ? { orderId: order.id, reason, reasonDetails, items: [{ orderItemId, quantity }] }
+        : { orderId: order.id, reason, reasonDetails, resolution: "refund", items: [{ orderItemId, quantity }] };
+
+      const response = await fetch(endpoint, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          orderId: order.id,
-          reason,
-          reasonDetails,
-          resolution: type,
-          items: [
-            {
-              orderItemId,
-              quantity,
-            },
-          ],
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -129,13 +122,7 @@ export default function ReturnModal({
         throw new Error(errorData.message || "Failed to submit request");
       }
 
-      const result = await response.json();
-
-      // Close modal and show success message
-      onOpenChange(false);
-      setReason("");
-      setReasonDetails("");
-      setQuantity(1);
+      handleOpenChange(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to submit request");
     } finally {
@@ -145,214 +132,166 @@ export default function ReturnModal({
 
   if (!orderItem) return null;
 
-  const ModalContent = () => (
-    <>
-      <Header />
-      <div className="space-y-4">
-        {/* Item Details */}
-        <div className="border rounded-lg p-3 bg-gray-50">
-          <div className="flex gap-3">
-            <div className="w-12 h-12 bg-gray-200 rounded overflow-hidden flex-shrink-0">
-              {orderItem.product?.imageUrl ? (
-                <img
-                  src={orderItem.product.imageUrl}
-                  alt={orderItem.product.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <RotateCcw className="w-6 h-6 text-gray-400" />
-                </div>
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="font-medium text-sm truncate">
-                {orderItem.product?.name || "Product"}
-              </h4>
-              <p className="text-xs text-gray-500">
-                {orderItem.product?.category?.name}
-                {orderItem.product?.color?.name &&
-                  ` | ${orderItem.product.color.name}`}
-              </p>
-              <div className="flex items-center justify-between mt-1">
-                <span className="text-xs text-gray-500">
-                  Qty: {orderItem.quantity}
-                </span>
-                <span className="text-sm font-medium">
-                  ¥{parseFloat(orderItem.price).toFixed(2)}
-                </span>
+  // Inline content — no nested component definitions to avoid remount on state change
+  const content = (
+    <div className="px-4 space-y-4 overflow-y-auto">
+      {/* Item Details */}
+      <div className="border rounded-lg p-3 bg-gray-50">
+        <div className="flex gap-3">
+          <div className="w-12 h-12 bg-gray-200 rounded overflow-hidden flex-shrink-0">
+            {orderItem.product?.imageUrl ? (
+              <img
+                src={orderItem.product.imageUrl}
+                alt={orderItem.product.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <RotateCcw className="w-6 h-6 text-gray-400" />
               </div>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h4 className="font-medium text-sm truncate">
+              {orderItem.product?.name || "Product"}
+            </h4>
+            <p className="text-xs text-gray-500">
+              {orderItem.product?.category?.name}
+              {orderItem.product?.color?.name && ` | ${orderItem.product.color.name}`}
+            </p>
+            <div className="flex items-center justify-between mt-1">
+              <span className="text-xs text-gray-500">Qty: {orderItem.quantity}</span>
+              <span className="text-sm font-medium">
+                ₹{parseFloat(orderItem.price).toFixed(2)}
+              </span>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Return Eligibility Info */}
-        {orderItem.returnEligibility && (
-          <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
-            <AlertCircle className="w-4 h-4 text-blue-600" />
-            <div className="text-sm">
-              <p className="text-blue-800 font-medium">
-                {orderItem.returnEligibility.remainingDays
-                  ? `${orderItem.returnEligibility.remainingDays} days remaining`
-                  : "Eligible for return"}
-              </p>
-            </div>
-          </div>
-        )}
+      {/* Eligibility Info */}
+      {(type === "return" ? orderItem.returnEligibility : (orderItem as any).exchangeEligibility) && (
+        <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
+          <AlertCircle className="w-4 h-4 text-blue-600" />
+          <p className="text-sm text-blue-800 font-medium">
+            {(() => {
+              const elig = type === "return"
+                ? orderItem.returnEligibility
+                : (orderItem as any).exchangeEligibility;
+              return elig?.remainingDays
+                ? `${elig.remainingDays} days remaining`
+                : `Eligible for ${label.toLowerCase()}`;
+            })()}
+          </p>
+        </div>
+      )}
 
-        {/* Quantity Selection */}
-        {maxQuantity > 1 && (
-          <div className="space-y-2">
-            <Label htmlFor="quantity">
-              Quantity to {type === "exchange" ? "Exchange" : "Return"}
-            </Label>
-            <Select
-              value={quantity.toString()}
-              onValueChange={(value) => setQuantity(parseInt(value))}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Array.from({ length: maxQuantity }, (_, i) => i + 1).map(
-                  (qty) => (
-                    <SelectItem key={qty} value={qty.toString()}>
-                      {qty}
-                    </SelectItem>
-                  ),
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        {/* Reason Selection */}
+      {/* Quantity */}
+      {maxQuantity > 1 && (
         <div className="space-y-2">
-          <Label htmlFor="reason">
-            Reason for {type === "exchange" ? "Exchange" : "Return"}
-          </Label>
-          <Select value={reason} onValueChange={setReason}>
+          <Label>Quantity to {label}</Label>
+          <Select
+            value={quantity.toString()}
+            onValueChange={(value) => setQuantity(parseInt(value))}
+          >
             <SelectTrigger>
-              <SelectValue placeholder="Select a reason" />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {reasons.map((reasonOption) => (
-                <SelectItem key={reasonOption.value} value={reasonOption.value}>
-                  {reasonOption.label}
+              {Array.from({ length: maxQuantity }, (_, i) => i + 1).map((qty) => (
+                <SelectItem key={qty} value={qty.toString()}>
+                  {qty}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
+      )}
 
-        {/* Reason Details */}
-        <div className="space-y-2">
-          <Label htmlFor="details">Additional Details</Label>
-          <Textarea
-            id="details"
-            placeholder="Please provide more details about your request..."
-            value={reasonDetails}
-            onChange={(e) => setReasonDetails(e.target.value)}
-            rows={4}
-          />
-        </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg">
-            <AlertCircle className="w-4 h-4 text-red-600" />
-            <p className="text-sm text-red-800">{error}</p>
-          </div>
-        )}
+      {/* Reason */}
+      <div className="space-y-2">
+        <Label>Reason for {label}</Label>
+        <Select value={reason} onValueChange={setReason}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select a reason" />
+          </SelectTrigger>
+          <SelectContent>
+            {reasons.map((r) => (
+              <SelectItem key={r.value} value={r.value}>
+                {r.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      <Footer />
+      {/* Details */}
+      <div className="space-y-2">
+        <Label htmlFor="return-details">Additional Details</Label>
+        <Textarea
+          id="return-details"
+          placeholder="Please provide more details about your request..."
+          value={reasonDetails}
+          onChange={(e) => setReasonDetails(e.target.value)}
+          rows={4}
+        />
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg">
+          <AlertCircle className="w-4 h-4 text-red-600" />
+          <p className="text-sm text-red-800">{error}</p>
+        </div>
+      )}
+    </div>
+  );
+
+  const titleContent = (
+    <>
+      {type === "exchange" ? <RefreshCw className="w-5 h-5" /> : <RotateCcw className="w-5 h-5" />}
+      Request {label}
     </>
   );
 
-  const Header = () =>
-    isMobile ? (
-      <DrawerHeader>
-        <DrawerTitle className="flex items-center gap-2">
-          {type === "exchange" ? (
-            <RefreshCw className="w-5 h-5" />
-          ) : (
-            <RotateCcw className="w-5 h-5" />
-          )}
-          Request {type === "exchange" ? "Exchange" : "Return"}
-        </DrawerTitle>
-        <DrawerDescription>
-          {type === "exchange"
-            ? "Request an exchange for this item"
-            : "Request a return for this item"}
-        </DrawerDescription>
-      </DrawerHeader>
-    ) : (
-      <DialogHeader>
-        <DialogTitle className="flex items-center gap-2">
-          {type === "exchange" ? (
-            <RefreshCw className="w-5 h-5" />
-          ) : (
-            <RotateCcw className="w-5 h-5" />
-          )}
-          Request {type === "exchange" ? "Exchange" : "Return"}
-        </DialogTitle>
-        <DialogDescription>
-          {type === "exchange"
-            ? "Request an exchange for this item"
-            : "Request a return for this item"}
-        </DialogDescription>
-      </DialogHeader>
-    );
+  const descriptionText = `Request a${type === "exchange" ? "n exchange" : " return"} for this item`;
 
-  const Footer = () =>
-    isMobile ? (
-      <DrawerFooter>
-        <Button
-          variant="outline"
-          onClick={() => onOpenChange(false)}
-          disabled={loading}
-        >
-          Cancel
-        </Button>
-        <Button onClick={handleSubmit} disabled={loading}>
-          {loading
-            ? "Submitting..."
-            : `Submit ${type === "exchange" ? "Exchange" : "Return"} Request`}
-        </Button>
-      </DrawerFooter>
-    ) : (
-      <DialogFooter>
-        <Button
-          variant="outline"
-          onClick={() => onOpenChange(false)}
-          disabled={loading}
-        >
-          Cancel
-        </Button>
-        <Button onClick={handleSubmit} disabled={loading}>
-          {loading
-            ? "Submitting..."
-            : `Submit ${type === "exchange" ? "Exchange" : "Return"} Request`}
-        </Button>
-      </DialogFooter>
+  const footerButtons = (
+    <>
+      <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={loading}>
+        Cancel
+      </Button>
+      <Button onClick={handleSubmit} disabled={loading}>
+        {loading ? "Submitting..." : `Submit ${label} Request`}
+      </Button>
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={handleOpenChange}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle className="flex items-center gap-2">{titleContent}</DrawerTitle>
+            <DrawerDescription>{descriptionText}</DrawerDescription>
+          </DrawerHeader>
+          {content}
+          <DrawerFooter>{footerButtons}</DrawerFooter>
+        </DrawerContent>
+      </Drawer>
     );
+  }
 
   return (
-    <>
-      {isMobile ? (
-        <Drawer open={open} onOpenChange={onOpenChange}>
-          <DrawerContent>
-            <ModalContent />
-          </DrawerContent>
-        </Drawer>
-      ) : (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-          <DialogContent>
-            <ModalContent />
-          </DialogContent>
-        </Dialog>
-      )}
-    </>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">{titleContent}</DialogTitle>
+          <DialogDescription>{descriptionText}</DialogDescription>
+        </DialogHeader>
+        {content}
+        <DialogFooter>{footerButtons}</DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -8,11 +8,15 @@ interface ProductPurchasedPayload {
   variantId: string | null;
 }
 
-interface OrderItemStatusPayload {
-  orderItemId: string;
-  orderId: string;
+interface ReturnStatusPayload {
+  returnId: string;
   userId: string;
-  itemId: string;
+  status: string;
+}
+
+interface ExchangeStatusPayload {
+  exchangeId: string;
+  userId: string;
   status: string;
 }
 
@@ -206,4 +210,93 @@ export function useOrderItemStatusListenerList(
       socket.off("order_item_status_updated", handler);
     };
   }, [socket, setOrders]);
+}
+
+// ---------------------------------------------------------------------------
+// Return / Exchange status listeners
+// ---------------------------------------------------------------------------
+
+/**
+ * Normalises the raw socket payload for return/exchange status events.
+ * The server wraps it as { type, data: { returnId/exchangeId, userId, status } }
+ * but we guard against a flat shape too.
+ */
+function extractReturnStatusPayload(
+  raw: unknown,
+): ReturnStatusPayload | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as any;
+  const d = r.data ?? r;
+  const { returnId, userId, status } = d;
+  if (!returnId || !status) return null;
+  return { returnId, userId, status };
+}
+
+function extractExchangeStatusPayload(
+  raw: unknown,
+): ExchangeStatusPayload | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as any;
+  const d = r.data ?? r;
+  const { exchangeId, userId, status } = d;
+  if (!exchangeId || !status) return null;
+  return { exchangeId, userId, status };
+}
+
+/**
+ * Listens for `return_status_updated` and calls `onStatusChange` with the
+ * new status whenever the server pushes an update for the given returnId.
+ * Pass `returnId = null` to listen for any return update (e.g. on a list page).
+ */
+export function useReturnStatusListener(
+  returnId: string | null | undefined,
+  onStatusChange: (payload: ReturnStatusPayload) => void,
+) {
+  const { socket } = useSocketStore();
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handler = (raw: unknown) => {
+      const payload = extractReturnStatusPayload(raw);
+      if (!payload) return;
+      // If a specific returnId is provided, filter to that return only
+      if (returnId && payload.returnId !== returnId) return;
+      onStatusChange(payload);
+    };
+
+    socket.on("return_status_updated", handler);
+    return () => {
+      socket.off("return_status_updated", handler);
+    };
+  }, [socket, returnId, onStatusChange]);
+}
+
+/**
+ * Listens for `exchange_status_updated` and calls `onStatusChange` with the
+ * new status whenever the server pushes an update for the given exchangeId.
+ * Pass `exchangeId = null` to listen for any exchange update (e.g. on a list page).
+ */
+export function useExchangeStatusListener(
+  exchangeId: string | null | undefined,
+  onStatusChange: (payload: ExchangeStatusPayload) => void,
+) {
+  const { socket } = useSocketStore();
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handler = (raw: unknown) => {
+      const payload = extractExchangeStatusPayload(raw);
+      if (!payload) return;
+      // If a specific exchangeId is provided, filter to that exchange only
+      if (exchangeId && payload.exchangeId !== exchangeId) return;
+      onStatusChange(payload);
+    };
+
+    socket.on("exchange_status_updated", handler);
+    return () => {
+      socket.off("exchange_status_updated", handler);
+    };
+  }, [socket, exchangeId, onStatusChange]);
 }

@@ -4,11 +4,13 @@ import {
   itemStatusHistory,
   Order,
   orderItems,
+  onlineExchanges,
+  onlineExchangeItems,
   orders,
   OrderWithItems,
   users
 } from "@/shared";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { IdGenerator } from "@/lib/idGenerator";
 import { paymentInfo } from "./createOrderService";
@@ -140,16 +142,104 @@ async function getItemStatuses(orderItemsData: any[]) {
   );
 }
 
+// Check exchange eligibility per order item
+async function checkExchangeEligibilityForItems(
+  orderId: string,
+  orderItemsData: any[],
+  windowDays: number = 7
+): Promise<{ itemId: string; eligible: boolean; reason?: string; remainingDays?: number }[]> {
+  // Get already-exchanged quantities per order item (excluding cancelled)
+  const activeStatuses = [
+    "exchange_requested",
+    "exchange_approved",
+    "exchange_processing",
+    "exchange_pickup_scheduled",
+    "exchange_picked_up",
+    "exchange_in_transit",
+    "exchange_received",
+    "exchange_inspected",
+    "exchange_shipped",
+    "exchange_delivered",
+    "exchange_completed",
+  ] as const;
+
+  const exchangedRows = await db
+    .select({
+      orderItemId: onlineExchangeItems.orderItemId,
+      qty: sql<number>`sum(${onlineExchangeItems.quantity})::int`,
+    })
+    .from(onlineExchangeItems)
+    .innerJoin(onlineExchanges, eq(onlineExchangeItems.exchangeId, onlineExchanges.id))
+    .where(
+      and(
+        eq(onlineExchanges.orderId, orderId),
+        inArray(onlineExchanges.status, [...activeStatuses])
+      )
+    )
+    .groupBy(onlineExchangeItems.orderItemId);
+
+  const exchangedMap: Record<string, number> = {};
+  for (const row of exchangedRows) {
+    exchangedMap[row.orderItemId] = Number(row.qty || 0);
+  }
+
+  const now = new Date();
+
+  return orderItemsData.map((item) => {
+    const currentStatus = item.status;
+
+    // Must be delivered to be exchange-eligible
+    if (currentStatus !== "delivered") {
+      return {
+        itemId: item.id,
+        eligible: false,
+        reason: currentStatus.startsWith("exchange_")
+          ? "Exchange already in progress"
+          : currentStatus.startsWith("return_")
+          ? "Return already in progress"
+          : "Item must be delivered before exchange",
+      };
+    }
+
+    if (!item.deliveredAt) {
+      return { itemId: item.id, eligible: false, reason: "Item delivery date missing" };
+    }
+
+    const deliveredAt = new Date(item.deliveredAt);
+    const eligibleUntil = new Date(deliveredAt);
+    eligibleUntil.setDate(eligibleUntil.getDate() + windowDays);
+
+    if (now > eligibleUntil) {
+      return { itemId: item.id, eligible: false, reason: "Exchange window has expired" };
+    }
+
+    const purchasedQty = Number(item.quantity || 0);
+    const exchangedQty = Number(exchangedMap[item.id] || 0);
+    const hasRemaining = purchasedQty > exchangedQty;
+
+    return {
+      itemId: item.id,
+      eligible: hasRemaining,
+      reason: !hasRemaining ? "All items have already been exchanged" : undefined,
+      remainingDays: hasRemaining
+        ? Math.max(0, Math.floor((eligibleUntil.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+        : 0,
+    };
+  });
+}
+
 // Reusable item mapping function
 function mapOrderItems(
   orderItemsData: any[], 
   itemStatuses: any[], 
   productMap: Map<string, any>, 
-  eligibilityMap?: any[]
+  eligibilityMap?: any[],
+  exchangeEligibilityMap?: any[]
 ) {
   return orderItemsData.map((item) => {
     const statusObj = itemStatuses.find((s) => s.orderItemId === item.id);
     const eligibility = eligibilityMap?.find(e => e.itemId === item.id);
+    const exchangeEligibility = exchangeEligibilityMap?.find(e => e.itemId === item.id);
     const product = productMap.get(item.productId);
     
     return {
@@ -176,6 +266,7 @@ function mapOrderItems(
       updatedAt: item.updatedAt,
       currentStatus: statusObj?.currentStatus || item.status,
       returnEligibility: eligibility || { itemId: item.id, eligible: false },
+      exchangeEligibility: exchangeEligibility || { itemId: item.id, eligible: false },
       product: createOrderHistoryProduct(product) as any,
     };
   });
@@ -389,6 +480,13 @@ export class OrderRepository implements OrderStorage {
       ? await returnService.checkOrderReturnEligibility(order.id)
       : undefined;
 
+    // Get exchange eligibility for all items in this order (only if detailed)
+    const windowDaysSetting = await storage.getSetting("return_window_days");
+    const windowDays = windowDaysSetting ? parseInt(windowDaysSetting) : 7;
+    const exchangeEligibilityMap = includeDetails
+      ? await checkExchangeEligibilityForItems(order.id, orderItemsData, windowDays)
+      : undefined;
+
     // Use shared item status lookup function
     const itemStatuses = await getItemStatuses(orderItemsData);
     
@@ -412,7 +510,7 @@ export class OrderRepository implements OrderStorage {
       ...order,
       shippingAddress: parsedShippingAddress,
       paymentDetails: paymentData || undefined,
-      items: mapOrderItems(orderItemsData, itemStatuses, productMap, eligibilityMap),
+      items: mapOrderItems(orderItemsData, itemStatuses, productMap, eligibilityMap, exchangeEligibilityMap),
     };
   }
 

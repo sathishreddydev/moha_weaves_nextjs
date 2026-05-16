@@ -1,13 +1,15 @@
 "use client";
 
+import { CouponBadge } from "@/components/orders/CouponBadge";
 import ReturnModal from "@/components/returns/ReturnModal";
 import ReviewModal from "@/components/reviews/ReviewModal";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { OrderItem } from "@/components/user/OrderItem";
 import LiveChat from "@/components/user/LiveChat";
+import { OrderItem } from "@/components/user/OrderItem";
 import ProfileSidebar from "@/components/user/ProfileSidebar";
 import ShippingAddress from "@/components/user/shippingAddress";
+import { useOrderItemStatusListenerDetail } from "@/hooks/useProductPurchasedListener";
 import {
   OrderWithItems,
   ShippingAddress as ShippingAddressType,
@@ -20,11 +22,8 @@ import {
   Package,
   ReceiptText,
 } from "lucide-react";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CouponBadge } from "@/components/orders/CouponBadge";
-import { useOrderItemStatusListenerDetail } from "@/hooks/useProductPurchasedListener";
 
 export default function OrderDetailsPage() {
   const params = useParams();
@@ -34,6 +33,7 @@ export default function OrderDetailsPage() {
   const [order, setOrder] = useState<OrderWithItems | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [invoiceError, setInvoiceError] = useState<string | null>(null);
   const [returnModalOpen, setReturnModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<{
     id: string;
@@ -47,11 +47,8 @@ export default function OrderDetailsPage() {
   const [helpChatOpen, setHelpChatOpen] = useState(false);
 
   useEffect(() => {
-    const getOrderId = async () => {
-      const resolvedParams = (await params) as { id: string };
-      setOrderId(resolvedParams.id);
-    };
-    getOrderId();
+    const id = (params as { id: string }).id;
+    setOrderId(id);
   }, [params]);
 
   const fetchOrderDetails = async () => {
@@ -103,21 +100,20 @@ export default function OrderDetailsPage() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (err) {
-      alert("Failed to download invoice. Please try again.");
+      // Use a non-blocking notification instead of alert
+      setInvoiceError("Failed to download invoice. Please try again.");
     }
   };
 
   if (loading) {
     return (
-      <div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="h-4 bg-gray-200 rounded w-full mb-4"></div>
-              <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-            </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+          <div className="bg-white rounded-lg shadow p-6 space-y-3">
+            <div className="h-4 bg-gray-200 rounded w-full"></div>
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
           </div>
         </div>
       </div>
@@ -126,23 +122,32 @@ export default function OrderDetailsPage() {
 
   if (error || !order) {
     return (
-      <div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-center">
-              <p className="text-red-600 mb-4">{error || "Order not found"}</p>
-              <Button onClick={() => router.back()} variant="outline">
-                Go Back
-              </Button>
-            </div>
-          </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white rounded-lg shadow p-6 text-center">
+          <p className="text-red-600 mb-4">{error || "Order not found"}</p>
+          <Button onClick={() => router.back()} variant="outline">
+            Go Back
+          </Button>
         </div>
       </div>
     );
-  }
-
-  return (
+  }  return (
     <div>
+      {/* Invoice error banner */}
+      {invoiceError && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+          <div className="flex items-center justify-between gap-3 bg-red-50 border border-red-200 text-red-700 text-xs px-4 py-2 rounded-lg">
+            <span>{invoiceError}</span>
+            <button
+              onClick={() => setInvoiceError(null)}
+              className="text-red-500 hover:text-red-700 font-bold text-sm leading-none"
+              aria-label="Dismiss"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
       <div className="max-w-7xl mx-auto">
         {/* Mobile: Back Button + Content Only */}
         <div className="lg:hidden">
@@ -377,7 +382,7 @@ function OrderDetailsContent({
             <span className="font-medium text-green-600">
               ₹
               {(() => {
-                // Calculate item-level savings (difference between original price and discounted price)
+                // Item-level savings: difference between original and discounted price
                 const itemSavings = order.items.reduce((total, item) => {
                   if (item.productPrice && item.discountedPrice) {
                     return (
@@ -389,11 +394,8 @@ function OrderDetailsContent({
                   }
                   return total;
                 }, 0);
-
-                // Add coupon discount if available
-                const couponDiscount = parseFloat(order?.discountAmount || "0");
-
-                return (itemSavings + couponDiscount).toFixed(2);
+                // Coupon discount is already shown separately above — don't add it again
+                return itemSavings.toFixed(2);
               })()}
             </span>
           </div>
@@ -401,14 +403,13 @@ function OrderDetailsContent({
             <span className="text-gray-600">Shipping</span>
             <span className="font-medium">
               {(() => {
+                // subtotal uses item.price (already the discounted price paid)
                 const subtotal = order.items.reduce(
                   (sum, item) => sum + parseFloat(item.price) * item.quantity,
                   0,
                 );
-                const shipping =
-                  parseFloat(order.finalAmount) +
-                  parseFloat(order.discountAmount || "0") -
-                  subtotal;
+                const coupon = parseFloat(order.discountAmount || "0");
+                const shipping = parseFloat(order.finalAmount) - (subtotal - coupon);
                 return shipping > 0 ? `₹${shipping.toFixed(2)}` : "FREE";
               })()}
             </span>

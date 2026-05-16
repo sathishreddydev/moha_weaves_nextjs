@@ -185,16 +185,35 @@ export const insertReturnItemSchema = z.object({
 export const insertOnlineExchangeSchema = z.object({
   orderId: z.string().min(1, "Order ID is required"),
   userId: z.string().min(1, "User ID is required"),
-  reason: z.string().min(1, "Reason is required"),
-  status: z.enum(["pending", "approved", "rejected", "completed"]).default("pending"),
-  notes: z.string().optional(),
+  reason: z.enum(["defective", "wrong_item", "not_as_described", "size_issue", "color_mismatch", "damaged_in_shipping", "changed_mind", "quality_issue", "other"]),
+  reasonDetails: z.string().optional(),
+  status: z.enum([
+    "exchange_requested",
+    "exchange_approved",
+    "exchange_processing",
+    "exchange_pickup_scheduled",
+    "exchange_picked_up",
+    "exchange_in_transit",
+    "exchange_received",
+    "exchange_inspected",
+    "exchange_shipped",
+    "exchange_delivered",
+    "exchange_completed",
+    "exchange_cancelled",
+  ]).default("exchange_requested"),
+  pickupAddress: z.string().optional(),
+  inspectionNotes: z.string().optional(),
+  processedBy: z.string().optional(),
+  exchangeOrderId: z.string().optional(),
 });
 
 export const insertOnlineExchangeItemSchema = z.object({
-  exchangeRequestId: z.string().min(1, "Exchange request ID is required"),
+  exchangeId: z.string().min(1, "Exchange ID is required"),
   orderItemId: z.string().min(1, "Order item ID is required"),
   quantity: z.number().int().min(1, "Quantity must be at least 1"),
-  reason: z.string().optional(),
+  exchangeproductId: z.string().optional(),
+  condition: z.string().optional(),
+  isRestockable: z.boolean().default(true),
 });
 
 export const insertRefundSchema = z.object({
