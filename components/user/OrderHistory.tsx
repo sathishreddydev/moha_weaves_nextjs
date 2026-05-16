@@ -13,54 +13,20 @@ import { OrderWithItems } from "@/shared";
 import {
   ArrowLeft,
   ArrowRight,
-  Ban,
-  CheckCircle,
   ChevronLeft,
   ChevronRight,
-  Clock,
   Package,
   RefreshCw,
   RotateCcw,
-  Truck,
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import ShippingAddress from "./shippingAddress";
 import OrderSkeleton from "./OrderSkeleton";
 import { useRouter } from "next/navigation";
-import { useOrderItemStatusListenerList } from "@/hooks/useProductPurchasedListener";
-
-// Full status config matching all possible item statuses
-const STATUS_CONFIG: Record<string, { label: string; className: string; Icon: any }> = {
-  pending:                   { label: "Pending",             className: "text-yellow-600",  Icon: Clock },
-  confirmed:                 { label: "Confirmed",           className: "text-blue-600",    Icon: CheckCircle },
-  processing:                { label: "Processing",          className: "text-purple-600",  Icon: Package },
-  shipped:                   { label: "Shipped",             className: "text-indigo-600",  Icon: Truck },
-  delivered:                 { label: "Delivered",           className: "text-green-600",   Icon: CheckCircle },
-  cancelled:                 { label: "Cancelled",           className: "text-red-500",     Icon: Ban },
-  return_requested:          { label: "Return Requested",    className: "text-orange-500",  Icon: RotateCcw },
-  return_approved:           { label: "Return Approved",     className: "text-orange-600",  Icon: RotateCcw },
-  return_pickup_scheduled:   { label: "Pickup Scheduled",    className: "text-orange-600",  Icon: RotateCcw },
-  return_picked_up:          { label: "Picked Up",           className: "text-orange-600",  Icon: RotateCcw },
-  return_in_transit:         { label: "Return In Transit",   className: "text-orange-600",  Icon: Truck },
-  return_received:           { label: "Return Received",     className: "text-orange-700",  Icon: RotateCcw },
-  return_inspected:          { label: "Inspected",           className: "text-orange-700",  Icon: RotateCcw },
-  return_completed:          { label: "Return Completed",    className: "text-green-600",   Icon: CheckCircle },
-  return_cancelled:          { label: "Return Cancelled",    className: "text-red-500",     Icon: Ban },
-  exchange_requested:        { label: "Exchange Requested",  className: "text-blue-500",    Icon: RefreshCw },
-  exchange_approved:         { label: "Exchange Approved",   className: "text-blue-600",    Icon: RefreshCw },
-  exchange_processing:       { label: "Exchange Processing", className: "text-blue-600",    Icon: RefreshCw },
-  exchange_pickup_scheduled: { label: "Pickup Scheduled",    className: "text-blue-600",    Icon: RefreshCw },
-  exchange_picked_up:        { label: "Picked Up",           className: "text-blue-600",    Icon: RefreshCw },
-  exchange_in_transit:       { label: "Exchange In Transit", className: "text-blue-600",    Icon: Truck },
-  exchange_received:         { label: "Exchange Received",   className: "text-blue-700",    Icon: RefreshCw },
-  exchange_inspected:        { label: "Inspected",           className: "text-blue-700",    Icon: RefreshCw },
-  exchange_shipped:          { label: "Exchange Shipped",    className: "text-indigo-600",  Icon: Truck },
-  exchange_delivered:        { label: "Exchange Delivered",  className: "text-green-600",   Icon: CheckCircle },
-  exchange_completed:        { label: "Exchange Completed",  className: "text-green-600",   Icon: CheckCircle },
-  exchange_cancelled:        { label: "Exchange Cancelled",  className: "text-red-500",     Icon: Ban },
-};
+import { useOrderItemStatusListenerList, useReturnCreatedListener, useExchangeCreatedListener } from "@/hooks/useProductPurchasedListener";
+import { getStatusConfig } from "@/lib/orderStatus";
 
 const MAX_PAGE_BUTTONS = 5;
 
@@ -75,7 +41,7 @@ export default function OrderHistory() {
   const pageSizeOptions = [5, 10, 20, 50];
   const router = useRouter();
 
-  const fetchOrders = async (
+  const fetchOrders = useCallback(async (
     page: number = currentPage,
     pageSize: number = ordersPerPage,
   ) => {
@@ -96,7 +62,8 @@ export default function OrderHistory() {
     } finally {
       setLoading(false);
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, ordersPerPage]);
 
   useEffect(() => {
     fetchOrders();
@@ -104,6 +71,15 @@ export default function OrderHistory() {
   }, []);
 
   useOrderItemStatusListenerList(setOrders);
+
+  // Return / exchange created → silently refresh the current page so item
+  // statuses (e.g. return_requested) reflect immediately without a manual reload
+  const handleReturnExchangeCreated = useCallback(() => {
+    fetchOrders(currentPage, ordersPerPage);
+  }, [fetchOrders, currentPage, ordersPerPage]);
+
+  useReturnCreatedListener(null, handleReturnExchangeCreated);
+  useExchangeCreatedListener(null, handleReturnExchangeCreated);
 
   const handlePageChange = (page: number) => fetchOrders(page);
 
@@ -217,7 +193,7 @@ export default function OrderHistory() {
                 <div className="p-3 space-y-4">
                   {order.items?.map((item) => {
                     const currentStatus = (item as any).currentStatus || item.status || "pending";
-                    const cfg = STATUS_CONFIG[currentStatus] ?? STATUS_CONFIG.pending;
+                    const cfg = getStatusConfig(currentStatus);
                     const StatusIcon = cfg.Icon;
 
                     // Resolve variant by variantId
@@ -272,16 +248,16 @@ export default function OrderHistory() {
                             ₹{parseFloat(item.price).toFixed(2)}
                           </div>
 
-                          {/* Return / exchange eligibility badge */}
-                          {item.returnEligibility && (
+                          {/* Return / exchange eligibility badge — only relevant when delivered */}
+                          {currentStatus === "delivered" && (
                             <div className="flex items-center gap-1">
-                              {item.returnEligibility.eligible ? (
+                              {(item as any).returnEligibility?.eligible ? (
                                 <div className="flex items-center gap-1 text-green-600">
                                   <RotateCcw className="w-3 h-3" />
                                   <span className="text-[10px] font-medium">
                                     Returnable
-                                    {item.returnEligibility.remainingDays
-                                      ? ` (${item.returnEligibility.remainingDays}d left)`
+                                    {(item as any).returnEligibility.remainingDays
+                                      ? ` (${(item as any).returnEligibility.remainingDays}d left)`
                                       : ""}
                                   </span>
                                 </div>
@@ -299,7 +275,7 @@ export default function OrderHistory() {
                                 <div className="flex items-center gap-1 text-gray-400">
                                   <XCircle className="w-3 h-3" />
                                   <span className="text-[10px] font-medium">
-                                    {item.returnEligibility.reason || "Non-returnable"}
+                                    Non-returnable
                                   </span>
                                 </div>
                               )}

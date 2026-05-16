@@ -28,6 +28,23 @@ class SocketService {
       this.socket = null;
     }
 
+    if (token) {
+      try {
+        const parts = token.split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(atob(parts[1]));
+          const now = Math.floor(Date.now() / 1000);
+          if (payload.exp && payload.exp < now) {
+            console.warn('[Socket] Token is already expired — connecting as guest');
+            token = undefined;
+          }
+        }
+      } catch {
+        console.warn('[Socket] Could not parse token — connecting as guest');
+        token = undefined;
+      }
+    }
+
     this.socket = io(this.socketUrl, {
 
       // JWT AUTH (only if token provided)

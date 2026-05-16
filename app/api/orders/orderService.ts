@@ -408,14 +408,20 @@ export class OrderRepository implements OrderStorage {
       // Get return eligibility for all items in this order
       const eligibilityMap = await returnService.checkOrderReturnEligibility(order.orders.id);
 
+      // Compute currentStatus from itemStatusHistory (same as getOrderWithDetails)
+      const itemStatuses = await getItemStatuses(items);
+
       result.push({
         ...order.orders,
         customerName,
         items: items.map((item) => {
+          const statusObj = itemStatuses.find((s) => s.orderItemId === item.id);
           const product = productMap.get(item.productId);
           return {
             ...item,
+            currentStatus: statusObj?.currentStatus || item.status,
             returnEligibility: eligibilityMap.find(e => e.itemId === item.id) || { itemId: item.id, eligible: false },
+            exchangeEligibility: { itemId: item.id, eligible: false },
             product: createOrderHistoryProduct(product) as any,
           };
         }),

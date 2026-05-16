@@ -8,21 +8,21 @@ export class AuthTokenManager {
   // Get current access token from session
   static getAccessToken(): string | null {
     if (typeof window === 'undefined') return null;
-    
-    // First try to get from localStorage (cached token)
-    let token = localStorage.getItem('accessToken');
-    if (token) {
-      return token;
-    }
-    
-    // Try to get from NextAuth session cookie and extract access token
+
+    // Always prefer the token from the live NextAuth session — it may have
+    // been refreshed since the last time we cached it in localStorage.
     const sessionData = this.getSessionFromStorage();
     if (sessionData?.accessToken) {
-      // Cache the access token in localStorage for future use
       localStorage.setItem('accessToken', sessionData.accessToken);
       return sessionData.accessToken;
     }
-    
+
+    // Fall back to the cached token in localStorage
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      return token;
+    }
+
     return null;
   }
 

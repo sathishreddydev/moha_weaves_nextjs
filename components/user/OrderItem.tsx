@@ -1,46 +1,17 @@
+"use client";
+
 import { Card } from "@/components/ui/card";
+import { getExchangeTimelineStep, getRefundStatusLabel, getStatusConfig } from "@/lib/orderStatus";
 import {
-  Star,
-  Package,
-  XCircle,
-  RotateCcw,
-  RefreshCw,
+  AlertCircle,
   CheckCircle,
   Clock,
-  Truck,
-  Ban,
+  Package,
+  RefreshCw,
+  RotateCcw,
+  Star,
+  XCircle,
 } from "lucide-react";
-
-// Maps every possible item status to a human-readable label + colour
-const STATUS_CONFIG: Record<string, { label: string; className: string; Icon: any }> = {
-  pending:                   { label: "Pending",            className: "text-yellow-600",  Icon: Clock },
-  confirmed:                 { label: "Confirmed",          className: "text-blue-600",    Icon: CheckCircle },
-  processing:                { label: "Processing",         className: "text-purple-600",  Icon: Package },
-  shipped:                   { label: "Shipped",            className: "text-indigo-600",  Icon: Truck },
-  delivered:                 { label: "Delivered",          className: "text-green-600",   Icon: CheckCircle },
-  cancelled:                 { label: "Cancelled",          className: "text-red-500",     Icon: Ban },
-  return_requested:          { label: "Return Requested",   className: "text-orange-500",  Icon: RotateCcw },
-  return_approved:           { label: "Return Approved",    className: "text-orange-600",  Icon: RotateCcw },
-  return_pickup_scheduled:   { label: "Pickup Scheduled",   className: "text-orange-600",  Icon: RotateCcw },
-  return_picked_up:          { label: "Picked Up",          className: "text-orange-600",  Icon: RotateCcw },
-  return_in_transit:         { label: "Return In Transit",  className: "text-orange-600",  Icon: Truck },
-  return_received:           { label: "Return Received",    className: "text-orange-700",  Icon: RotateCcw },
-  return_inspected:          { label: "Inspected",          className: "text-orange-700",  Icon: RotateCcw },
-  return_completed:          { label: "Return Completed",   className: "text-green-600",   Icon: CheckCircle },
-  return_cancelled:          { label: "Return Cancelled",   className: "text-red-500",     Icon: Ban },
-  exchange_requested:        { label: "Exchange Requested", className: "text-blue-500",    Icon: RefreshCw },
-  exchange_approved:         { label: "Exchange Approved",  className: "text-blue-600",    Icon: RefreshCw },
-  exchange_processing:       { label: "Exchange Processing",className: "text-blue-600",    Icon: RefreshCw },
-  exchange_pickup_scheduled: { label: "Pickup Scheduled",   className: "text-blue-600",    Icon: RefreshCw },
-  exchange_picked_up:        { label: "Picked Up",          className: "text-blue-600",    Icon: RefreshCw },
-  exchange_in_transit:       { label: "Exchange In Transit",className: "text-blue-600",    Icon: Truck },
-  exchange_received:         { label: "Exchange Received",  className: "text-blue-700",    Icon: RefreshCw },
-  exchange_inspected:        { label: "Inspected",          className: "text-blue-700",    Icon: RefreshCw },
-  exchange_shipped:          { label: "Exchange Shipped",   className: "text-indigo-600",  Icon: Truck },
-  exchange_delivered:        { label: "Exchange Delivered", className: "text-green-600",   Icon: CheckCircle },
-  exchange_completed:        { label: "Exchange Completed", className: "text-green-600",   Icon: CheckCircle },
-  exchange_cancelled:        { label: "Exchange Cancelled", className: "text-red-500",     Icon: Ban },
-};
 
 export function OrderItem({
   item,
@@ -53,10 +24,10 @@ export function OrderItem({
 }) {
   // Use currentStatus (realtime-patched) if available, fall back to persisted status
   const currentStatus: string = item.currentStatus || item.status || "pending";
-  const statusCfg = STATUS_CONFIG[currentStatus] ?? { label: currentStatus, className: "text-gray-500", Icon: Clock };
+  const statusCfg = getStatusConfig(currentStatus);
   const StatusIcon = statusCfg.Icon;
 
-  // Find the correct variant by variantId (not just [0])
+  // Find the correct variant by variantId
   const selectedVariant = item.variantId
     ? item.product?.variants?.find((v: any) => v.id === item.variantId)
     : item.product?.variants?.[0];
@@ -65,6 +36,37 @@ export function OrderItem({
   const isCancelled = currentStatus === "cancelled";
   const isInReturn = currentStatus.startsWith("return_");
   const isInExchange = currentStatus.startsWith("exchange_");
+
+  // Return / refund info attached by the order detail API
+  const returnInfo = item.returnInfo as {
+    returnRequestId: string;
+    status: string;
+    resolution: string;
+    reason: string;
+    reasonDetails?: string;
+    refundAmount?: string;
+    createdAt: string;
+    updatedAt: string;
+    refund?: {
+      id: string;
+      status: string;
+      amount: string;
+      initiatedAt?: string;
+      completedAt?: string;
+      failureReason?: string;
+    } | null;
+  } | undefined;
+
+  // Exchange info attached by the order detail API
+  const exchangeInfo = item.exchangeInfo as {
+    exchangeId: string;
+    status: string;
+    reason: string;
+    reasonDetails?: string;
+    exchangeOrderId?: string | null;
+    createdAt: string;
+    updatedAt: string;
+  } | undefined;
 
   return (
     <Card className="p-4 hover:border-slate-300 transition-colors bg-white">
@@ -127,15 +129,14 @@ export function OrderItem({
 
       {/* Status + Actions row */}
       <div className="flex flex-wrap items-center gap-3 pt-3 mt-3 border-t border-slate-100">
-        {/* Left: status badge */}
+        {/* Status badge */}
         <div className={`flex items-center gap-1 ${statusCfg.className}`}>
           <StatusIcon className="w-3.5 h-3.5" />
           <span className="text-xs font-semibold">{statusCfg.label}</span>
         </div>
 
-        {/* Right: action buttons */}
+        {/* Action buttons */}
         <div className="flex items-center gap-2 ml-auto">
-          {/* Rate & Review — only when delivered and not already in return/exchange */}
           {isDelivered && !isInReturn && !isInExchange && (
             <button
               className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1.5 transition-colors"
@@ -146,7 +147,6 @@ export function OrderItem({
             </button>
           )}
 
-          {/* Return */}
           {item.returnEligibility?.eligible && (
             <>
               {isDelivered && !isInReturn && !isInExchange && (
@@ -162,7 +162,6 @@ export function OrderItem({
             </>
           )}
 
-          {/* Exchange */}
           {item.exchangeEligibility?.eligible && (
             <>
               {(isDelivered || item.returnEligibility?.eligible) && (
@@ -178,7 +177,6 @@ export function OrderItem({
             </>
           )}
 
-          {/* Non-actionable fallback — only show when no actions at all */}
           {!isDelivered &&
             !item.returnEligibility?.eligible &&
             !item.exchangeEligibility?.eligible &&
@@ -192,6 +190,367 @@ export function OrderItem({
             )}
         </div>
       </div>
+
+      {/* ── Return / Refund info panel ─────────────────────────────────────── */}
+      {returnInfo && (
+        <ReturnRefundPanel returnInfo={returnInfo} />
+      )}
+
+      {/* ── Exchange info panel ───────────────────────────────────────────── */}
+      {exchangeInfo && (
+        <ExchangePanel exchangeInfo={exchangeInfo} />
+      )}
     </Card>
   );
+}
+
+/** Inline panel shown below the item when a return/refund is active. */
+function ReturnRefundPanel({
+  returnInfo,
+}: {
+  returnInfo: NonNullable<ReturnType<typeof extractReturnInfo>>;
+}) {
+  const { status, resolution, refundAmount, refund, createdAt } = returnInfo;
+
+  const isRefundResolution = resolution === "refund";
+  const isCreditResolution = resolution === "store_credit";
+
+  // Timeline steps
+  const step = getReturnStep(status);
+
+  return (
+    <div className="mt-3 pt-3 border-t border-orange-100 space-y-3">
+      {/* Timeline */}
+      <ReturnTimeline step={step} resolution={resolution} />
+
+      {/* Refund detail — shown once return_completed */}
+      {status === "return_completed" && isRefundResolution && refund && (
+        <RefundDetail refund={refund} refundAmount={refundAmount} />
+      )}
+
+      {/* Store credit detail */}
+      {status === "return_completed" && isCreditResolution && (
+        <div className="flex items-center gap-2 text-[10px] text-green-700 bg-green-50 rounded-lg px-3 py-2">
+          <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
+          <span>
+            Store credit of ₹{parseFloat(refundAmount || "0").toFixed(2)} has been issued.
+            Check your email for the coupon code.
+          </span>
+        </div>
+      )}
+
+      {/* Rejection reason */}
+      {status === "return_rejected" && returnInfo.reasonDetails && (
+        <div className="flex items-start gap-2 text-[10px] text-red-600 bg-red-50 rounded-lg px-3 py-2">
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+          <span>Rejected: {returnInfo.reasonDetails}</span>
+        </div>
+      )}
+
+      {/* Request date */}
+      <p className="text-[10px] text-slate-400">
+        Return requested on{" "}
+        {new Date(createdAt).toLocaleDateString("en-IN", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })}
+      </p>
+    </div>
+  );
+}
+
+function getReturnStep(
+  status: string
+): "requested" | "in_progress" | "done" | "rejected" {
+  if (status === "return_requested") return "requested";
+  if (
+    ["return_approved", "return_pickup_scheduled", "return_picked_up",
+     "return_in_transit", "return_received", "return_inspected"].includes(status)
+  )
+    return "in_progress";
+  if (status === "return_completed") return "done";
+  return "rejected";
+}
+
+function ReturnTimeline({
+  step,
+  resolution,
+}: {
+  step: "requested" | "in_progress" | "done" | "rejected";
+  resolution: string;
+}) {
+  const doneLabel =
+    resolution === "refund"
+      ? "Refund Initiated"
+      : resolution === "store_credit"
+      ? "Credit Issued"
+      : "Completed";
+
+  const steps = [
+    { key: "requested",   label: "Return Requested" },
+    { key: "in_progress", label: "Return in Progress" },
+    { key: "done",        label: doneLabel },
+  ];
+
+  const order = ["requested", "in_progress", "done"];
+  const currentIdx = step === "rejected" ? -1 : order.indexOf(step);
+
+  if (step === "rejected") {
+    return (
+      <div className="flex items-center gap-2 text-[10px] text-red-500">
+        <AlertCircle className="w-3.5 h-3.5" />
+        <span className="font-semibold">Return Rejected</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      {steps.map((s, idx) => {
+        const done = idx < currentIdx;
+        const active = idx === currentIdx;
+        return (
+          <div key={s.key} className="flex items-center gap-1 flex-1 min-w-0">
+            <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
+              <div
+                className={`w-4 h-4 rounded-full flex items-center justify-center
+                  ${done || active
+                    ? "bg-orange-500 text-white"
+                    : "bg-slate-200 text-slate-400"
+                  }`}
+              >
+                {done ? (
+                  <CheckCircle className="w-3 h-3" />
+                ) : active ? (
+                  <Clock className="w-3 h-3" />
+                ) : (
+                  <div className="w-1.5 h-1.5 rounded-full bg-current" />
+                )}
+              </div>
+            </div>
+            <span
+              className={`text-[9px] leading-tight truncate
+                ${active ? "text-orange-600 font-semibold" : done ? "text-slate-500" : "text-slate-300"}`}
+            >
+              {s.label}
+            </span>
+            {idx < steps.length - 1 && (
+              <div
+                className={`h-px flex-1 mx-1 ${
+                  done ? "bg-orange-400" : "bg-slate-200"
+                }`}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function RefundDetail({
+  refund,
+  refundAmount,
+}: {
+  refund: {
+    status: string;
+    amount: string;
+    initiatedAt?: string;
+    completedAt?: string;
+    failureReason?: string;
+  };
+  refundAmount?: string;
+}) {
+  const amount = parseFloat(refund.amount || refundAmount || "0").toFixed(2);
+  const { label, className } = getRefundStatusLabel(refund.status);
+
+  if (refund.status === "failed") {
+    return (
+      <div className="flex items-start gap-2 text-[10px] text-red-600 bg-red-50 rounded-lg px-3 py-2">
+        <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+        <div>
+          <p className="font-semibold">Refund Failed</p>
+          {refund.failureReason && (
+            <p className="text-red-500 mt-0.5">{refund.failureReason}</p>
+          )}
+          <p className="text-red-400 mt-0.5">Please contact support.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (refund.status === "completed") {
+    return (
+      <div className="flex items-center gap-2 text-[10px] text-green-700 bg-green-50 rounded-lg px-3 py-2">
+        <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
+        <div>
+          <span className="font-semibold">₹{amount} refunded</span>
+          {refund.completedAt && (
+            <span className="text-green-600 ml-1">
+              on{" "}
+              {new Date(refund.completedAt).toLocaleDateString("en-IN", {
+                day: "numeric",
+                month: "short",
+              })}
+            </span>
+          )}
+          <p className="text-green-600 mt-0.5">
+            Refund has been credited to your original payment method.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // pending / initiated / processing
+  return (
+    <div className="flex items-start gap-2 text-[10px] text-orange-700 bg-orange-50 rounded-lg px-3 py-2">
+      <Clock className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+      <div>
+        <span className={`font-semibold ${className}`}>
+          ₹{amount} — {label}
+        </span>
+        {refund.initiatedAt && (
+          <span className="text-orange-500 ml-1">
+            on{" "}
+            {new Date(refund.initiatedAt).toLocaleDateString("en-IN", {
+              day: "numeric",
+              month: "short",
+            })}
+          </span>
+        )}
+        <p className="text-orange-600 mt-0.5">
+          Expected in your account within 5–7 business days.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** Inline panel shown below the item when an exchange is active. */
+function ExchangePanel({
+  exchangeInfo,
+}: {
+  exchangeInfo: {
+    exchangeId: string;
+    status: string;
+    reason: string;
+    reasonDetails?: string;
+    exchangeOrderId?: string | null;
+    createdAt: string;
+  };
+}) {
+  const { status, exchangeOrderId, createdAt } = exchangeInfo;
+  const step = getExchangeTimelineStep(status);
+
+  const steps = [
+    { key: "requested",   label: "Exchange Requested" },
+    { key: "in_progress", label: "Exchange in Progress" },
+    { key: "shipped",     label: "Replacement Shipped" },
+    { key: "done",        label: "Exchange Completed" },
+  ];
+
+  const order = ["requested", "in_progress", "shipped", "done"];
+  const currentIdx = step === "rejected" ? -1 : order.indexOf(step);
+
+  return (
+    <div className="mt-3 pt-3 border-t border-blue-100 space-y-3">
+      {/* Timeline */}
+      {step === "rejected" ? (
+        <div className="flex items-center gap-2 text-[10px] text-red-500">
+          <AlertCircle className="w-3.5 h-3.5" />
+          <span className="font-semibold">Exchange Cancelled</span>
+        </div>
+      ) : (
+        <div className="flex items-center gap-1">
+          {steps.map((s, idx) => {
+            const done = idx < currentIdx;
+            const active = idx === currentIdx;
+            return (
+              <div key={s.key} className="flex items-center gap-1 flex-1 min-w-0">
+                <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
+                  <div
+                    className={`w-4 h-4 rounded-full flex items-center justify-center
+                      ${done || active
+                        ? "bg-blue-500 text-white"
+                        : "bg-slate-200 text-slate-400"
+                      }`}
+                  >
+                    {done ? (
+                      <CheckCircle className="w-3 h-3" />
+                    ) : active ? (
+                      <Clock className="w-3 h-3" />
+                    ) : (
+                      <div className="w-1.5 h-1.5 rounded-full bg-current" />
+                    )}
+                  </div>
+                </div>
+                <span
+                  className={`text-[9px] leading-tight truncate
+                    ${active ? "text-blue-600 font-semibold" : done ? "text-slate-500" : "text-slate-300"}`}
+                >
+                  {s.label}
+                </span>
+                {idx < steps.length - 1 && (
+                  <div
+                    className={`h-px flex-1 mx-1 ${done ? "bg-blue-400" : "bg-slate-200"}`}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Replacement shipped — show new order ID if available */}
+      {(step === "shipped" || step === "done") && exchangeOrderId && (
+        <div className="flex items-center gap-2 text-[10px] text-blue-700 bg-blue-50 rounded-lg px-3 py-2">
+          <Package className="w-3.5 h-3.5 flex-shrink-0" />
+          <span>
+            Replacement order <span className="font-semibold">#{exchangeOrderId}</span> is on its way.
+          </span>
+        </div>
+      )}
+
+      {step === "done" && (
+        <div className="flex items-center gap-2 text-[10px] text-green-700 bg-green-50 rounded-lg px-3 py-2">
+          <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
+          <span className="font-semibold">Exchange completed. Enjoy your new item!</span>
+        </div>
+      )}
+
+      {/* Request date */}
+      <p className="text-[10px] text-slate-400">
+        Exchange requested on{" "}
+        {new Date(createdAt).toLocaleDateString("en-IN", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })}
+      </p>
+    </div>
+  );
+}
+
+// Helper to satisfy TypeScript for the panel prop type
+function extractReturnInfo(item: any) {
+  return item.returnInfo as {
+    returnRequestId: string;
+    status: string;
+    resolution: string;
+    reason: string;
+    reasonDetails?: string;
+    refundAmount?: string;
+    createdAt: string;
+    updatedAt: string;
+    refund?: {
+      id: string;
+      status: string;
+      amount: string;
+      initiatedAt?: string;
+      completedAt?: string;
+      failureReason?: string;
+    } | null;
+  } | undefined;
 }

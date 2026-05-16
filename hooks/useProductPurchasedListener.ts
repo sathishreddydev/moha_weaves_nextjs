@@ -20,6 +20,14 @@ interface ExchangeStatusPayload {
   status: string;
 }
 
+/** Shared shape for return/exchange created events */
+interface ReturnExchangeCreatedPayload {
+  orderId: string;
+  itemId: string | null;
+  userId: string;
+  status: string;
+}
+
 /**
  * Joins the Socket.IO product room for `productId` and calls `onAffected`
  * whenever a `product_purchased` event arrives that matches the given
@@ -299,4 +307,81 @@ export function useExchangeStatusListener(
       socket.off("exchange_status_updated", handler);
     };
   }, [socket, exchangeId, onStatusChange]);
+}
+
+// ---------------------------------------------------------------------------
+// Return / Exchange CREATED listeners
+// ---------------------------------------------------------------------------
+
+/**
+ * Normalises the raw socket payload for product_returned / product_exchanged events.
+ * Server emits: { type, data: { orderId, itemId, userId, status } }
+ */
+function extractReturnExchangeCreatedPayload(
+  raw: unknown,
+): ReturnExchangeCreatedPayload | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as any;
+  const d = r.data ?? r;
+  const { orderId, itemId, userId, status } = d;
+  if (!orderId || !userId || !status) return null;
+  return { orderId, itemId: itemId ?? null, userId, status };
+}
+
+/**
+ * Listens for `product_returned` (return request created) and calls
+ * `onCreated` with `{ orderId, itemId, userId, status }`.
+ *
+ * Pass `orderId = null` to receive events for all orders (e.g. on a list page).
+ */
+export function useReturnCreatedListener(
+  orderId: string | null | undefined,
+  onCreated: (payload: ReturnExchangeCreatedPayload) => void,
+) {
+  const { socket } = useSocketStore();
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handler = (raw: unknown) => {
+      const payload = extractReturnExchangeCreatedPayload(raw);
+      if (!payload) return;
+      if (orderId && payload.orderId !== orderId) return;
+      onCreated(payload);
+    };
+
+    socket.on("product_returned", handler);
+    return () => {
+      socket.off("product_returned", handler);
+    };
+  }, [socket, orderId, onCreated]);
+}
+
+/**
+ * Listens for `product_exchanged` (exchange request created) and calls
+ * `onCreated` with `{ orderId, itemId, userId, status }`.
+ *
+ * Pass `orderId = null` to receive events for all orders (e.g. on a list page).
+ */
+export function useExchangeCreatedListener(
+  orderId: string | null | undefined,
+  onCreated: (payload: ReturnExchangeCreatedPayload) => void,
+) {
+  const { socket } = useSocketStore();
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handler = (raw: unknown) => {
+      const payload = extractReturnExchangeCreatedPayload(raw);
+      if (!payload) return;
+      if (orderId && payload.orderId !== orderId) return;
+      onCreated(payload);
+    };
+
+    socket.on("product_exchanged", handler);
+    return () => {
+      socket.off("product_exchanged", handler);
+    };
+  }, [socket, orderId, onCreated]);
 }

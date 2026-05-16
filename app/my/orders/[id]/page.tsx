@@ -9,7 +9,13 @@ import LiveChat from "@/components/user/LiveChat";
 import { OrderItem } from "@/components/user/OrderItem";
 import ProfileSidebar from "@/components/user/ProfileSidebar";
 import ShippingAddress from "@/components/user/shippingAddress";
-import { useOrderItemStatusListenerDetail } from "@/hooks/useProductPurchasedListener";
+import {
+  useOrderItemStatusListenerDetail,
+  useReturnCreatedListener,
+  useExchangeCreatedListener,
+  useReturnStatusListener,
+  useExchangeStatusListener,
+} from "@/hooks/useProductPurchasedListener";
 import {
   OrderWithItems,
   ShippingAddress as ShippingAddressType,
@@ -23,7 +29,7 @@ import {
   ReceiptText,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export default function OrderDetailsPage() {
   const params = useParams();
@@ -51,7 +57,8 @@ export default function OrderDetailsPage() {
     setOrderId(id);
   }, [params]);
 
-  const fetchOrderDetails = async () => {
+  const fetchOrderDetails = useCallback(async () => {
+    if (!orderId) return;
     try {
       setLoading(true);
       setError(null);
@@ -71,16 +78,56 @@ export default function OrderDetailsPage() {
       );
       setLoading(false);
     }
-  };
+  }, [orderId]);
 
   useEffect(() => {
     if (orderId) {
       fetchOrderDetails();
     }
-  }, [orderId]);
+  }, [orderId, fetchOrderDetails]);
 
   // Directly patch item status in state — no refetch needed
   useOrderItemStatusListenerDetail(orderId, setOrder);
+
+  // Return created → refetch so returnInfo panel appears immediately
+  useReturnCreatedListener(orderId, fetchOrderDetails);
+
+  // Exchange created → refetch so exchangeInfo panel appears immediately
+  useExchangeCreatedListener(orderId, fetchOrderDetails);
+
+  // Return status updated → patch returnInfo.status in state directly (no refetch)
+  const handleReturnStatusChange = useCallback(({ status }: { status: string }) => {
+    setOrder((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        items: prev.items.map((item: any) =>
+          item.returnInfo
+            ? { ...item, returnInfo: { ...item.returnInfo, status } }
+            : item,
+        ),
+      };
+    });
+  }, []);
+
+  useReturnStatusListener(null, handleReturnStatusChange);
+
+  // Exchange status updated → patch exchangeInfo.status in state directly (no refetch)
+  const handleExchangeStatusChange = useCallback(({ status }: { status: string }) => {
+    setOrder((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        items: prev.items.map((item: any) =>
+          item.exchangeInfo
+            ? { ...item, exchangeInfo: { ...item.exchangeInfo, status } }
+            : item,
+        ),
+      };
+    });
+  }, []);
+
+  useExchangeStatusListener(null, handleExchangeStatusChange);
 
   const downloadInvoice = async () => {
     try {

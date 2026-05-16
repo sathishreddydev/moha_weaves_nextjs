@@ -470,6 +470,31 @@ export class ReturnStorage implements IReturnStorage {
         const now = new Date();
 
         return order.items.map((item: any) => {
+            const currentStatus: string = item.currentStatus || item.status || "";
+
+            // If item is already in a return or exchange flow, it's not eligible for a new return
+            if (currentStatus.startsWith("return_")) {
+                return {
+                    itemId: item.id,
+                    eligible: false,
+                    reason: "Return already in progress",
+                };
+            }
+            if (currentStatus.startsWith("exchange_")) {
+                return {
+                    itemId: item.id,
+                    eligible: false,
+                    reason: "Exchange already in progress",
+                };
+            }
+            if (currentStatus !== "delivered") {
+                return {
+                    itemId: item.id,
+                    eligible: false,
+                    reason: "Item must be delivered before return",
+                };
+            }
+
             if (!item.deliveredAt) {
                 return {
                     itemId: item.id,
