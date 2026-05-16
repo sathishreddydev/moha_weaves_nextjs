@@ -15,6 +15,7 @@ import {
   useExchangeCreatedListener,
   useReturnStatusListener,
   useExchangeStatusListener,
+  useRefundStatusListener,
 } from "@/hooks/useProductPurchasedListener";
 import {
   OrderWithItems,
@@ -128,6 +129,46 @@ export default function OrderDetailsPage() {
   }, []);
 
   useExchangeStatusListener(null, handleExchangeStatusChange);
+
+  // Refund status updated → patch returnInfo.refund in state directly (no refetch)
+  const handleRefundStatusChange = useCallback(
+    ({ orderId: oid, status, amount, failureReason, completedAt, initiatedAt }: {
+      orderId: string;
+      status: string;
+      amount: string;
+      failureReason?: string;
+      completedAt?: string;
+      initiatedAt?: string;
+    }) => {
+      if (orderId && oid !== orderId) return;
+      setOrder((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          items: prev.items.map((item: any) => {
+            if (!item.returnInfo?.refund) return item;
+            return {
+              ...item,
+              returnInfo: {
+                ...item.returnInfo,
+                refund: {
+                  ...item.returnInfo.refund,
+                  status,
+                  amount: amount ?? item.returnInfo.refund.amount,
+                  ...(failureReason !== undefined && { failureReason }),
+                  ...(completedAt !== undefined && { completedAt }),
+                  ...(initiatedAt !== undefined && { initiatedAt }),
+                },
+              },
+            };
+          }),
+        };
+      });
+    },
+    [orderId],
+  );
+
+  useRefundStatusListener(orderId, handleRefundStatusChange);
 
   const downloadInvoice = async () => {
     try {

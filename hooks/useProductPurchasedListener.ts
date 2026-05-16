@@ -20,6 +20,17 @@ interface ExchangeStatusPayload {
   status: string;
 }
 
+interface RefundStatusPayload {
+  refundId: string;
+  userId: string;
+  orderId: string;
+  status: string;
+  amount: string;
+  failureReason?: string;
+  completedAt?: string;
+  initiatedAt?: string;
+}
+
 /** Shared shape for return/exchange created events */
 interface ReturnExchangeCreatedPayload {
   orderId: string;
@@ -384,4 +395,56 @@ export function useExchangeCreatedListener(
       socket.off("product_exchanged", handler);
     };
   }, [socket, orderId, onCreated]);
+}
+
+// ---------------------------------------------------------------------------
+// Refund status listener
+// ---------------------------------------------------------------------------
+
+function extractRefundStatusPayload(raw: unknown): RefundStatusPayload | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as any;
+  const d = r.data ?? r;
+  const { refundId, userId, orderId, status, amount } = d;
+  if (!refundId || !status) return null;
+  return {
+    refundId,
+    userId,
+    orderId,
+    status,
+    amount,
+    failureReason: d.failureReason,
+    completedAt: d.completedAt,
+    initiatedAt: d.initiatedAt,
+  };
+}
+
+/**
+ * Listens for `refund_status_updated` and calls `onStatusChange` whenever
+ * the server pushes a refund update.
+ *
+ * Pass `orderId = null` to receive events for all orders (e.g. list page).
+ * The callback receives the full refund payload so the UI can patch in-place.
+ */
+export function useRefundStatusListener(
+  orderId: string | null | undefined,
+  onStatusChange: (payload: RefundStatusPayload) => void,
+) {
+  const { socket } = useSocketStore();
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handler = (raw: unknown) => {
+      const payload = extractRefundStatusPayload(raw);
+      if (!payload) return;
+      if (orderId && payload.orderId !== orderId) return;
+      onStatusChange(payload);
+    };
+
+    socket.on("refund_status_updated", handler);
+    return () => {
+      socket.off("refund_status_updated", handler);
+    };
+  }, [socket, orderId, onStatusChange]);
 }
