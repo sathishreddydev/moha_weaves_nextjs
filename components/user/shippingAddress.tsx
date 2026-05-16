@@ -100,7 +100,18 @@ const ShippingAddress = ({ address }: { address: string | any }) => {
         }`}
       >
         {addressData.name && addressData.name !== "No address" 
-          ? `${addressData.name}\n${addressData.address || ""}${addressData.locality ? `\n${addressData.locality}` : ""}${addressData.city ? `\n${addressData.city}` : ""}${addressData.pincode ? `\n${addressData.pincode}` : ""}${addressData.phone ? `\nPhone: ${addressData.phone}` : ""}`.replace(/\n+/g, '\n').trim()
+          ? [
+              addressData.name,
+              addressData.addressLine1,
+              addressData.address || addressData.locality,
+              addressData.city && addressData.state
+                ? `${addressData.city}, ${addressData.state}`
+                : addressData.city,
+              addressData.pincode,
+              addressData.phone ? `Phone: ${addressData.phone}` : null,
+            ]
+              .filter(Boolean)
+              .join("\n")
           : "No address details available"}
       </div>
     </div>

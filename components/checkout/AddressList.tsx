@@ -82,8 +82,10 @@ export default function AddressList({
                   </div>
                   <div className="space-y-1 text-sm text-gray-600">
                     <p className="flex items-center gap-1">
-                      <MapPin className="h-3 w-3" />
-                      {address.locality}, {address.city} - {address.pincode}
+                      <MapPin className="h-3 w-3 flex-shrink-0" />
+                      {address.addressLine1 ? `${address.addressLine1}, ` : ""}
+                      {address.locality}, {address.city}
+                      {address.state ? `, ${address.state}` : ""} — {address.pincode}
                     </p>
                     <p className="flex items-center gap-1">
                       <span className="font-medium">Phone:</span> {address.phone}
