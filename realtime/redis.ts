@@ -1,5 +1,18 @@
 import Redis from "ioredis";
 
-export const pub = new Redis(process.env.REDIS_URL!)
+if (!process.env.REDIS_URL) {
+  throw new Error("REDIS_URL environment variable is not set");
+}
 
-export const sub = new Redis(process.env.REDIS_URL!)
+// Single shared Redis client for pub/sub publishing
+const redis = new Redis(process.env.REDIS_URL);
+
+redis.on("connect", () => {
+  console.log("✅ Redis connected");
+});
+
+redis.on("error", (err) => {
+  console.error("❌ Redis error:", err);
+});
+
+export default redis;

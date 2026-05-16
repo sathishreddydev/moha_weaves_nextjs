@@ -9,7 +9,7 @@ class SocketService {
 
   constructor() {
     this.socketUrl =
-      process.env.ADMIN_PUBLIC_SOCKET_URL ||
+      process.env.NEXT_PUBLIC_SOCKET_URL ||
       "http://localhost:5000";
   }
 
