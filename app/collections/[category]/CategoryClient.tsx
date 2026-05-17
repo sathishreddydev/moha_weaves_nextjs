@@ -5,7 +5,6 @@ import ProductCard from "@/components/products/ProductCard";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
-  DrawerClose,
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
@@ -19,19 +18,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import CategoryFilterSections from "@/components/filters/CategoryFilterSections";
-import {
-  CategoryWithSubcategories,
-  Color,
-  Fabric,
-  ProductWithDetails,
-} from "@/shared";
-import { FilterIcon, X } from "lucide-react";
+import ActiveFilterBadges from "@/components/filters/ActiveFilterBadges";
+import { CategoryWithSubcategories, ProductWithDetails } from "@/shared";
+import { FilterIcon, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useState, useEffect } from "react";
 import { useWishlistStore } from "@/lib/stores/wishlistStore";
 import { useFilterStore } from "@/lib/stores/fillterStore";
 import { getProductUrl } from "@/lib/utils/productUrl";
 import { useSocketStore } from "@/lib/stores/socketStore";
+
+const PAGE_SIZE = 20;
 
 interface CategoryClientProps {
   categoryName: string;
@@ -49,23 +46,11 @@ export default function CategoryClient({
   const router = useRouter();
   const { socket } = useSocketStore();
 
-  // Filter store
-  const { categories, colors, fabrics, loading: filtersLoading, error: filtersError, fetchFilters } = useFilterStore();
+  const { categories, colors, fabrics } = useFilterStore();
+  const { fetchWishlist, addToWishlist, removeFromWishlist, isInWishlist } = useWishlistStore();
 
-  // Wishlist store
-  const {
-    fetchWishlist,
-    addToWishlist,
-    removeFromWishlist,
-    isInWishlist,
-    updating,
-  } = useWishlistStore();
+  useEffect(() => { fetchWishlist(); }, []);
 
-  useEffect(() => {
-    fetchWishlist();
-  }, []); // Empty dependency array since fetchWishlist is stable
-
-  // Refresh product list when admin adds/updates/deletes a product
   useEffect(() => {
     if (!socket) return;
     const handleProductEvent = () => router.refresh();
@@ -73,151 +58,94 @@ export default function CategoryClient({
     return () => { socket.off("product_event", handleProductEvent); };
   }, [socket, router]);
 
-  // State management
+  // ── State ──────────────────────────────────────────────────────────────────
   const [showFilters, setShowFilters] = useState(false);
-  const [currentPage, setCurrentPage] = useState(
-    Math.floor((initialFilters.offset || 0) / 20) + 1,
-  );
+  const [currentFilters, setCurrentFilters] = useState<ProductFilters>(initialFilters);
+  const [displayedProducts, setDisplayedProducts] = useState<ProductWithDetails[]>(initialProducts || []);
+  const [totalCount, setTotalCount] = useState(initialCount || 0);
+  const [offset, setOffset] = useState(initialProducts?.length || 0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isApplyingFilters, setIsApplyingFilters] = useState(false);
-  const [currentFilters, setCurrentFilters] =
-    useState<ProductFilters>(initialFilters);
 
-  const products = initialProducts || [];
-  const productsCount = initialCount || 0;
+  // Reset when server re-renders with new filter results
+  useEffect(() => {
+    setDisplayedProducts(initialProducts || []);
+    setTotalCount(initialCount || 0);
+    setOffset(initialProducts?.length || 0);
+  }, [initialProducts, initialCount]);
 
-  // Get current category and its subcategories
-  const getCurrentCategory =
-    useCallback((): CategoryWithSubcategories | null => {
-      return (
-        categories.find(
-          (cat) => cat.name.toLowerCase() === categoryName.toLowerCase(),
-        ) || null
-      );
-    }, [categories, categoryName]);
-
-  const currentCategory = getCurrentCategory();
+  // ── Category / subcategories ───────────────────────────────────────────────
+  const currentCategory = categories.find(
+    (cat) => cat.name.toLowerCase() === categoryName.toLowerCase(),
+  ) as CategoryWithSubcategories | null ?? null;
   const currentSubcategories = currentCategory?.subcategories || [];
 
-  // Note: We no longer need to initialize filters from URL since they come from server props
-
-  // Update URL without triggering fetch
+  // ── URL sync ───────────────────────────────────────────────────────────────
   const updateURL = useCallback(
     (filters: ProductFilters) => {
       const params = new URLSearchParams();
-      // Don't include categories in URL since we're already on the category route
-      if (filters.subcategories?.length) {
-        params.set("subcategories", filters.subcategories.join(","));
-      }
-      if (filters.colors?.length) {
-        params.set("colors", filters.colors.join(","));
-      }
-      if (filters.fabrics?.length) {
-        params.set("fabrics", filters.fabrics.join(","));
-      }
-      if (filters.minPrice || filters.maxPrice) {
-        params.set(
-          "price",
-          `${filters.minPrice || 100}-${filters.maxPrice || 50000}`,
-        );
-      }
-      if (filters.search) {
-        params.set("search", filters.search);
-      }
-      if (filters.sort && filters.sort !== "newest") {
-        params.set("sort", filters.sort);
-      }
-      if (filters.featured) {
-        params.set("featured", "true");
-      }
-      if (filters.onSale) {
-        params.set("onSale", "true");
-      }
-
-      const queryString = params.toString();
-      const newUrl = queryString
-        ? `/collections/${categoryName}?${queryString}`
-        : `/collections/${categoryName}`;
-      router.push(newUrl, { scroll: false });
+      if (filters.subcategories?.length) params.set("subcategories", filters.subcategories.join(","));
+      if (filters.colors?.length) params.set("colors", filters.colors.join(","));
+      if (filters.fabrics?.length) params.set("fabrics", filters.fabrics.join(","));
+      if (filters.minPrice || filters.maxPrice)
+        params.set("price", `${filters.minPrice || 100}-${filters.maxPrice || 50000}`);
+      if (filters.search) params.set("search", filters.search);
+      if (filters.sort && filters.sort !== "newest") params.set("sort", filters.sort);
+      if (filters.featured) params.set("featured", "true");
+      if (filters.onSale) params.set("onSale", "true");
+      const qs = params.toString();
+      router.push(qs ? `/collections/${categoryName}?${qs}` : `/collections/${categoryName}`, { scroll: false });
     },
     [router, categoryName],
   );
 
-  // Handle filter changes
+  // ── Filter handlers ────────────────────────────────────────────────────────
   const handleFilterChange = useCallback(
     (newFilters: Partial<ProductFilters>) => {
       setIsApplyingFilters(true);
-      const updatedFilters = {
-        ...currentFilters,
-        ...newFilters,
-        offset: 0, // Reset to first page when filters change
-      };
-      
-            
-      setCurrentFilters(updatedFilters);
-      setCurrentPage(1); // Reset page state
-      updateURL(updatedFilters);
-
-      // Remove loading state after a short delay for UX
+      const updated = { ...currentFilters, ...newFilters, offset: 0 };
+      setCurrentFilters(updated);
+      updateURL(updated);
       setTimeout(() => setIsApplyingFilters(false), 500);
     },
     [currentFilters, updateURL],
   );
 
-  // Handle sort change
   const handleSortChange = useCallback(
-    (sort: string) => {
-      handleFilterChange({ sort });
-    },
+    (sort: string) => handleFilterChange({ sort }),
     [handleFilterChange],
   );
 
-  // Handle quick view
-  const handleQuickView = useCallback(
-    (product: ProductWithDetails) => {
-      router.push(getProductUrl(product));
-    },
-    [router],
-  );
-
-  // Handle color filter
-  const handleColorChange = useCallback(
-    (color: string, checked: boolean) => {
-      const currentColors = currentFilters.colors || [];
-      const newColors = checked
-        ? [...currentColors, color.toLowerCase()]
-        : currentColors.filter((c: string) => c !== color.toLowerCase());
-      handleFilterChange({ colors: newColors });
-    },
-    [currentFilters, handleFilterChange],
-  );
-
-  // Handle fabric filter
-  const handleFabricChange = useCallback(
-    (fabric: string, checked: boolean) => {
-      const currentFabrics = currentFilters.fabrics || [];
-      const newFabrics = checked
-        ? [...currentFabrics, fabric.toLowerCase()]
-        : currentFabrics.filter((c: string) => c !== fabric.toLowerCase());
-      handleFilterChange({ fabrics: newFabrics });
-    },
-    [currentFilters, handleFilterChange],
-  );
-
-  // Handle subcategory filter
   const handleSubcategoryChange = useCallback(
     (subcategory: string, checked: boolean) => {
-      const currentSubcategories = currentFilters.subcategories || [];
-      const newSubcategories = checked
-        ? [...currentSubcategories, subcategory.toLowerCase()]
-        : currentSubcategories.filter(
-            (c: string) => c !== subcategory.toLowerCase(),
-          );
-      handleFilterChange({ subcategories: newSubcategories });
+      const next = checked
+        ? [...(currentFilters.subcategories || []), subcategory.toLowerCase()]
+        : (currentFilters.subcategories || []).filter((c) => c !== subcategory.toLowerCase());
+      handleFilterChange({ subcategories: next });
     },
     [currentFilters, handleFilterChange],
   );
 
-  // Handle toggle filters
+  const handleColorChange = useCallback(
+    (color: string, checked: boolean) => {
+      const next = checked
+        ? [...(currentFilters.colors || []), color.toLowerCase()]
+        : (currentFilters.colors || []).filter((c) => c !== color.toLowerCase());
+      handleFilterChange({ colors: next });
+    },
+    [currentFilters, handleFilterChange],
+  );
+
+  const handleFabricChange = useCallback(
+    (fabric: string, checked: boolean) => {
+      const next = checked
+        ? [...(currentFilters.fabrics || []), fabric.toLowerCase()]
+        : (currentFilters.fabrics || []).filter((c) => c !== fabric.toLowerCase());
+      handleFilterChange({ fabrics: next });
+    },
+    [currentFilters, handleFilterChange],
+  );
+
   const handleToggleFilter = useCallback(
     (filterType: "featured" | "onSale", checked: boolean) => {
       handleFilterChange({ [filterType]: checked });
@@ -225,21 +153,19 @@ export default function CategoryClient({
     [handleFilterChange],
   );
 
-  // Handle price range filter
   const handlePriceRangeChange = useCallback(
     (priceRange: [number, number]) => {
-      handleFilterChange({ 
+      handleFilterChange({
         minPrice: priceRange[0] === 100 ? undefined : priceRange[0],
-        maxPrice: priceRange[1] === 50000 ? undefined : priceRange[1]
+        maxPrice: priceRange[1] === 50000 ? undefined : priceRange[1],
       });
     },
     [handleFilterChange],
   );
 
-  // Handle clear all filters
   const handleClearAllFilters = useCallback(() => {
     setIsApplyingFilters(true);
-    const clearedFilters: ProductFilters = {
+    const cleared: ProductFilters = {
       ...initialFilters,
       subcategories: [],
       colors: [],
@@ -252,39 +178,71 @@ export default function CategoryClient({
       onSale: undefined,
       offset: 0,
     };
-    setCurrentFilters(clearedFilters);
-    setCurrentPage(1); // Reset page
-    updateURL(clearedFilters);
+    setCurrentFilters(cleared);
+    updateURL(cleared);
     setTimeout(() => setIsApplyingFilters(false), 500);
   }, [updateURL, initialFilters]);
 
-  // Handle pagination
-  const handlePageChange = useCallback(
-    (page: number) => {
-      setIsApplyingFilters(true);
-      setCurrentPage(page);
-      const updatedFilters = {
-        ...currentFilters,
-        offset: (page - 1) * 20,
-      };
-      setCurrentFilters(updatedFilters);
-      updateURL(updatedFilters);
-      setTimeout(() => setIsApplyingFilters(false), 500);
-    },
-    [currentFilters, updateURL],
+  // ── Load More ──────────────────────────────────────────────────────────────
+  const handleLoadMore = useCallback(async () => {
+    if (isLoadingMore) return;
+    setIsLoadingMore(true);
+    try {
+      const params = new URLSearchParams();
+      params.set("categories", categoryName);
+      if (currentFilters.subcategories?.length) params.set("subcategories", currentFilters.subcategories.join(","));
+      if (currentFilters.colors?.length) params.set("colors", currentFilters.colors.join(","));
+      if (currentFilters.fabrics?.length) params.set("fabrics", currentFilters.fabrics.join(","));
+      if (currentFilters.minPrice) params.set("minPrice", String(currentFilters.minPrice));
+      if (currentFilters.maxPrice) params.set("maxPrice", String(currentFilters.maxPrice));
+      if (currentFilters.search) params.set("search", currentFilters.search);
+      if (currentFilters.sort) params.set("sort", currentFilters.sort);
+      if (currentFilters.featured) params.set("featured", "true");
+      if (currentFilters.onSale) params.set("onSale", "true");
+      params.set("distributionChannel", "online");
+      params.set("limit", String(PAGE_SIZE));
+      params.set("offset", String(offset));
+
+      const res = await fetch(`/api/products?${params.toString()}`);
+      const data = await res.json();
+      if (data.success && data.data?.length) {
+        setDisplayedProducts((prev) => [...prev, ...data.data]);
+        setOffset((prev) => prev + data.data.length);
+      }
+    } catch {
+      // silently fail — user can retry
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [isLoadingMore, currentFilters, offset, categoryName]);
+
+  // ── Wishlist ───────────────────────────────────────────────────────────────
+  const handleQuickView = useCallback(
+    (product: ProductWithDetails) => router.push(getProductUrl(product)),
+    [router],
   );
 
-  // Handle wishlist toggle
   const handleWishlistToggle = useCallback(
     async (product: ProductWithDetails) => {
-      if (isInWishlist(product.id)) {
-        await removeFromWishlist(product.id);
-      } else {
-        await addToWishlist(product.id);
-      }
+      if (isInWishlist(product.id)) await removeFromWishlist(product.id);
+      else await addToWishlist(product.id);
     },
     [isInWishlist, removeFromWishlist, addToWishlist],
   );
+
+  const hasMore = displayedProducts.length < totalCount;
+
+  // ── Active filter badges ───────────────────────────────────────────────────
+  const activeBadges = [
+    ...(currentFilters.subcategories || []).map((s) => ({ label: s, onRemove: () => handleSubcategoryChange(s, false) })),
+    ...(currentFilters.colors || []).map((c) => ({ label: c, onRemove: () => handleColorChange(c, false) })),
+    ...(currentFilters.fabrics || []).map((f) => ({ label: f, onRemove: () => handleFabricChange(f, false) })),
+    ...(currentFilters.minPrice || currentFilters.maxPrice
+      ? [{ label: `₹${currentFilters.minPrice ?? 100} – ₹${currentFilters.maxPrice ?? 50000}`, onRemove: () => handleFilterChange({ minPrice: undefined, maxPrice: undefined }) }]
+      : []),
+    ...(currentFilters.featured ? [{ label: "Featured", onRemove: () => handleToggleFilter("featured", false) }] : []),
+    ...(currentFilters.onSale ? [{ label: "On Sale", onRemove: () => handleToggleFilter("onSale", false) }] : []),
+  ];
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -293,21 +251,19 @@ export default function CategoryClient({
         <aside className="hidden lg:block w-64 flex-shrink-0">
           <div className="sticky top-24 space-y-6">
             <h1 className="text-xl font-light text-gray-900 uppercase tracking-[0.1em]">
-              {currentCategory?.name ||
-                categoryName.charAt(0).toUpperCase() + categoryName.slice(1)}
+              {currentCategory?.name || categoryName.charAt(0).toUpperCase() + categoryName.slice(1)}
             </h1>
             <div className="bg-white rounded-lg shadow-sm p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-900">Filters</h3>
                 <Button
-                  variant={"link"}
+                  variant="link"
                   onClick={handleClearAllFilters}
                   className="text-sm text-blue-600 hover:text-blue-800 font-medium"
                 >
                   Clear All
                 </Button>
               </div>
-
               <CategoryFilterSections
                 categoryName={categoryName}
                 currentCategory={currentCategory}
@@ -327,47 +283,42 @@ export default function CategoryClient({
 
         <div className="flex-1">
           <h1 className="lg:hidden text-xl font-light text-gray-900 uppercase tracking-[0.1em]">
-            {currentCategory?.name ||
-              categoryName.charAt(0).toUpperCase() + categoryName.slice(1)}
+            {currentCategory?.name || categoryName.charAt(0).toUpperCase() + categoryName.slice(1)}
           </h1>
+
+          {/* Sort + Mobile Filter */}
           <div className="flex justify-end items-center gap-4">
             <Select onValueChange={handleSortChange} defaultValue="newest">
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[120px] h-8 text-xs sm:w-[180px] sm:h-10 sm:text-sm">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="newest">Newest First</SelectItem>
-                <SelectItem value="price-low">Price: Low to High</SelectItem>
-                <SelectItem value="price-high">Price: High to Low</SelectItem>
-                <SelectItem value="name">Name: A to Z</SelectItem>
+                <SelectItem value="newest" className="text-xs sm:text-sm">Newest First</SelectItem>
+                <SelectItem value="price-low" className="text-xs sm:text-sm">Price: Low to High</SelectItem>
+                <SelectItem value="price-high" className="text-xs sm:text-sm">Price: High to Low</SelectItem>
+                <SelectItem value="name" className="text-xs sm:text-sm">Name: A to Z</SelectItem>
               </SelectContent>
             </Select>
-            {/* Mobile Filter Toggle */}
             <Drawer open={showFilters} onOpenChange={setShowFilters}>
               <DrawerTrigger asChild>
-                <Button
-                  variant="link"
-                  className="sm:hidden p-2 border border-gray-300 rounded-lg"
-                >
+                <Button variant="link" className="sm:hidden h-8 sm:h-10 px-2 border border-gray-300 rounded-lg">
                   <FilterIcon className="h-4 w-4" />
                 </Button>
               </DrawerTrigger>
-              <DrawerContent className="h-[85vh]">
-                <DrawerHeader>
+              <DrawerContent className="h-[85vh] flex flex-col">
+                <DrawerHeader className="flex-shrink-0 border-b border-gray-100">
                   <div className="flex items-center justify-between">
                     <DrawerTitle className="text-left">Filters</DrawerTitle>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="link"
-                        onClick={handleClearAllFilters}
-                        className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                      >
-                        Clear All
-                      </Button>
-                    </div>
+                    <Button
+                      variant="link"
+                      onClick={handleClearAllFilters}
+                      className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      Clear All
+                    </Button>
                   </div>
                 </DrawerHeader>
-                <div className="px-6 pb-6 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto px-6 py-4">
                   <CategoryFilterSections
                     categoryName={categoryName}
                     currentCategory={currentCategory}
@@ -382,22 +333,27 @@ export default function CategoryClient({
                     onPriceRangeChange={handlePriceRangeChange}
                   />
                 </div>
+                <div className="flex-shrink-0 px-6 py-4 border-t border-gray-100 bg-white">
+                  <Button className="w-full" onClick={() => setShowFilters(false)}>
+                    Apply Filters
+                  </Button>
+                </div>
               </DrawerContent>
             </Drawer>
           </div>
 
-          {products.length === 0 ? (
+          {/* Active Filter Badges - Mobile only */}
+          <ActiveFilterBadges filters={activeBadges} onClearAll={handleClearAllFilters} />
+
+          {/* Products */}
+          {displayedProducts.length === 0 ? (
             <div className="text-center py-12">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No products found
-              </h3>
-              <p className="text-gray-600">
-                Try adjusting your filters or search terms
-              </p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
+              <p className="text-gray-600">Try adjusting your filters or search terms</p>
             </div>
           ) : (
             <div className="grid gap-6 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 pt-6">
-              {products.map((product) => (
+              {displayedProducts.map((product) => (
                 <ProductCard
                   key={product.id}
                   product={product}
@@ -411,67 +367,24 @@ export default function CategoryClient({
             </div>
           )}
 
-          {/* Pagination */}
-          {productsCount > 20 && (
-            <div className="mt-8 flex items-center justify-center">
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1 || isApplyingFilters}
-                >
-                  Previous
-                </Button>
-
-                <div className="flex items-center gap-1">
-                  {Array.from({
-                    length: Math.min(5, Math.ceil(productsCount / 20)),
-                  }).map((_, index) => {
-                    const pageNumber = index + 1;
-                    const isActive = pageNumber === currentPage;
-                    return (
-                      <Button
-                        key={pageNumber}
-                        variant={isActive ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handlePageChange(pageNumber)}
-                        disabled={isApplyingFilters}
-                      >
-                        {pageNumber}
-                      </Button>
-                    );
-                  })}
-
-                  {Math.ceil(productsCount / 20) > 5 && (
-                    <>
-                      <span className="px-2 text-gray-500">...</span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          handlePageChange(Math.ceil(productsCount / 20))
-                        }
-                        disabled={isApplyingFilters}
-                      >
-                        {Math.ceil(productsCount / 20)}
-                      </Button>
-                    </>
-                  )}
-                </div>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={
-                    currentPage >= Math.ceil(productsCount / 20) ||
-                    isApplyingFilters
-                  }
-                >
-                  Next
-                </Button>
-              </div>
+          {/* Load More */}
+          {hasMore && (
+            <div className="mt-10 flex justify-center">
+              <Button
+                variant="outline"
+                onClick={handleLoadMore}
+                disabled={isLoadingMore}
+                className="min-w-[200px]"
+              >
+                {isLoadingMore ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  `Load More (${totalCount - displayedProducts.length} remaining)`
+                )}
+              </Button>
             </div>
           )}
         </div>

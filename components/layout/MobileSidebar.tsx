@@ -13,6 +13,7 @@ import { ProductWithDetails } from "@/shared";
 import { ProductService } from "@/lib/services/productService";
 import { X, Search, User, Heart, ShoppingBag, HelpCircle } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React, {
   useEffect,
   useRef,
@@ -123,9 +124,11 @@ export default function MobileSidebar({
   onClose,
   onLinkClick,
 }: MobileSidebarProps) {
+  const router = useRouter();
   const { categories, loading } = useFilterStore();
   const [newProducts, setNewProducts] = useState<ProductWithDetails[]>([]);
   const [newProductsLoading, setNewProductsLoading] = useState(false);
+  const [mobileSearch, setMobileSearch] = useState("");
 
   // Fetch new products using ProductService
   const fetchNewProducts = useCallback(async () => {
@@ -148,6 +151,18 @@ export default function MobileSidebar({
       onClose();
     }
   }, [onLinkClick, onClose]);
+
+  const handleMobileSearch = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      if (mobileSearch.trim()) {
+        onClose();
+        router.push(`/collections?search=${encodeURIComponent(mobileSearch.trim())}`);
+        setMobileSearch("");
+      }
+    },
+    [mobileSearch, router, onClose],
+  );
 
   // Fetch new products when sidebar opens
   useEffect(() => {
@@ -188,7 +203,30 @@ export default function MobileSidebar({
             </SheetClose>
           </SheetHeader>
 
-          {/* Main Content */}
+          {/* Mobile Search Bar */}
+          <form onSubmit={handleMobileSearch} className="px-4 pt-3 pb-1">
+            <div className="flex items-center gap-2 bg-gray-100 rounded-full px-4 py-2">
+              <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <input
+                type="text"
+                value={mobileSearch}
+                onChange={(e) => setMobileSearch(e.target.value)}
+                placeholder="Search products..."
+                className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none"
+                aria-label="Search products"
+              />
+              {mobileSearch && (
+                <button
+                  type="button"
+                  onClick={() => setMobileSearch("")}
+                  className="text-gray-400 hover:text-gray-600"
+                  aria-label="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </form>
           <main className="px-4 py-4">
             {/* Collections Section */}
             <section aria-labelledby="collections-title">

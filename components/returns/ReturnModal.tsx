@@ -51,6 +51,7 @@ export default function ReturnModal({
   const [loading, setLoading] = useState(false);
   const [reason, setReason] = useState("");
   const [reasonDetails, setReasonDetails] = useState("");
+  const [resolution, setResolution] = useState<"refund" | "store_credit">("refund");
   const [quantity, setQuantity] = useState(1);
   const [error, setError] = useState("");
   const [isMobile, setIsMobile] = useState(false);
@@ -82,6 +83,7 @@ export default function ReturnModal({
   const resetForm = () => {
     setReason("");
     setReasonDetails("");
+    setResolution("refund");
     setQuantity(1);
     setSelectedVariantId(null);
     setError("");
@@ -127,7 +129,7 @@ export default function ReturnModal({
             orderId: order.id,
             reason,
             reasonDetails,
-            resolution: "refund",
+            resolution,
             items: [itemPayload],
           };
 
@@ -257,17 +259,19 @@ export default function ReturnModal({
               const outOfStock = v.onlineStock < 1;
               const isSelected = selectedVariantId === v.id;
               const isOriginal = v.id === orderedVariantId;
+              // Prevent selecting the same size the customer already has
+              const isDisabled = outOfStock || !v.isActive || isOriginal;
               return (
                 <button
                   key={v.id}
                   type="button"
-                  disabled={outOfStock || !v.isActive}
+                  disabled={isDisabled}
                   onClick={() => setSelectedVariantId(v.id)}
                   className={[
                     "relative px-2.5 py-1 rounded-md border text-xs font-medium transition-colors",
                     isSelected
                       ? "border-blue-600 bg-blue-50 text-blue-700"
-                      : outOfStock || !v.isActive
+                      : isDisabled
                         ? "border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed"
                         : "border-gray-300 bg-white text-gray-700 hover:border-gray-500",
                   ].join(" ")}
@@ -278,7 +282,7 @@ export default function ReturnModal({
                       (yours)
                     </span>
                   )}
-                  {outOfStock && (
+                  {outOfStock && !isOriginal && (
                     <span className="ml-1 text-[10px] text-red-400">OOS</span>
                   )}
                   {isSelected && (
@@ -312,6 +316,44 @@ export default function ReturnModal({
               )}
             </SelectContent>
           </Select>
+        </div>
+      )}
+
+      {/* Resolution — return only */}
+      {type === "return" && (
+        <div className="space-y-1.5">
+          <Label className="text-xs">How would you like your refund?</Label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setResolution("refund")}
+              className={[
+                "flex-1 py-2 px-3 rounded-lg border text-xs font-medium transition-colors",
+                resolution === "refund"
+                  ? "border-blue-600 bg-blue-50 text-blue-700"
+                  : "border-gray-200 bg-white text-gray-600 hover:border-gray-400",
+              ].join(" ")}
+            >
+              💳 Refund to original payment
+            </button>
+            <button
+              type="button"
+              onClick={() => setResolution("store_credit")}
+              className={[
+                "flex-1 py-2 px-3 rounded-lg border text-xs font-medium transition-colors",
+                resolution === "store_credit"
+                  ? "border-green-600 bg-green-50 text-green-700"
+                  : "border-gray-200 bg-white text-gray-600 hover:border-gray-400",
+              ].join(" ")}
+            >
+              🎟️ Store credit (coupon)
+            </button>
+          </div>
+          {resolution === "store_credit" && (
+            <p className="text-[11px] text-gray-500">
+              Store credit will be issued as a coupon code sent to your email.
+            </p>
+          )}
         </div>
       )}
 

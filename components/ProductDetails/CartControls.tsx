@@ -8,6 +8,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/auth";
 import { CartItemWithProduct } from "@/shared";
 import { getAvailableStock } from "@/lib/stock-utils";
+import { toast } from "sonner";
 
 interface CartControlsProps {
   product: any;
@@ -65,7 +66,7 @@ export default function CartControls({
     try {
       await addToCart(product.id, 1, selectedVariant?.id || null);
     } catch (error) {
-      // TODO: Show user feedback for cart errors
+      toast.error("Failed to add item to cart. Please try again.");
     }
   };
 
@@ -78,7 +79,7 @@ export default function CartControls({
     try {
       await addToCart(product.id, 1, selectedVariant?.id || null);
     } catch (error) {
-      // TODO: Show user feedback for cart errors
+      toast.error("Failed to update cart. Please try again.");
     }
   };
 
@@ -100,7 +101,7 @@ export default function CartControls({
           await removeFromCart(cartItem.id);
         }
       } catch (error) {
-        // TODO: Show user feedback for cart errors
+        toast.error("Failed to remove item from cart. Please try again.");
       }
     } else {
       // Decrease quantity
@@ -114,7 +115,7 @@ export default function CartControls({
           await updateQuantity(cartItem.id, cartQuantity - 1);
         }
       } catch (error) {
-        // TODO: Show user feedback for cart errors
+        toast.error("Failed to update cart. Please try again.");
       }
     }
   };

@@ -24,6 +24,10 @@ async function getProducts(filters: ProductFilters) {
   return await productService.getProductsByRole(filters, "user");
 }
 
+async function getProductsCount(filters: ProductFilters) {
+  return await productService.getProductsCount(filters, "user");
+}
+
 export async function generateMetadata({
   searchParams,
 }: CollectionsPageProps): Promise<Metadata> {
@@ -89,7 +93,10 @@ export default async function CollectionsPage({
     distributionChannel: "online",
   };
 
-  const products = await getProducts(filters);
+  const [products, totalCount] = await Promise.all([
+    getProducts(filters),
+    getProductsCount(filters),
+  ]);
 
   const queryString = new URLSearchParams(params).toString();
 
@@ -112,7 +119,7 @@ export default async function CollectionsPage({
 
       <CollectionsClient
         initialProducts={products || []}
-        initialCount={products?.length || 0}
+        initialCount={totalCount}
         initialFilters={filters}
       />
     </>

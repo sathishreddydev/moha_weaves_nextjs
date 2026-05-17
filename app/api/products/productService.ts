@@ -544,6 +544,22 @@ export class RoleBasedProductService {
     return products[0];
   }
 
+  /**
+   * Returns the total count of products matching the given filters,
+   * ignoring limit/offset. Used for pagination.
+   */
+  async getProductsCount(
+    filters: ProductFilters = {},
+    role: UserRole = "user",
+  ): Promise<number> {
+    // Fetch without limit/offset to get the full matching set
+    const all = await this.getProductsByRole(
+      { ...filters, limit: 100000, offset: 0 },
+      role,
+    );
+    return all.length;
+  }
+
 
 
 

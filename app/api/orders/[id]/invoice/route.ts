@@ -68,6 +68,10 @@ function generatePDFInvoice(order: any): Uint8Array {
   // Set font
   doc.setFont('helvetica');
   
+  // jsPDF's built-in helvetica font does not support the Unicode rupee symbol (₹).
+  // Use the ASCII abbreviation "Rs." which renders correctly in all PDF viewers.
+  const rs = 'Rs.';
+
   // Company Header
   doc.setFontSize(20);
   doc.text('Moha Weaves', 105, 20, { align: 'center' });
@@ -116,8 +120,8 @@ function generatePDFInvoice(order: any): Uint8Array {
   order.items?.forEach((item: any) => {
     const productName = item.product?.name || 'Product';
     const quantity = item.quantity.toString();
-    const price = `₹${parseFloat(item.price).toFixed(2)}`;
-    const total = `₹${(parseFloat(item.price) * item.quantity).toFixed(2)}`;
+    const price = `${rs} ${parseFloat(item.price).toFixed(2)}`;
+    const total = `${rs} ${(parseFloat(item.price) * item.quantity).toFixed(2)}`;
     
     // Split long product names if needed
     const splitName = doc.splitTextToSize(productName, 70);
@@ -150,18 +154,18 @@ function generatePDFInvoice(order: any): Uint8Array {
   yPosition += 8;
   
   const subtotal = order.totalAmount || '0';
-  doc.text(`Subtotal: ₹${parseFloat(subtotal).toFixed(2)}`, 140, yPosition);
+  doc.text(`Subtotal: ${rs} ${parseFloat(subtotal).toFixed(2)}`, 140, yPosition);
   yPosition += 6;
   
   if (order.discountAmount && parseFloat(order.discountAmount) > 0) {
     doc.setTextColor(0, 128, 0);
-    doc.text(`Discount: -₹${parseFloat(order.discountAmount).toFixed(2)}`, 140, yPosition);
+    doc.text(`Discount: -${rs} ${parseFloat(order.discountAmount).toFixed(2)}`, 140, yPosition);
     doc.setTextColor(0, 0, 0);
     yPosition += 6;
   }
   
   doc.setFontSize(12);
-  doc.text(`Total: ₹${parseFloat(order.finalAmount).toFixed(2)}`, 140, yPosition);
+  doc.text(`Total: ${rs} ${parseFloat(order.finalAmount).toFixed(2)}`, 140, yPosition);
   
   // Footer
   yPosition = 270;

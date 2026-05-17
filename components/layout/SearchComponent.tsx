@@ -65,6 +65,11 @@ export default function SearchComponent({
   const [isSearching, setIsSearching] = useState(false);
   const [showNoResults, setShowNoResults] = useState(false);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Keep a stable ref to searchHistory so debouncedSearch doesn't need it as a dep
+  const searchHistoryRef = useRef<string[]>(searchHistory);
+  useEffect(() => {
+    searchHistoryRef.current = searchHistory;
+  }, [searchHistory]);
 
   // Utility functions to reduce duplication
   const updateSearchHistory = useCallback((newHistory: string[]) => {
@@ -97,7 +102,7 @@ export default function SearchComponent({
     }
   }, []);
 
-  // Debounced search function
+  // Debounced search function — stable, reads history via ref
   const debouncedSearch = useCallback(
     async (value: string) => {
       setShowNoResults(false);
@@ -106,16 +111,10 @@ export default function SearchComponent({
         setIsSearching(true);
 
         try {
-          // Search for products via existing API using POST method
           const response = await fetch("/api/products", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              search: value,
-              limit: 5,
-            }),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ search: value, limit: 5 }),
           });
           const data = await response.json();
 
@@ -134,7 +133,7 @@ export default function SearchComponent({
           }
         } catch (error) {
           // Fallback to search history if API fails
-          const historyMatches = searchHistory
+          const historyMatches = searchHistoryRef.current
             .filter((item) => item.toLowerCase().includes(value.toLowerCase()))
             .slice(0, 5);
           setSuggestions(historyMatches);
@@ -150,17 +149,23 @@ export default function SearchComponent({
         setShowNoResults(false);
       }
     },
-    [searchHistory, router, searchParams],
+    // No deps — reads history via ref, no router/searchParams needed
+    [],
   );
 
-  // Update search query state when URL changes
+  // Sync input with URL search param (only on param change, not on every debouncedSearch recreation)
+  const debouncedSearchRef = useRef(debouncedSearch);
+  useEffect(() => {
+    debouncedSearchRef.current = debouncedSearch;
+  }, [debouncedSearch]);
+
   useEffect(() => {
     const currentSearch = searchParams?.get("search") || "";
     setSearchQuery(currentSearch);
-    if (currentSearch && currentSearch.trim()) {
-      debouncedSearch(currentSearch);
+    if (currentSearch.trim()) {
+      debouncedSearchRef.current(currentSearch);
     }
-  }, [searchParams, debouncedSearch]);
+  }, [searchParams]); // only re-run when URL changes
 
   // Handle search input change with debouncing
   const handleSearchInputChange = (value: string) => {

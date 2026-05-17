@@ -55,8 +55,7 @@ export default function AvailableCoupons({
       setAvailableCoupons(sortedAvailable);
       setUsedCoupons(sortedUsed);
     } catch (error) {
-      console.error("Error fetching coupons:", error);
-      // Don't show error toast for this, it's not critical
+      // Coupon fetch failure is non-critical — silently ignore so checkout is unblocked
     } finally {
       setLoading(false);
     }

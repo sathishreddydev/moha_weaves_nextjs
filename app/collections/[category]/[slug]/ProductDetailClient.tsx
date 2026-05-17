@@ -13,6 +13,7 @@ import { getAvailableStock, getStockStatus } from "@/lib/stock-utils";
 import { useCartStore, useWishlistStore } from "@/lib/stores";
 import { useSocketStore } from "@/lib/stores/socketStore";
 import { ProductWithDetails } from "@/shared";
+import { toast } from "sonner";
 import {
   ArrowRight,
   ChevronLeft,
@@ -148,7 +149,7 @@ export default function ProductDetailClient({
       // Fallback: copy to clipboard (works on HTTPS)
       try {
         await navigator.clipboard.writeText(window.location.href);
-        // TODO: Show toast notification "Link copied!"
+        toast.success("Link copied to clipboard!");
       } catch {
         // Last resort: prompt with the URL
         window.prompt("Copy this link:", window.location.href);

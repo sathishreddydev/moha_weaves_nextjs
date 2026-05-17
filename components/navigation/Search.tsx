@@ -1,11 +1,9 @@
 "use client";
 
-import { Button } from "../ui/button";
 import SearchComponent from "../layout/SearchComponent";
 import { cn } from "@/lib/utils";
 import { SearchIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useFilterStore } from "@/lib/stores/fillterStore";
 
 interface MegaMenuProps {
   className?: string;
@@ -21,7 +19,6 @@ export default function Search({
   const [isMounted, setIsMounted] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
-  const { categories, loading, error } = useFilterStore();
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -34,7 +31,7 @@ export default function Search({
     };
   }, []);
 
-  // Handle click outside to close mega menu
+  // Handle click outside to close search panel
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -52,37 +49,15 @@ export default function Search({
     };
   }, [activeMegaMenu, setActiveMegaMenu]);
 
-  // Show loading state
-  if (loading && categories.length === 0) {
-    return (
-      <nav className={cn("hidden lg:flex items-center space-x-6", className)}>
-        <div className="flex items-center space-x-6">
-          <div className="h-4 w-20 bg-gray-200 animate-pulse rounded"></div>
-          <div className="h-4 w-24 bg-gray-200 animate-pulse rounded"></div>
-        </div>
-      </nav>
-    );
-  }
-
-  // Show error state
-  if (error) {
-    return (
-      <nav className={cn("hidden lg:flex items-center space-x-6", className)}>
-        <div className="text-red-500 text-sm">Error loading menu</div>
-      </nav>
-    );
-  }
-
   return (
     <div ref={searchContainerRef}>
       <nav className="">
-        <div
-          className="flex items-center"
-          onMouseEnter={() => setActiveMegaMenu("search")}
-        >
+        <div className="flex items-center">
           <button
             aria-label="Search"
-            onClick={() => setActiveMegaMenu("search")}
+            onClick={() =>
+              setActiveMegaMenu(activeMegaMenu === "search" ? null : "search")
+            }
             className={cn(
               "transition-colors duration-200 p-0 bg-transparent border-none",
               activeMegaMenu === "search" && "text-purple-600",
@@ -101,8 +76,6 @@ export default function Search({
               ? "max-h-[600px] opacity-100 translate-y-0 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)]"
               : "max-h-0 opacity-0 -translate-y-4 pointer-events-none"
           }`}
-          onMouseEnter={() => setActiveMegaMenu("search")}
-          onMouseLeave={() => setActiveMegaMenu(null)}
         >
           <div>
             {activeMegaMenu === "search" && (

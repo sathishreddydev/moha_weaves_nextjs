@@ -35,7 +35,10 @@ import { useCallback, useEffect, useState } from "react";
 export default function OrderDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const [orderId, setOrderId] = useState<string | null>(null);
+
+  // Extract orderId directly — no useEffect needed, avoids null on first render
+  // which would cause socket listeners to scope to "all orders" briefly
+  const orderId = (params as { id: string }).id ?? null;
 
   const [order, setOrder] = useState<OrderWithItems | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,11 +55,6 @@ export default function OrderDetailsPage() {
     productId: string;
   } | null>(null);
   const [helpChatOpen, setHelpChatOpen] = useState(false);
-
-  useEffect(() => {
-    const id = (params as { id: string }).id;
-    setOrderId(id);
-  }, [params]);
 
   const fetchOrderDetails = useCallback(async () => {
     if (!orderId) return;
@@ -491,14 +489,18 @@ function OrderDetailsContent({
             <span className="text-gray-600">Shipping</span>
             <span className="font-medium">
               {(() => {
-                // subtotal uses item.price (already the discounted price paid)
-                const subtotal = order.items.reduce(
+                // item.price = the effective price paid per unit (already discounted)
+                // finalAmount = subtotal_paid - couponDiscount + shipping
+                // → shipping = finalAmount - subtotal_paid + couponDiscount
+                const subtotalPaid = order.items.reduce(
                   (sum, item) => sum + parseFloat(item.price) * item.quantity,
                   0,
                 );
-                const coupon = parseFloat(order.discountAmount || "0");
-                const shipping = parseFloat(order.finalAmount) - (subtotal - coupon);
-                return shipping > 0 ? `₹${shipping.toFixed(2)}` : "FREE";
+                const couponDiscount = parseFloat(order.discountAmount || "0");
+                const shipping =
+                  parseFloat(order.finalAmount) - subtotalPaid + couponDiscount;
+                // Guard against floating-point noise (e.g. -0.000001)
+                return shipping > 0.01 ? `₹${shipping.toFixed(2)}` : "FREE";
               })()}
             </span>
           </div>

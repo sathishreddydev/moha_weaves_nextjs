@@ -62,13 +62,11 @@ export default function OrderHistory() {
     } finally {
       setLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, ordersPerPage]);
 
   useEffect(() => {
     fetchOrders();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchOrders]);
 
   useOrderItemStatusListenerList(setOrders);
 
@@ -290,65 +288,67 @@ export default function OrderHistory() {
             ))}
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-end gap-2 pt-4">
-              {/* Page size selector */}
-              <Select
-                value={ordersPerPage.toString()}
-                onValueChange={(v) => handlePageSizeChange(Number(v))}
-              >
-                <SelectTrigger className="w-16 h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {pageSizeOptions.map((size) => (
-                    <SelectItem key={size} value={size.toString()}>
-                      {size}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {/* Pagination — page-size selector always visible when there are orders */}
+          <div className="flex items-center justify-end gap-2 pt-4">
+            {/* Page size selector — always shown so user can control how many orders appear */}
+            <Select
+              value={ordersPerPage.toString()}
+              onValueChange={(v) => handlePageSizeChange(Number(v))}
+            >
+              <SelectTrigger className="w-16 h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {pageSizeOptions.map((size) => (
+                  <SelectItem key={size} value={size.toString()}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="h-8 w-8 p-0"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
+            {totalPages > 1 && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
 
-              {getPageNumbers().map((page, idx) =>
-                page === "..." ? (
-                  <span key={`ellipsis-${idx}`} className="text-xs text-gray-400 px-1">
-                    …
-                  </span>
-                ) : (
-                  <Button
-                    key={page}
-                    variant={currentPage === page ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handlePageChange(page as number)}
-                    className="h-8 w-8 p-0"
-                  >
-                    {page}
-                  </Button>
-                ),
-              )}
+                {getPageNumbers().map((page, idx) =>
+                  page === "..." ? (
+                    <span key={`ellipsis-${idx}`} className="text-xs text-gray-400 px-1">
+                      …
+                    </span>
+                  ) : (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handlePageChange(page as number)}
+                      className="h-8 w-8 p-0"
+                    >
+                      {page}
+                    </Button>
+                  ),
+                )}
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="h-8 w-8 p-0"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </>
+            )}
+          </div>
         </>
       )}
     </div>

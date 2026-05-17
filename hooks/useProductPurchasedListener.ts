@@ -148,31 +148,24 @@ export function useOrderItemStatusListenerDetail(
   const { socket } = useSocketStore();
 
   useEffect(() => {
-    console.log("[OrderDetail] socket:", !!socket, "orderId:", orderId);
     if (!socket) return;
 
     const handler = (raw: unknown) => {
-      console.log("[OrderDetail] raw event:", JSON.stringify(raw));
       const payload = extractOrderItemPayload(raw);
-      console.log("[OrderDetail] parsed payload:", payload);
       if (!payload) return;
       const { orderId: oid, itemId, status } = payload;
 
-      if (orderId && oid !== orderId) {
-        console.log("[OrderDetail] skipping — orderId mismatch", oid, "!=", orderId);
-        return;
-      }
+      if (orderId && oid !== orderId) return;
 
       // On delivery, do a full refetch so eligibility + review buttons appear
       if (status === "delivered" && onDelivered) {
-        console.log("[OrderDetail] delivered — triggering full refetch");
         onDelivered();
         return;
       }
 
       setOrder((prev) => {
         if (!prev) return prev;
-        const updated = {
+        return {
           ...prev,
           items: prev.items.map((item) =>
             item.id === itemId
@@ -180,15 +173,11 @@ export function useOrderItemStatusListenerDetail(
               : item,
           ),
         };
-        console.log("[OrderDetail] patched item", itemId, "→", status);
-        return updated;
       });
     };
 
-    console.log("[OrderDetail] registering handler for order_item_status_updated");
     socket.on("order_item_status_updated", handler);
     return () => {
-      console.log("[OrderDetail] removing handler");
       socket.off("order_item_status_updated", handler);
     };
   }, [socket, orderId, setOrder, onDelivered]);
@@ -204,21 +193,16 @@ export function useOrderItemStatusListenerList(
   const { socket } = useSocketStore();
 
   useEffect(() => {
-    console.log("[OrderList] socket:", !!socket);
     if (!socket) return;
 
     const handler = (raw: unknown) => {
-      console.log("[OrderList] raw event:", JSON.stringify(raw));
       const payload = extractOrderItemPayload(raw);
-      console.log("[OrderList] parsed payload:", payload);
       if (!payload) return;
 
       const { orderId, itemId, status } = payload;
 
-      setOrders((prev) => {
-        const match = prev.find((o) => o.id === orderId);
-        console.log("[OrderList] order match:", !!match, "orderId:", orderId);
-        return prev.map((order) => {
+      setOrders((prev) =>
+        prev.map((order) => {
           if (order.id !== orderId) return order;
           return {
             ...order,
@@ -228,14 +212,12 @@ export function useOrderItemStatusListenerList(
                 : item,
             ),
           };
-        });
-      });
+        }),
+      );
     };
 
-    console.log("[OrderList] registering handler for order_item_status_updated");
     socket.on("order_item_status_updated", handler);
     return () => {
-      console.log("[OrderList] removing handler");
       socket.off("order_item_status_updated", handler);
     };
   }, [socket, setOrders]);

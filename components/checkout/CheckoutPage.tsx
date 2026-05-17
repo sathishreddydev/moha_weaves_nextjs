@@ -27,6 +27,7 @@ import AddressForm from "../user/AddressForm";
 import RazorpayPayment from "./RazorpayPayment";
 import CouponInput from "./CouponInput";
 import { useCartProductPurchasedListener } from "@/hooks/useProductPurchasedListener";
+import { useMobileDetection } from "@/hooks/use-mobile-detection";
 
 interface AppliedCoupon {
   id: string;
@@ -39,6 +40,7 @@ interface AppliedCoupon {
 export default function CheckoutPage() {
   const { user, status } = useAuth();
   const router = useRouter();
+  const { isMobile } = useMobileDetection();
   const { items, calculateTotal, clearCart, fetchCart, hasStockIssues, validateCartStock } =
     useCartStore();
   const {
@@ -188,6 +190,18 @@ export default function CheckoutPage() {
 
   // ── Derived pay button state ──────────────────────────────────────────────
   const payDisabled = !selectedAddressId || items.length === 0 || hasStockIssues;
+
+  // Build shared props — passed to whichever single instance is rendered
+  const razorpayProps = {
+    amount: total,
+    user,
+    selectedAddress: addresses.find((a) => a.id === selectedAddressId),
+    notes,
+    couponId: appliedCoupon?.id,
+    onSuccess: handlePaymentSuccess,
+    onError: (e: string) => toast.error(e),
+    disabled: payDisabled,
+  };
 
   // ── Price summary (plain JSX, not a nested component) ────────────────────
   const priceSummary = (
@@ -475,17 +489,8 @@ export default function CheckoutPage() {
             {/* Price breakdown */}
             {priceSummary}
 
-            {/* Pay button */}
-            <RazorpayPayment
-              amount={total}
-              user={user}
-              selectedAddress={addresses.find((a) => a.id === selectedAddressId)}
-              notes={notes}
-              couponId={appliedCoupon?.id}
-              onSuccess={handlePaymentSuccess}
-              onError={(e) => toast.error(e)}
-              disabled={payDisabled}
-            />
+            {/* Pay button — only rendered here on desktop; mobile uses the fixed bar below */}
+            {!isMobile && <RazorpayPayment {...razorpayProps} />}
 
             {hasStockIssues && (
               <p className="text-xs text-red-600 text-center -mt-2">
@@ -502,7 +507,7 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      {/* ── Mobile fixed pay bar ── */}
+      {/* ── Mobile fixed pay bar — only rendered on mobile to avoid double SDK mount ── */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-t shadow-xl">
         <div className="px-4 pt-3 pb-5 space-y-2 max-w-lg mx-auto">
           {hasStockIssues && (
@@ -510,16 +515,7 @@ export default function CheckoutPage() {
               Resolve stock issues in your cart to proceed
             </p>
           )}
-          <RazorpayPayment
-            amount={total}
-            user={user}
-            selectedAddress={addresses.find((a) => a.id === selectedAddressId)}
-            notes={notes}
-            couponId={appliedCoupon?.id}
-            onSuccess={handlePaymentSuccess}
-            onError={(e) => toast.error(e)}
-            disabled={payDisabled}
-          />
+          {isMobile && <RazorpayPayment {...razorpayProps} />}
         </div>
       </div>
 

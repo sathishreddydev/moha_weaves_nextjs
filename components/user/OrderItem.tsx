@@ -148,9 +148,9 @@ export function OrderItem({
             </button>
           )}
 
-          {item.returnEligibility?.eligible && (
+          {item.returnEligibility?.eligible && !isInReturn && !isInExchange && (
             <>
-              {isDelivered && !isInReturn && !isInExchange && (
+              {isDelivered && (
                 <div className="w-1 h-1 bg-slate-300 rounded-full" />
               )}
               <button
@@ -163,7 +163,7 @@ export function OrderItem({
             </>
           )}
 
-          {item.exchangeEligibility?.eligible && (
+          {item.exchangeEligibility?.eligible && !isInReturn && !isInExchange && (
             <>
               {(isDelivered || item.returnEligibility?.eligible) && (
                 <div className="w-1 h-1 bg-slate-300 rounded-full" />
