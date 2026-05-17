@@ -136,11 +136,14 @@ function extractOrderItemPayload(
 /**
  * Listens for `order_item_status_updated` on the ORDER DETAIL page.
  * Directly patches the matching item's status in state — no refetch needed.
+ * Exception: when status is `delivered`, calls `onDelivered` (full refetch)
+ * so return/exchange eligibility and review buttons appear immediately.
  * Filtered to `orderId` so events for other orders are ignored.
  */
 export function useOrderItemStatusListenerDetail(
   orderId: string | null | undefined,
   setOrder: React.Dispatch<React.SetStateAction<OrderWithItems | null>>,
+  onDelivered?: () => void,
 ) {
   const { socket } = useSocketStore();
 
@@ -157,6 +160,13 @@ export function useOrderItemStatusListenerDetail(
 
       if (orderId && oid !== orderId) {
         console.log("[OrderDetail] skipping — orderId mismatch", oid, "!=", orderId);
+        return;
+      }
+
+      // On delivery, do a full refetch so eligibility + review buttons appear
+      if (status === "delivered" && onDelivered) {
+        console.log("[OrderDetail] delivered — triggering full refetch");
+        onDelivered();
         return;
       }
 
@@ -181,7 +191,7 @@ export function useOrderItemStatusListenerDetail(
       console.log("[OrderDetail] removing handler");
       socket.off("order_item_status_updated", handler);
     };
-  }, [socket, orderId, setOrder]);
+  }, [socket, orderId, setOrder, onDelivered]);
 }
 
 /**

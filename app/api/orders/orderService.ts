@@ -410,6 +410,15 @@ export class OrderRepository implements OrderStorage {
       // Get return eligibility for all items in this order
       const eligibilityMap = await returnService.checkOrderReturnEligibility(order.orders.id);
 
+      // Get exchange eligibility for all items in this order
+      const windowDaysSetting = await storage.getSetting("return_window_days");
+      const windowDays = windowDaysSetting ? parseInt(windowDaysSetting) : 7;
+      const exchangeEligibilityMap = await checkExchangeEligibilityForItems(
+        order.orders.id,
+        items,
+        windowDays
+      );
+
       // Compute currentStatus from itemStatusHistory (same as getOrderWithDetails)
       const itemStatuses = await getItemStatuses(items);
 
@@ -419,11 +428,12 @@ export class OrderRepository implements OrderStorage {
         items: items.map((item) => {
           const statusObj = itemStatuses.find((s) => s.orderItemId === item.id);
           const product = productMap.get(item.productId);
+          const exchangeElig = exchangeEligibilityMap.find(e => e.itemId === item.id);
           return {
             ...item,
             currentStatus: statusObj?.currentStatus || item.status,
             returnEligibility: eligibilityMap.find(e => e.itemId === item.id) || { itemId: item.id, eligible: false },
-            exchangeEligibility: { itemId: item.id, eligible: false },
+            exchangeEligibility: exchangeElig || { itemId: item.id, eligible: false },
             product: createOrderHistoryProduct(product) as any,
           };
         }),

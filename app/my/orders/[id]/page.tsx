@@ -87,8 +87,8 @@ export default function OrderDetailsPage() {
     }
   }, [orderId, fetchOrderDetails]);
 
-  // Directly patch item status in state — no refetch needed
-  useOrderItemStatusListenerDetail(orderId, setOrder);
+  // Patch item status in state; refetch on delivery so eligibility/review buttons appear
+  useOrderItemStatusListenerDetail(orderId, setOrder, fetchOrderDetails);
 
   // Return created → refetch so returnInfo panel appears immediately
   useReturnCreatedListener(orderId, fetchOrderDetails);

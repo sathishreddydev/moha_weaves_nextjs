@@ -5,9 +5,12 @@ import {
   onlineExchanges,
   onlineExchangeItems,
   orderItems,
+  products,
+  productVariants,
+  stockMovements,
 } from "@/shared";
 import { db } from "@/lib/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { storage } from "../orders/storage";
 import { publishRealtimeEvent } from "@/realtime/publisher";
 
@@ -95,13 +98,17 @@ export async function POST(req: NextRequest) {
           exchangeVariantId: item.exchangeVariantId || null,
         });
 
-        // Fetch current status before updating
+        // Fetch current status + original variant before updating
         const [currentItem] = await tx
-          .select({ status: orderItems.status })
+          .select({ status: orderItems.status, variantId: orderItems.variantId })
           .from(orderItems)
           .where(eq(orderItems.id, orderItemId));
 
         const previousStatus = currentItem?.status ?? "delivered";
+        const originalVariantId: string | null = currentItem?.variantId ?? null;
+        const replacementVariantId: string | null = item.exchangeVariantId || null;
+        const isDifferentSize =
+          replacementVariantId && replacementVariantId !== originalVariantId;
 
         await tx
           .update(orderItems)
@@ -115,6 +122,57 @@ export async function POST(req: NextRequest) {
           "Online exchange request created",
           session.user.id
         );
+
+        // ── Reserve replacement stock immediately for different-size exchanges ──
+        // Prevents the requested size from selling out while the exchange is
+        // in transit. Same-size exchanges are handled at exchange_completed.
+        if (isDifferentSize && item.exchangeproductId) {
+          // Validate replacement variant has enough stock before reserving
+          const [replacementVariant] = await tx
+            .select({ onlineStock: productVariants.onlineStock })
+            .from(productVariants)
+            .where(eq(productVariants.id, replacementVariantId!));
+
+          if (!replacementVariant || replacementVariant.onlineStock < quantity) {
+            throw new Error(
+              `The selected replacement size is out of stock. Please choose a different size.`
+            );
+          }
+
+          // Deduct variant stock
+          await tx
+            .update(productVariants)
+            .set({
+              stockQuantity: sql`${productVariants.stockQuantity} - ${quantity}`,
+              onlineStock: sql`${productVariants.onlineStock} - ${quantity}`,
+            })
+            .where(eq(productVariants.id, replacementVariantId!));
+
+          // Deduct product-level stock
+          await tx
+            .update(products)
+            .set({
+              onlineStock: sql`${products.onlineStock} - ${quantity}`,
+              totalStock: sql`${products.totalStock} - ${quantity}`,
+            })
+            .where(eq(products.id, item.exchangeproductId));
+
+          await tx.insert(stockMovements).values({
+            productId: item.exchangeproductId,
+            variantId: replacementVariantId,
+            quantity: -quantity,
+            movementType: "sale",
+            source: "online",
+            orderRefId: orderId,
+            notes: "Replacement stock reserved for different-size exchange",
+            createdAt: new Date(),
+          });
+
+          // Fire stock alert check outside the transaction (non-blocking)
+          storage.checkAndCreateStockAlert(item.exchangeproductId).catch(
+            (err) => console.error("Stock alert check failed:", err)
+          );
+        }
       }
 
       return newExchange;

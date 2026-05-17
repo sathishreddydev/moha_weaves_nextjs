@@ -1,7 +1,18 @@
 "use client";
 
+import Breadcrumbs from "@/components/Breadcrumbs";
+import CartControls from "@/components/ProductDetails/CartControls";
+import DeliveryOptions from "@/components/ProductDetails/DeliveryOptions";
+import ProductReviews from "@/components/ProductDetails/ProductReviews";
+import SizeGuide from "@/components/ProductDetails/SizeGuide";
+import Specifications from "@/components/ProductDetails/Specifications";
 import ProductCard from "@/components/products/ProductCard";
 import { Button } from "@/components/ui/button";
+import { useProductPurchasedListener } from "@/hooks/useProductPurchasedListener";
+import { getAvailableStock, getStockStatus } from "@/lib/stock-utils";
+import { useCartStore, useWishlistStore } from "@/lib/stores";
+import { useSocketStore } from "@/lib/stores/socketStore";
+import { ProductWithDetails } from "@/shared";
 import {
   ArrowRight,
   ChevronLeft,
@@ -10,25 +21,13 @@ import {
   RefreshCw,
   Share2,
   Shield,
-  ShoppingBag,
   Star,
-  Truck,
+  Truck
 } from "lucide-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useState, useEffect, useCallback } from "react";
-import { ProductWithDetails } from "@/shared";
-import { useCartStore, useWishlistStore } from "@/lib/stores";
-import CartControls from "@/components/ProductDetails/CartControls";
-import ProductReviews from "@/components/ProductDetails/ProductReviews";
-import DeliveryOptions from "@/components/ProductDetails/DeliveryOptions";
-import Specifications from "@/components/ProductDetails/Specifications";
-import SizeGuide from "@/components/ProductDetails/SizeGuide";
-import Breadcrumbs from "@/components/Breadcrumbs";
 import Link from "next/link";
-import { getAvailableStock, getStockStatus } from "@/lib/stock-utils";
-import { useSocketStore } from "@/lib/stores/socketStore";
-import { useProductPurchasedListener } from "@/hooks/useProductPurchasedListener";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 
 interface ProductDetailClientProps {
   product: ProductWithDetails & {
@@ -69,7 +68,6 @@ export default function ProductDetailClient({
       ? product.variants[0]
       : null,
   );
-  const [quantity, setQuantity] = useState(1);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
@@ -127,20 +125,34 @@ export default function ProductDetailClient({
       } else {
         await addToWishlist(product.id);
       }
-    } catch (error) {
-    }
+    } catch (error) {}
   };
 
-  const handleShare = () => {
+  const handleShare = async () => {
+    const shareData = {
+      title: product.name,
+      text: product?.description ?? "",
+      url: window.location.href,
+    };
+
     if (navigator.share) {
-      navigator.share({
-        title: product.name,
-        text: product?.description ?? "",
-        url: window.location.href,
-      });
+      try {
+        await navigator.share(shareData);
+      } catch (err: any) {
+        // AbortError = user dismissed the share sheet — not a real error, ignore it
+        if (err?.name !== "AbortError") {
+          console.error("Share failed:", err);
+        }
+      }
     } else {
-      navigator.clipboard.writeText(window.location.href);
-      // TODO: Show toast notification
+      // Fallback: copy to clipboard (works on HTTPS)
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        // TODO: Show toast notification "Link copied!"
+      } catch {
+        // Last resort: prompt with the URL
+        window.prompt("Copy this link:", window.location.href);
+      }
     }
   };
 
@@ -656,7 +668,6 @@ export default function ProductDetailClient({
                 <CartControls
                   product={product}
                   selectedVariant={selectedVariant}
-                  initialQuantity={quantity}
                 />
               </div>
 
@@ -882,11 +893,7 @@ export default function ProductDetailClient({
       {/* Mobile Sticky Add to Cart Bar */}
       <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-xl z-50 px-4 py-4">
         <div className="max-w-md mx-auto flex justify-center">
-          <CartControls
-            product={product}
-            selectedVariant={selectedVariant}
-            initialQuantity={quantity}
-          />
+          <CartControls product={product} selectedVariant={selectedVariant} />
         </div>
       </div>
     </div>

@@ -58,15 +58,18 @@ export function useSwipeGesture(options: SwipeGestureOptions) {
     const elapsedTime = new Date().getTime() - touchRef.current.startTime;
 
     if (elapsedTime <= allowedTime) {
-      if (Math.abs(distX) >= threshold && Math.abs(distY) <= restraint) {
-        // Horizontal swipe
+      const absX = Math.abs(distX);
+      const absY = Math.abs(distY);
+
+      if (absX >= threshold && absY <= restraint && absX > absY * 1.5) {
+        // Horizontal swipe — must be clearly more horizontal than vertical
         if (distX > 0) {
           onSwipeRight?.();
         } else {
           onSwipeLeft?.();
         }
-      } else if (Math.abs(distY) >= threshold && Math.abs(distX) <= restraint) {
-        // Vertical swipe
+      } else if (absY >= threshold && absX <= restraint && absY > absX * 1.5) {
+        // Vertical swipe — must be clearly more vertical than horizontal
         if (distY > 0) {
           onSwipeDown?.();
         } else {
@@ -98,7 +101,9 @@ export function useSwipeGesture(options: SwipeGestureOptions) {
 export function useSwipeToGoBack(onSwipe: () => void) {
   return useSwipeGesture({
     onSwipeRight: onSwipe,
-    threshold: 30,
+    threshold: 60,   // raised from 30 — requires a more deliberate swipe
+    restraint: 40,   // lowered from 100 — rejects diagonal/scroll gestures
+    allowedTime: 400,
   });
 }
 

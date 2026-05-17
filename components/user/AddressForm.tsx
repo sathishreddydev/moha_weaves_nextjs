@@ -13,7 +13,18 @@ import { MobileInput } from "@/components/ui/mobile-input";
 import { MobileButton } from "@/components/ui/mobile-button";
 import { UserAddress } from "@/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertCircle, Check, Loader2, MapPin, X } from "lucide-react";
+import {
+  AlertCircle,
+  Briefcase,
+  Building2,
+  Check,
+  Home,
+  Loader2,
+  MapPin,
+  Phone,
+  User,
+  X,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -58,6 +69,12 @@ interface AddressFormProps {
   isMobile?: boolean;
 }
 
+const ADDRESS_TYPES = [
+  { value: "home", label: "Home", icon: Home },
+  { value: "work", label: "Work", icon: Briefcase },
+  { value: "other", label: "Other", icon: Building2 },
+] as const;
+
 export default function AddressForm({
   isOpen,
   onClose,
@@ -83,6 +100,9 @@ export default function AddressForm({
       isDefault: false,
     },
   });
+
+  const selectedType = form.watch("addressType");
+  const isDefault = form.watch("isDefault");
 
   useEffect(() => {
     if (editingAddress) {
@@ -145,9 +165,13 @@ export default function AddressForm({
 
   const isPincodeInvalid = pincodeInfo !== null && !pincodeInfo.available;
 
+  const city = form.watch("city");
+  const state = form.watch("state");
+
   const FormContent = () => (
     <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-3">
-      {/* Name + Phone side by side */}
+
+      {/* Name + Phone */}
       <div className="grid grid-cols-2 gap-3">
         <MobileInput
           id="name"
@@ -158,10 +182,11 @@ export default function AddressForm({
           error={form.formState.errors.name?.message}
           inputMode="text"
           autoComplete="name"
+          icon={<User className="h-3.5 w-3.5 text-gray-400" />}
         />
         <MobileInput
           id="phone"
-          label="Phone Number"
+          label="Phone"
           {...form.register("phone")}
           placeholder="9876543210"
           disabled={isLoading}
@@ -169,6 +194,7 @@ export default function AddressForm({
           inputMode="tel"
           autoComplete="tel"
           helperText="Starts with 6–9"
+          icon={<Phone className="h-3.5 w-3.5 text-gray-400" />}
         />
       </div>
 
@@ -182,6 +208,7 @@ export default function AddressForm({
         error={form.formState.errors.addressLine1?.message}
         inputMode="text"
         autoComplete="address-line1"
+        icon={<MapPin className="h-3.5 w-3.5 text-gray-400" />}
       />
 
       {/* Locality */}
@@ -194,9 +221,10 @@ export default function AddressForm({
         error={form.formState.errors.locality?.message}
         inputMode="text"
         autoComplete="address-line2"
+        icon={<MapPin className="h-3.5 w-3.5 text-gray-400" />}
       />
 
-      {/* Pincode — triggers auto-fill */}
+      {/* Pincode */}
       <div>
         <MobileInput
           id="pincode"
@@ -215,93 +243,120 @@ export default function AddressForm({
           autoComplete="postal-code"
           helperText="6-digit Indian pincode"
         />
+
+        {/* Pincode status */}
         {pincodeLoading && (
           <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
             <Loader2 className="h-3 w-3 animate-spin" />
             Checking availability...
           </p>
         )}
-        {pincodeInfo && (
-          <p
-            className={`text-xs mt-1 flex items-center gap-1 ${
-              pincodeInfo.available ? "text-green-600" : "text-red-600"
-            }`}
-          >
-            {pincodeInfo.available ? (
-              <Check className="h-3 w-3" />
-            ) : (
-              <AlertCircle className="h-3 w-3" />
-            )}
-            {pincodeInfo.available
-              ? `Delivery available — ${pincodeInfo.city}, ${pincodeInfo.state} (${pincodeInfo.deliveryDays} days)`
-              : (pincodeInfo.message ?? "Delivery not available in this area")}
-          </p>
+
+        {/* City + State pill — shown after successful pincode lookup */}
+        {pincodeInfo?.available && city && state && (
+          <div className="mt-2 flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
+            <Check className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-green-800 truncate">
+                {city}, {state}
+              </p>
+              <p className="text-[11px] text-green-600">
+                Delivery in {pincodeInfo.deliveryDays} days
+              </p>
+            </div>
+            <span className="text-[10px] text-green-600 bg-green-100 px-1.5 py-0.5 rounded font-medium">
+              Serviceable
+            </span>
+          </div>
+        )}
+
+        {pincodeInfo && !pincodeInfo.available && (
+          <div className="mt-2 flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
+            <AlertCircle className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />
+            <p className="text-xs text-red-700">
+              {pincodeInfo.message ?? "Delivery not available in this area"}
+            </p>
+          </div>
         )}
       </div>
 
-      {/* City + State — auto-filled from pincode, read-only */}
-      <div className="grid grid-cols-2 gap-3">
-        <MobileInput
-          id="city"
-          label="City"
-          {...form.register("city")}
-          placeholder="Auto-filled"
-          disabled
-          error={form.formState.errors.city?.message}
-          inputMode="text"
-          autoComplete="address-level2"
-        />
-        <MobileInput
-          id="state"
-          label="State"
-          {...form.register("state")}
-          placeholder="Auto-filled"
-          disabled
-          error={form.formState.errors.state?.message}
-          inputMode="text"
-          autoComplete="address-level1"
-        />
-      </div>
+      {/* Hidden city/state fields — values set by pincode lookup */}
+      <input type="hidden" {...form.register("city")} />
+      <input type="hidden" {...form.register("state")} />
 
-      {/* Address Type */}
+      {/* Address Type — icon button group */}
       <div>
-        <Label className="text-sm font-medium">Address Type</Label>
-        <div className="flex gap-4 mt-2">
-          {(["home", "work", "other"] as const).map((type) => (
-            <label key={type} className="flex items-center">
-              <input
-                type="radio"
-                value={type}
-                {...form.register("addressType")}
-                disabled={isLoading}
-                className="mr-2"
-              />
-              <span className="text-sm capitalize">{type}</span>
-            </label>
-          ))}
-        </div>
-        {form.formState.errors.addressType && (
-          <p className="text-sm text-red-600 mt-1">
-            {form.formState.errors.addressType.message}
-          </p>
-        )}
-      </div>
-
-      {/* Default */}
-      <div className="flex items-center space-x-2">
-        <input
-          type="checkbox"
-          id="isDefault"
-          {...form.register("isDefault")}
-          disabled={isLoading}
-          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-        />
-        <Label htmlFor="isDefault" className="text-sm">
-          Set as default address
+        <Label className="text-xs font-medium text-gray-600 uppercase tracking-wide">
+          Address Type
         </Label>
+        <div className="flex gap-2 mt-2">
+          {ADDRESS_TYPES.map(({ value, label, icon: Icon }) => {
+            const isSelected = selectedType === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() =>
+                  form.setValue("addressType", value, { shouldValidate: true })
+                }
+                disabled={isLoading}
+                className={[
+                  "flex-1 flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl border-2 transition-all text-xs font-medium",
+                  isSelected
+                    ? "border-gray-900 bg-gray-900 text-white"
+                    : "border-gray-200 bg-white text-gray-500 hover:border-gray-400",
+                ].join(" ")}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="flex gap-3 pt-4">
+      {/* Set as Default — Shopify style full-width toggle row */}
+      <button
+        type="button"
+        onClick={() => form.setValue("isDefault", !isDefault)}
+        disabled={isLoading}
+        className={[
+          "w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all",
+          isDefault
+            ? "border-gray-900 bg-gray-50"
+            : "border-gray-200 bg-white hover:border-gray-300",
+        ].join(" ")}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className={[
+              "w-4 h-4 rounded border-2 flex items-center justify-center transition-colors",
+              isDefault
+                ? "bg-gray-900 border-gray-900"
+                : "border-gray-300 bg-white",
+            ].join(" ")}
+          >
+            {isDefault && <Check className="h-2.5 w-2.5 text-white" />}
+          </div>
+          <div className="text-left">
+            <p className="text-xs font-medium text-gray-900">
+              Set as default address
+            </p>
+            <p className="text-[11px] text-gray-500">
+              Used automatically at checkout
+            </p>
+          </div>
+        </div>
+        {isDefault && (
+          <span className="text-[10px] font-medium text-gray-900 bg-gray-200 px-2 py-0.5 rounded-full">
+            Default
+          </span>
+        )}
+      </button>
+      <input type="hidden" {...form.register("isDefault")} />
+
+      {/* Action buttons */}
+      <div className="flex gap-3 pt-2">
         <MobileButton
           type="button"
           variant="outline"
@@ -332,11 +387,11 @@ export default function AddressForm({
       <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
         <DrawerContent>
           <DrawerHeader>
-            <DrawerTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
+            <DrawerTitle className="flex items-center gap-2 text-sm">
+              <MapPin className="h-4 w-4" />
               {editingAddress ? "Edit Address" : "Add New Address"}
             </DrawerTitle>
-            <DrawerDescription>
+            <DrawerDescription className="text-xs">
               {editingAddress
                 ? "Update your address details"
                 : "Enter your address details for delivery"}
@@ -355,8 +410,8 @@ export default function AddressForm({
       <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex flex-row items-center justify-between p-3 border-b">
           <div className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            <h2 className="text-lg font-semibold">
+            <MapPin className="h-4 w-4" />
+            <h2 className="text-sm font-semibold">
               {editingAddress ? "Edit Address" : "Add New Address"}
             </h2>
           </div>

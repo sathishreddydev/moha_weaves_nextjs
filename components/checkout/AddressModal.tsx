@@ -8,8 +8,22 @@ import { UserAddress } from "@/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { X, MapPin, Phone, Mail } from "lucide-react";
+import { MapPin } from "lucide-react";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerFooter,
+} from "@/components/ui/drawer";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 const addressSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -37,6 +51,15 @@ export default function AddressModal({
   editingAddress,
   isLoading = false,
 }: AddressModalProps) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
   const form = useForm<AddressFormData>({
     resolver: zodResolver(addressSchema),
     defaultValues: {
@@ -79,136 +102,178 @@ export default function AddressModal({
     }
   };
 
-  if (!isOpen) return null;
+  const titleText = editingAddress ? "Edit Address" : "Add New Address";
+  const descriptionText = editingAddress
+    ? "Update your saved address details"
+    : "Fill in the details for your new address";
+
+  const formContent = (
+    <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-3 px-4">
+      <div>
+        <Label htmlFor="name" className="text-xs">Full Name</Label>
+        <Input
+          id="name"
+          {...form.register("name")}
+          placeholder="John Doe"
+          disabled={isLoading}
+          className="h-8 text-xs mt-1"
+        />
+        {form.formState.errors.name && (
+          <p className="text-[11px] text-red-600 mt-0.5">
+            {form.formState.errors.name.message}
+          </p>
+        )}
+      </div>
+
+      <div>
+        <Label htmlFor="phone" className="text-xs">Phone Number</Label>
+        <Input
+          id="phone"
+          {...form.register("phone")}
+          placeholder="+91 98765 43210"
+          disabled={isLoading}
+          className="h-8 text-xs mt-1"
+        />
+        {form.formState.errors.phone && (
+          <p className="text-[11px] text-red-600 mt-0.5">
+            {form.formState.errors.phone.message}
+          </p>
+        )}
+      </div>
+
+      <div>
+        <Label htmlFor="locality" className="text-xs">Locality / Area</Label>
+        <Input
+          id="locality"
+          {...form.register("locality")}
+          placeholder="Sector 15, Gurgaon"
+          disabled={isLoading}
+          className="h-8 text-xs mt-1"
+        />
+        {form.formState.errors.locality && (
+          <p className="text-[11px] text-red-600 mt-0.5">
+            {form.formState.errors.locality.message}
+          </p>
+        )}
+      </div>
+
+      <div>
+        <Label htmlFor="city" className="text-xs">City</Label>
+        <Input
+          id="city"
+          {...form.register("city")}
+          placeholder="Gurgaon"
+          disabled={isLoading}
+          className="h-8 text-xs mt-1"
+        />
+        {form.formState.errors.city && (
+          <p className="text-[11px] text-red-600 mt-0.5">
+            {form.formState.errors.city.message}
+          </p>
+        )}
+      </div>
+
+      <div>
+        <Label htmlFor="pincode" className="text-xs">Pincode</Label>
+        <Input
+          id="pincode"
+          {...form.register("pincode")}
+          placeholder="122001"
+          disabled={isLoading}
+          className="h-8 text-xs mt-1"
+        />
+        {form.formState.errors.pincode && (
+          <p className="text-[11px] text-red-600 mt-0.5">
+            {form.formState.errors.pincode.message}
+          </p>
+        )}
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <input
+          type="checkbox"
+          id="isDefault"
+          {...form.register("isDefault")}
+          disabled={isLoading}
+          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        />
+        <Label htmlFor="isDefault" className="text-xs">
+          Set as default address
+        </Label>
+      </div>
+
+      {/* Buttons — only shown inside Dialog (Drawer uses DrawerFooter) */}
+      {!isMobile && (
+        <div className="flex gap-3 pt-2 pb-1">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={isLoading}
+            className="flex-1 h-8 text-xs"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="flex-1 h-8 text-xs"
+          >
+            {isLoading ? "Saving..." : editingAddress ? "Update" : "Add"} Address
+          </Button>
+        </div>
+      )}
+    </form>
+  );
+
+  if (isMobile) {
+    return (
+      <Drawer open={isOpen} onOpenChange={(v) => { if (!v) onClose(); }}>
+        <DrawerContent>
+          <DrawerHeader className="pb-2">
+            <DrawerTitle className="flex items-center gap-2 text-sm">
+              <MapPin className="h-4 w-4" />
+              {titleText}
+            </DrawerTitle>
+            <DrawerDescription className="text-xs">{descriptionText}</DrawerDescription>
+          </DrawerHeader>
+          {formContent}
+          <DrawerFooter className="pt-3">
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="w-full h-8 text-xs"
+              onClick={form.handleSubmit(handleSubmit)}
+            >
+              {isLoading ? "Saving..." : editingAddress ? "Update" : "Add"} Address
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isLoading}
+              className="w-full h-8 text-xs"
+            >
+              Cancel
+            </Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            {editingAddress ? "Edit Address" : "Add New Address"}
-          </CardTitle>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="h-8 w-8"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            <div>
-              <Label htmlFor="name">Full Name</Label>
-              <Input
-                id="name"
-                {...form.register("name")}
-                placeholder="John Doe"
-                disabled={isLoading}
-              />
-              {form.formState.errors.name && (
-                <p className="text-sm text-red-600 mt-1">
-                  {form.formState.errors.name.message}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                {...form.register("phone")}
-                placeholder="+91 98765 43210"
-                disabled={isLoading}
-              />
-              {form.formState.errors.phone && (
-                <p className="text-sm text-red-600 mt-1">
-                  {form.formState.errors.phone.message}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="locality">Locality/Area</Label>
-              <Input
-                id="locality"
-                {...form.register("locality")}
-                placeholder="Sector 15, Gurgaon"
-                disabled={isLoading}
-              />
-              {form.formState.errors.locality && (
-                <p className="text-sm text-red-600 mt-1">
-                  {form.formState.errors.locality.message}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="city">City</Label>
-              <Input
-                id="city"
-                {...form.register("city")}
-                placeholder="Gurgaon"
-                disabled={isLoading}
-              />
-              {form.formState.errors.city && (
-                <p className="text-sm text-red-600 mt-1">
-                  {form.formState.errors.city.message}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="pincode">Pincode</Label>
-              <Input
-                id="pincode"
-                {...form.register("pincode")}
-                placeholder="122001"
-                disabled={isLoading}
-              />
-              {form.formState.errors.pincode && (
-                <p className="text-sm text-red-600 mt-1">
-                  {form.formState.errors.pincode.message}
-                </p>
-              )}
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="isDefault"
-                {...form.register("isDefault")}
-                disabled={isLoading}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <Label htmlFor="isDefault" className="text-sm">
-                Set as default address
-              </Label>
-            </div>
-
-            <div className="flex gap-3 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                disabled={isLoading}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="flex-1"
-              >
-                {isLoading ? "Saving..." : editingAddress ? "Update" : "Add"} Address
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+    <Dialog open={isOpen} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-sm">
+            <MapPin className="h-4 w-4" />
+            {titleText}
+          </DialogTitle>
+          <DialogDescription className="text-xs">{descriptionText}</DialogDescription>
+        </DialogHeader>
+        {formContent}
+      </DialogContent>
+    </Dialog>
   );
 }

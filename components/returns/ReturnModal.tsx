@@ -50,7 +50,6 @@ const returnReasons = [
   { value: "other", label: "Other" },
 ];
 
-// Exchange uses the same return_reason DB enum
 const exchangeReasons = returnReasons;
 
 export default function ReturnModal({
@@ -67,7 +66,6 @@ export default function ReturnModal({
   const [error, setError] = useState("");
   const [isMobile, setIsMobile] = useState(false);
 
-  // Exchange-only: selected replacement variant id (null = same size / no size)
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -82,14 +80,10 @@ export default function ReturnModal({
   const reasons = type === "exchange" ? exchangeReasons : returnReasons;
   const label = type === "exchange" ? "Exchange" : "Return";
 
-  // Variants available for this product (from the order item's product)
   const variants: Array<{ id: string; size: string; onlineStock: number; isActive: boolean }> =
     (orderItem?.product as any)?.variants ?? [];
 
-  // Only show size picker when the product actually has variants
   const hasVariants = variants.length > 0;
-
-  // The variant the customer originally ordered
   const orderedVariantId = (orderItem as any)?.variantId ?? null;
 
   const resetForm = () => {
@@ -114,7 +108,6 @@ export default function ReturnModal({
       setError("Please provide details about your request");
       return;
     }
-    // For exchange with variants, a size selection is required
     if (type === "exchange" && hasVariants && !selectedVariantId) {
       setError("Please select the size you want for the replacement");
       return;
@@ -129,7 +122,6 @@ export default function ReturnModal({
 
       const itemPayload: Record<string, unknown> = { orderItemId, quantity };
       if (isExchange && selectedVariantId) {
-        // Pass the same productId as the replacement; variant carries the size
         itemPayload.exchangeproductId = orderItem?.product?.id;
         itemPayload.exchangeVariantId = selectedVariantId;
       }
@@ -160,11 +152,11 @@ export default function ReturnModal({
   if (!orderItem) return null;
 
   const content = (
-    <div className="px-4 space-y-4 overflow-y-auto">
+    <div className="px-4 space-y-3 overflow-y-auto">
       {/* Item Details */}
-      <div className="border rounded-lg p-3 bg-gray-50">
-        <div className="flex gap-3">
-          <div className="w-12 h-12 bg-gray-200 rounded overflow-hidden flex-shrink-0">
+      <div className="border rounded-lg p-2.5 bg-gray-50">
+        <div className="flex gap-2.5">
+          <div className="w-10 h-10 bg-gray-200 rounded overflow-hidden flex-shrink-0">
             {orderItem.product?.imageUrl ? (
               <img
                 src={orderItem.product.imageUrl}
@@ -173,22 +165,22 @@ export default function ReturnModal({
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <RotateCcw className="w-6 h-6 text-gray-400" />
+                <RotateCcw className="w-4 h-4 text-gray-400" />
               </div>
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="font-medium text-sm truncate">
+            <h4 className="font-medium text-xs truncate">
               {orderItem.product?.name || "Product"}
             </h4>
-            <p className="text-xs text-gray-500">
+            <p className="text-[11px] text-gray-500">
               {orderItem.product?.category?.name}
               {(orderItem.product as any)?.color?.name &&
                 ` | ${(orderItem.product as any).color.name}`}
             </p>
-            <div className="flex items-center justify-between mt-1">
-              <span className="text-xs text-gray-500">Qty: {orderItem.quantity}</span>
-              <span className="text-sm font-medium">
+            <div className="flex items-center justify-between mt-0.5">
+              <span className="text-[11px] text-gray-500">Qty: {orderItem.quantity}</span>
+              <span className="text-xs font-medium">
                 ₹{parseFloat(orderItem.price).toFixed(2)}
               </span>
             </div>
@@ -200,9 +192,9 @@ export default function ReturnModal({
       {(type === "return"
         ? orderItem.returnEligibility
         : (orderItem as any).exchangeEligibility) && (
-        <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
-          <AlertCircle className="w-4 h-4 text-blue-600" />
-          <p className="text-sm text-blue-800 font-medium">
+        <div className="flex items-center gap-2 p-2.5 bg-blue-50 rounded-lg">
+          <AlertCircle className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
+          <p className="text-xs text-blue-800 font-medium">
             {(() => {
               const elig =
                 type === "return"
@@ -216,21 +208,20 @@ export default function ReturnModal({
         </div>
       )}
 
-      {/* ── Size picker (exchange only, products with variants) ── */}
+      {/* Size picker (exchange only) */}
       {type === "exchange" && hasVariants && (
-        <div className="space-y-2">
-          <Label>
-            Replacement Size{" "}
-            <span className="text-red-500">*</span>
+        <div className="space-y-1.5">
+          <Label className="text-xs">
+            Replacement Size <span className="text-red-500">*</span>
           </Label>
-          <p className="text-xs text-gray-500">
+          <p className="text-[11px] text-gray-500">
             You ordered:{" "}
             <span className="font-medium">
               {variants.find((v) => v.id === orderedVariantId)?.size ?? "—"}
             </span>
             . Select the size you want instead.
           </p>
-          <div className="flex flex-wrap gap-2 pt-1">
+          <div className="flex flex-wrap gap-1.5 pt-0.5">
             {variants.map((v) => {
               const outOfStock = v.onlineStock < 1;
               const isSelected = selectedVariantId === v.id;
@@ -242,7 +233,7 @@ export default function ReturnModal({
                   disabled={outOfStock || !v.isActive}
                   onClick={() => setSelectedVariantId(v.id)}
                   className={[
-                    "relative px-3 py-1.5 rounded-md border text-sm font-medium transition-colors",
+                    "relative px-2.5 py-1 rounded-md border text-xs font-medium transition-colors",
                     isSelected
                       ? "border-blue-600 bg-blue-50 text-blue-700"
                       : outOfStock || !v.isActive
@@ -258,7 +249,7 @@ export default function ReturnModal({
                     <span className="ml-1 text-[10px] text-red-400">OOS</span>
                   )}
                   {isSelected && (
-                    <CheckCircle2 className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 text-blue-600 bg-white rounded-full" />
+                    <CheckCircle2 className="absolute -top-1.5 -right-1.5 w-3 h-3 text-blue-600 bg-white rounded-full" />
                   )}
                 </button>
               );
@@ -269,18 +260,18 @@ export default function ReturnModal({
 
       {/* Quantity */}
       {maxQuantity > 1 && (
-        <div className="space-y-2">
-          <Label>Quantity to {label}</Label>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Quantity to {label}</Label>
           <Select
             value={quantity.toString()}
             onValueChange={(value) => setQuantity(parseInt(value))}
           >
-            <SelectTrigger>
+            <SelectTrigger className="h-8 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {Array.from({ length: maxQuantity }, (_, i) => i + 1).map((qty) => (
-                <SelectItem key={qty} value={qty.toString()}>
+                <SelectItem key={qty} value={qty.toString()} className="text-xs">
                   {qty}
                 </SelectItem>
               ))}
@@ -290,15 +281,15 @@ export default function ReturnModal({
       )}
 
       {/* Reason */}
-      <div className="space-y-2">
-        <Label>Reason for {label}</Label>
+      <div className="space-y-1.5">
+        <Label className="text-xs">Reason for {label}</Label>
         <Select value={reason} onValueChange={setReason}>
-          <SelectTrigger>
+          <SelectTrigger className="h-8 text-xs">
             <SelectValue placeholder="Select a reason" />
           </SelectTrigger>
           <SelectContent>
             {reasons.map((r) => (
-              <SelectItem key={r.value} value={r.value}>
+              <SelectItem key={r.value} value={r.value} className="text-xs">
                 {r.label}
               </SelectItem>
             ))}
@@ -307,22 +298,23 @@ export default function ReturnModal({
       </div>
 
       {/* Details */}
-      <div className="space-y-2">
-        <Label htmlFor="return-details">Additional Details</Label>
+      <div className="space-y-1.5">
+        <Label htmlFor="return-details" className="text-xs">Additional Details</Label>
         <Textarea
           id="return-details"
           placeholder="Please provide more details about your request..."
           value={reasonDetails}
           onChange={(e) => setReasonDetails(e.target.value)}
-          rows={4}
+          rows={3}
+          className="text-xs resize-none"
         />
       </div>
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg">
-          <AlertCircle className="w-4 h-4 text-red-600" />
-          <p className="text-sm text-red-800">{error}</p>
+        <div className="flex items-center gap-2 p-2.5 bg-red-50 rounded-lg">
+          <AlertCircle className="w-3.5 h-3.5 text-red-600 flex-shrink-0" />
+          <p className="text-xs text-red-800">{error}</p>
         </div>
       )}
     </div>
@@ -331,9 +323,9 @@ export default function ReturnModal({
   const titleContent = (
     <>
       {type === "exchange" ? (
-        <RefreshCw className="w-5 h-5" />
+        <RefreshCw className="w-4 h-4" />
       ) : (
-        <RotateCcw className="w-5 h-5" />
+        <RotateCcw className="w-4 h-4" />
       )}
       Request {label}
     </>
@@ -347,10 +339,12 @@ export default function ReturnModal({
         variant="outline"
         onClick={() => handleOpenChange(false)}
         disabled={loading}
+        size="sm"
+        className="text-xs"
       >
         Cancel
       </Button>
-      <Button onClick={handleSubmit} disabled={loading}>
+      <Button onClick={handleSubmit} disabled={loading} size="sm" className="text-xs">
         {loading ? "Submitting..." : `Submit ${label} Request`}
       </Button>
     </>
@@ -360,14 +354,14 @@ export default function ReturnModal({
     return (
       <Drawer open={open} onOpenChange={handleOpenChange}>
         <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle className="flex items-center gap-2">
+          <DrawerHeader className="pb-2">
+            <DrawerTitle className="flex items-center gap-2 text-sm">
               {titleContent}
             </DrawerTitle>
-            <DrawerDescription>{descriptionText}</DrawerDescription>
+            <DrawerDescription className="text-xs">{descriptionText}</DrawerDescription>
           </DrawerHeader>
           {content}
-          <DrawerFooter>{footerButtons}</DrawerFooter>
+          <DrawerFooter className="pt-3">{footerButtons}</DrawerFooter>
         </DrawerContent>
       </Drawer>
     );
@@ -377,10 +371,10 @@ export default function ReturnModal({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-sm">
             {titleContent}
           </DialogTitle>
-          <DialogDescription>{descriptionText}</DialogDescription>
+          <DialogDescription className="text-xs">{descriptionText}</DialogDescription>
         </DialogHeader>
         {content}
         <DialogFooter>{footerButtons}</DialogFooter>

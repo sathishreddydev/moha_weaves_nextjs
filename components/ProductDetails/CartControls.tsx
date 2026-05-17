@@ -18,7 +18,6 @@ interface CartControlsProps {
 export default function CartControls({
   product,
   selectedVariant,
-  initialQuantity = 1,
 }: CartControlsProps) {
   const router = useRouter();
   const pathname = usePathname();
