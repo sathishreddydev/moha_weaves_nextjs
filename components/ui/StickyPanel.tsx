@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Drawer,
+  DrawerClose,
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
@@ -108,21 +109,32 @@ function MobileSheet({
   footer,
 }: Omit<StickyPanelProps, "isMobile" | "className" | "maxHeight">) {
   return (
-    <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DrawerContent
-        /* Give the sheet a fixed viewport height so the body scrolls */
-        className="max-h-[92dvh] flex flex-col"
-      >
+    <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()} dismissible={false}>
+      <DrawerContent className="max-h-[92dvh] flex flex-col">
         {/* ── Sticky header ── */}
-        <DrawerHeader className="flex-none border-b border-gray-100 px-4 py-3">
+        <DrawerHeader className="flex-none flex items-center justify-between border-b border-gray-100 px-4 py-3">
           <DrawerTitle className="flex items-center gap-2 text-sm font-semibold">
             {icon && <span className="text-gray-500 flex-shrink-0">{icon}</span>}
             {title}
           </DrawerTitle>
+          <DrawerClose asChild>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
+            >
+              <X className="h-4 w-4 text-gray-500" />
+            </button>
+          </DrawerClose>
         </DrawerHeader>
 
         {/* ── Scrollable body ── */}
-        <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3">
+        {/* data-vaul-no-drag prevents vaul from treating scroll as a dismiss gesture */}
+        <div
+          data-vaul-no-drag
+          className="flex-1 overflow-y-auto overscroll-contain px-4 py-3"
+        >
           {children}
         </div>
 
