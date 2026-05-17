@@ -1,14 +1,40 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { MapPin, Edit2, Plus, ArrowLeft, Trash2, Loader2 } from "lucide-react";
+import {
+  MapPin,
+  Home,
+  Briefcase,
+  Building2,
+  Plus,
+  ArrowLeft,
+  Loader2,
+  MoreVertical,
+  Star,
+  Edit2,
+  Trash2,
+  Share2,
+} from "lucide-react";
 import { useAddressStore } from "@/lib/stores/addressStore";
 import AddressForm from "./AddressForm";
 import DeleteConfirmDialog from "./DeleteConfirmDialog";
 import AddressSkeleton from "./AddressSkeleton";
 import { UserAddress } from "@/shared";
 import { useRouter } from "next/navigation";
+import { ThreeDotsMenu } from "../ui/three-dots-menu";
+
+function AddressTypeIcon({ type }: { type?: string }) {
+  switch (type?.toLowerCase()) {
+    case "work":
+    case "office":
+      return <Briefcase className="w-4 h-4" />;
+    case "other":
+      return <Building2 className="w-4 h-4" />;
+    default:
+      return <Home className="w-4 h-4" />;
+  }
+}
 
 export default function Addresses() {
   const {
@@ -28,8 +54,20 @@ export default function Addresses() {
   );
   const [isMobile, setIsMobile] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [addressToDelete, setAddressToDelete] = useState<UserAddress | null>(null);
+  const [addressToDelete, setAddressToDelete] = useState<UserAddress | null>(
+    null,
+  );
   const router = useRouter();
+
+
+  const handleShareAddress = (address: UserAddress) => {
+    const text = `${address.name}\n${address.phone}\n${address.locality}, ${address.city} - ${address.pincode}`;
+    if (navigator.share) {
+      navigator.share({ title: "Address", text });
+    } else {
+      navigator.clipboard.writeText(text);
+    }
+  };
 
   // Check if mobile on mount and resize
   useEffect(() => {
@@ -153,68 +191,88 @@ export default function Addresses() {
             </Button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 relative">
             {addresses.map((address) => (
               <div
                 key={address.id}
                 className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow"
               >
-                <div className="flex justify-between items-start p-3">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <h3 className="text-sm font-medium text-gray-900">
+                <div className="flex items-start p-3 gap-3">
+                  {/* Left: icon + type label */}
+                  <div className="flex flex-col items-center gap-1 min-w-[48px] pt-0.5">
+                    <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                      <AddressTypeIcon type={address.addressType} />
+                    </div>
+                    <span className="text-[10px] font-medium text-blue-700 capitalize leading-none">
+                      {address.addressType || "home"}
+                    </span>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="w-px self-stretch bg-gray-200 mx-1" />
+
+                  {/* Address details */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                      <h3 className="text-sm font-semibold text-gray-900 truncate">
                         {address.name}
                       </h3>
-                      <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded capitalize">
-                        {address.addressType || 'home'}
-                      </span>
                       {address.isDefault && (
-                        <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                        <span className="bg-green-100 text-green-700 text-[10px] font-medium px-2 py-0.5 rounded-full">
                           Default
                         </span>
                       )}
                     </div>
-                    <p className="text-gray-600 text-sm">{address.phone}</p>
-                    <p className="text-gray-900 text-sm">
+                    <p className="text-gray-500 text-xs mb-0.5">
+                      {address.phone}
+                    </p>
+                    <p className="text-gray-700 text-xs leading-snug">
                       {address.locality}, {address.city}, {address.pincode}
                     </p>
                   </div>
-                  <div className="flex space-x-2">
-                    {!address.isDefault && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleSetDefault(address.id)}
-                        disabled={updating === address.id}
-                        className=" px-3 touch-manipulation active:scale-[0.98]"
-                      >
-                        {updating === address.id ? "Setting..." : "Set Default"}
-                      </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEditAddress(address)}
-                      className=" w-10 touch-manipulation active:scale-[0.98]"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-red-600 hover:text-red-700  w-10 touch-manipulation active:scale-[0.98]"
-                      onClick={() => handleDeleteAddress(address)}
-                      disabled={updating === address.id}
-                    >
-                      {updating === address.id ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        </>
-                      ) : (
-                        <Trash2 className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </div>
+
+                  {/* Right: three-dot menu */}
+                  <ThreeDotsMenu
+                    items={[
+                      ...(!address.isDefault
+                        ? [
+                            {
+                              label: "Set as Default",
+                              icon: (
+                                <Star className="w-4 h-4 text-yellow-500" />
+                              ),
+                              onClick: () => handleSetDefault(address.id),
+                              disabled: updating === address.id,
+                            },
+                          ]
+                        : []),
+
+                      {
+                        label: "Edit",
+                        icon: <Edit2 className="w-4 h-4 text-blue-500" />,
+                        onClick: () => handleEditAddress(address),
+                      },
+
+                      {
+                        label: "Delete",
+                        icon:
+                          updating === address.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          ),
+                        onClick: () => handleDeleteAddress(address),
+                        disabled: updating === address.id,
+                        variant: "destructive",
+                      },
+
+                      {
+                        label: "Share",
+                        icon: <Share2 className="w-4 h-4 text-green-500" />,
+                        onClick: () => handleShareAddress(address),
+                      },
+                    ]}
+                  />
                 </div>
               </div>
             ))}
