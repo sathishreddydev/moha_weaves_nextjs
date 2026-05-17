@@ -2,22 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { StickyPanel } from "@/components/ui/StickyPanel";
 import {
   Select,
   SelectContent,
@@ -30,6 +15,8 @@ import { Label } from "@/components/ui/label";
 import { RotateCcw, RefreshCw, AlertCircle, CheckCircle2 } from "lucide-react";
 import { OrderWithItems } from "@/shared";
 
+// ─── Types ─────────────────────────────────────────────────────────────────────
+
 interface ReturnModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -38,7 +25,9 @@ interface ReturnModalProps {
   type: "return" | "exchange";
 }
 
-const returnReasons = [
+// ─── Constants ─────────────────────────────────────────────────────────────────
+
+const REASONS = [
   { value: "defective", label: "Defective Product" },
   { value: "wrong_item", label: "Wrong Item Received" },
   { value: "not_as_described", label: "Not as Described" },
@@ -50,7 +39,7 @@ const returnReasons = [
   { value: "other", label: "Other" },
 ];
 
-const exchangeReasons = returnReasons;
+// ─── Component ─────────────────────────────────────────────────────────────────
 
 export default function ReturnModal({
   open,
@@ -65,7 +54,6 @@ export default function ReturnModal({
   const [quantity, setQuantity] = useState(1);
   const [error, setError] = useState("");
   const [isMobile, setIsMobile] = useState(false);
-
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -77,14 +65,19 @@ export default function ReturnModal({
 
   const orderItem = order.items?.find((item) => item.id === orderItemId);
   const maxQuantity = orderItem?.quantity || 1;
-  const reasons = type === "exchange" ? exchangeReasons : returnReasons;
   const label = type === "exchange" ? "Exchange" : "Return";
 
-  const variants: Array<{ id: string; size: string; onlineStock: number; isActive: boolean }> =
-    (orderItem?.product as any)?.variants ?? [];
+  const variants: Array<{
+    id: string;
+    size: string;
+    onlineStock: number;
+    isActive: boolean;
+  }> = (orderItem?.product as any)?.variants ?? [];
 
   const hasVariants = variants.length > 0;
   const orderedVariantId = (orderItem as any)?.variantId ?? null;
+
+  // ── Helpers ─────────────────────────────────────────────────────────────────
 
   const resetForm = () => {
     setReason("");
@@ -98,6 +91,8 @@ export default function ReturnModal({
     if (!value) resetForm();
     onOpenChange(value);
   };
+
+  // ── Submit ──────────────────────────────────────────────────────────────────
 
   const handleSubmit = async () => {
     if (!reason) {
@@ -128,7 +123,13 @@ export default function ReturnModal({
 
       const payload = isExchange
         ? { orderId: order.id, reason, reasonDetails, items: [itemPayload] }
-        : { orderId: order.id, reason, reasonDetails, resolution: "refund", items: [itemPayload] };
+        : {
+            orderId: order.id,
+            reason,
+            reasonDetails,
+            resolution: "refund",
+            items: [itemPayload],
+          };
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -143,7 +144,9 @@ export default function ReturnModal({
 
       handleOpenChange(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to submit request");
+      setError(
+        err instanceof Error ? err.message : "Failed to submit request",
+      );
     } finally {
       setLoading(false);
     }
@@ -151,9 +154,35 @@ export default function ReturnModal({
 
   if (!orderItem) return null;
 
-  const content = (
-    <div className="px-4 space-y-3 overflow-y-auto">
-      {/* Item Details */}
+  // ── Footer (sticky) ─────────────────────────────────────────────────────────
+
+  const footer = (
+    <div className="flex gap-3">
+      <Button
+        variant="outline"
+        onClick={() => handleOpenChange(false)}
+        disabled={loading}
+        size="sm"
+        className="w-full text-xs"
+      >
+        Cancel
+      </Button>
+      <Button
+        onClick={handleSubmit}
+        disabled={loading}
+        size="sm"
+        className="w-full text-xs"
+      >
+        {loading ? "Submitting..." : `Submit ${label} Request`}
+      </Button>
+    </div>
+  );
+
+  // ── Body (scrollable) ───────────────────────────────────────────────────────
+
+  const body = (
+    <div className="space-y-3">
+      {/* Item preview */}
       <div className="border rounded-lg p-2.5 bg-gray-50">
         <div className="flex gap-2.5">
           <div className="w-10 h-10 bg-gray-200 rounded overflow-hidden flex-shrink-0">
@@ -179,7 +208,9 @@ export default function ReturnModal({
                 ` | ${(orderItem.product as any).color.name}`}
             </p>
             <div className="flex items-center justify-between mt-0.5">
-              <span className="text-[11px] text-gray-500">Qty: {orderItem.quantity}</span>
+              <span className="text-[11px] text-gray-500">
+                Qty: {orderItem.quantity}
+              </span>
               <span className="text-xs font-medium">
                 ₹{parseFloat(orderItem.price).toFixed(2)}
               </span>
@@ -188,7 +219,7 @@ export default function ReturnModal({
         </div>
       </div>
 
-      {/* Eligibility Info */}
+      {/* Eligibility banner */}
       {(type === "return"
         ? orderItem.returnEligibility
         : (orderItem as any).exchangeEligibility) && (
@@ -208,7 +239,7 @@ export default function ReturnModal({
         </div>
       )}
 
-      {/* Size picker (exchange only) */}
+      {/* Size picker — exchange only */}
       {type === "exchange" && hasVariants && (
         <div className="space-y-1.5">
           <Label className="text-xs">
@@ -237,13 +268,15 @@ export default function ReturnModal({
                     isSelected
                       ? "border-blue-600 bg-blue-50 text-blue-700"
                       : outOfStock || !v.isActive
-                      ? "border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed"
-                      : "border-gray-300 bg-white text-gray-700 hover:border-gray-500",
+                        ? "border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed"
+                        : "border-gray-300 bg-white text-gray-700 hover:border-gray-500",
                   ].join(" ")}
                 >
                   {v.size}
                   {isOriginal && (
-                    <span className="ml-1 text-[10px] text-gray-400">(yours)</span>
+                    <span className="ml-1 text-[10px] text-gray-400">
+                      (yours)
+                    </span>
                   )}
                   {outOfStock && (
                     <span className="ml-1 text-[10px] text-red-400">OOS</span>
@@ -266,15 +299,17 @@ export default function ReturnModal({
             value={quantity.toString()}
             onValueChange={(value) => setQuantity(parseInt(value))}
           >
-            <SelectTrigger className="h-8 text-xs">
+            <SelectTrigger className="text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {Array.from({ length: maxQuantity }, (_, i) => i + 1).map((qty) => (
-                <SelectItem key={qty} value={qty.toString()} className="text-xs">
-                  {qty}
-                </SelectItem>
-              ))}
+              {Array.from({ length: maxQuantity }, (_, i) => i + 1).map(
+                (qty) => (
+                  <SelectItem key={qty} value={qty.toString()} className="text-xs">
+                    {qty}
+                  </SelectItem>
+                ),
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -284,11 +319,11 @@ export default function ReturnModal({
       <div className="space-y-1.5">
         <Label className="text-xs">Reason for {label}</Label>
         <Select value={reason} onValueChange={setReason}>
-          <SelectTrigger className="h-8 text-xs">
+          <SelectTrigger className="text-xs">
             <SelectValue placeholder="Select a reason" />
           </SelectTrigger>
           <SelectContent>
-            {reasons.map((r) => (
+            {REASONS.map((r) => (
               <SelectItem key={r.value} value={r.value} className="text-xs">
                 {r.label}
               </SelectItem>
@@ -299,13 +334,15 @@ export default function ReturnModal({
 
       {/* Details */}
       <div className="space-y-1.5">
-        <Label htmlFor="return-details" className="text-xs">Additional Details</Label>
+        <Label htmlFor="return-details" className="text-xs">
+          Additional Details
+        </Label>
         <Textarea
           id="return-details"
           placeholder="Please provide more details about your request..."
           value={reasonDetails}
           onChange={(e) => setReasonDetails(e.target.value)}
-          rows={3}
+          rows={2}
           className="text-xs resize-none"
         />
       </div>
@@ -320,65 +357,24 @@ export default function ReturnModal({
     </div>
   );
 
-  const titleContent = (
-    <>
-      {type === "exchange" ? (
-        <RefreshCw className="w-4 h-4" />
-      ) : (
-        <RotateCcw className="w-4 h-4" />
-      )}
-      Request {label}
-    </>
-  );
-
-  const descriptionText = `Request a${type === "exchange" ? "n exchange" : " return"} for this item`;
-
-  const footerButtons = (
-    <>
-      <Button
-        variant="outline"
-        onClick={() => handleOpenChange(false)}
-        disabled={loading}
-        size="sm"
-        className="text-xs"
-      >
-        Cancel
-      </Button>
-      <Button onClick={handleSubmit} disabled={loading} size="sm" className="text-xs">
-        {loading ? "Submitting..." : `Submit ${label} Request`}
-      </Button>
-    </>
-  );
-
-  if (isMobile) {
-    return (
-      <Drawer open={open} onOpenChange={handleOpenChange}>
-        <DrawerContent>
-          <DrawerHeader className="pb-2">
-            <DrawerTitle className="flex items-center gap-2 text-sm">
-              {titleContent}
-            </DrawerTitle>
-            <DrawerDescription className="text-xs">{descriptionText}</DrawerDescription>
-          </DrawerHeader>
-          {content}
-          <DrawerFooter className="pt-3">{footerButtons}</DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-    );
-  }
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-sm">
-            {titleContent}
-          </DialogTitle>
-          <DialogDescription className="text-xs">{descriptionText}</DialogDescription>
-        </DialogHeader>
-        {content}
-        <DialogFooter>{footerButtons}</DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <StickyPanel
+      isOpen={open}
+      onClose={() => handleOpenChange(false)}
+      title={`Request ${label}`}
+      icon={
+        type === "exchange" ? (
+          <RefreshCw className="w-4 h-4" />
+        ) : (
+          <RotateCcw className="w-4 h-4" />
+        )
+      }
+      footer={footer}
+      isMobile={isMobile}
+    >
+      {body}
+    </StickyPanel>
   );
 }

@@ -1,16 +1,10 @@
 "use client";
 
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
+import { StickyPanel } from "@/components/ui/StickyPanel";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Trash2 } from "lucide-react";
+
+// ─── Types ─────────────────────────────────────────────────────────────────────
 
 interface DeleteConfirmDialogProps {
   isOpen: boolean;
@@ -20,6 +14,8 @@ interface DeleteConfirmDialogProps {
   isLoading?: boolean;
   addressName?: string;
 }
+
+// ─── Component ─────────────────────────────────────────────────────────────────
 
 export default function DeleteConfirmDialog({
   isOpen,
@@ -31,87 +27,72 @@ export default function DeleteConfirmDialog({
 }: DeleteConfirmDialogProps) {
   const handleConfirm = async () => {
     await onConfirm();
-    if (!isLoading) {
-      onClose();
-    }
+    if (!isLoading) onClose();
   };
 
-  const DialogContent = () => (
-    <div className="space-y-4">
+  // ── Footer (sticky) ─────────────────────────────────────────────────────────
+
+  const footer = (
+    <div className="flex gap-3">
+      <Button
+        variant="outline"
+        onClick={onClose}
+        disabled={isLoading}
+        className="flex-1"
+      >
+        Cancel
+      </Button>
+      <Button
+        variant="destructive"
+        onClick={handleConfirm}
+        disabled={isLoading}
+        className="flex-1"
+      >
+        {isLoading ? (
+          "Deleting..."
+        ) : (
+          <>
+            <Trash2 className="w-4 h-4 mr-2" />
+            Delete Address
+          </>
+        )}
+      </Button>
+    </div>
+  );
+
+  // ── Body (scrollable) ───────────────────────────────────────────────────────
+
+  const body = (
+    <div className="space-y-3">
       <div className="flex items-center gap-3 p-4 bg-red-50 rounded-lg">
         <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0" />
         <div>
           <h3 className="font-semibold text-red-900">Delete Address</h3>
           <p className="text-sm text-red-700">
-            Are you sure you want to delete "{addressName}"?
+            Are you sure you want to delete &quot;{addressName}&quot;?
           </p>
         </div>
       </div>
-
-      <div className="text-sm text-gray-600 px-4">
-        <p>
-          This action cannot be undone. The address will be permanently removed
-          from your account.
-        </p>
-      </div>
-
-      <div className="flex gap-3 px-4 pb-4">
-        {isMobile ? (
-          <DrawerClose asChild>
-            <Button variant="outline" disabled={isLoading} className="flex-1">
-              Cancel
-            </Button>
-          </DrawerClose>
-        ) : (
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={isLoading}
-            className="flex-1"
-          >
-            Cancel
-          </Button>
-        )}
-        <Button
-          variant="destructive"
-          onClick={handleConfirm}
-          disabled={isLoading}
-          className="flex-1"
-        >
-          {isLoading ? (
-            "Deleting..."
-          ) : (
-            <>
-              <Trash2 className="w-4 h-4 mr-2" />
-              Delete Address
-            </>
-          )}
-        </Button>
-      </div>
+      <p className="text-sm text-gray-600 px-1">
+        This action cannot be undone. The address will be permanently removed
+        from your account.
+      </p>
     </div>
   );
 
-  if (!isOpen) return null;
+  // ── Render ──────────────────────────────────────────────────────────────────
 
-  if (isMobile) {
-    return (
-      <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DrawerContent>
-          <DrawerTitle className="sr-only">Delete Address Confirmation</DrawerTitle>
-          <DialogContent />
-        </DrawerContent>
-      </Drawer>
-    );
-  }
-
-  // Desktop Modal
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg w-full max-w-md">
-        <div className="p-6">
-          <DialogContent />
-        </div>
-      </div>
-    </div>
+    <StickyPanel
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Confirm Delete"
+      icon={<Trash2 className="h-4 w-4 text-red-500" />}
+      footer={footer}
+      isMobile={isMobile}
+      maxHeight="60vh"
+    >
+      {body}
+    </StickyPanel>
   );
 }

@@ -1,16 +1,9 @@
 "use client";
 
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
+import { StickyPanel } from "@/components/ui/StickyPanel";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { MobileInput } from "@/components/ui/mobile-input";
-import { MobileButton } from "@/components/ui/mobile-button";
 import { UserAddress } from "@/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -23,11 +16,12 @@ import {
   MapPin,
   Phone,
   User,
-  X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+
+// ─── Schema ────────────────────────────────────────────────────────────────────
 
 const addressSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -35,7 +29,7 @@ const addressSchema = z.object({
     .string()
     .regex(
       /^(\+91[\-\s]?)?[6-9]\d{9}$/,
-      "Enter a valid 10-digit number starting with 6–9"
+      "Enter a valid 10-digit number starting with 6–9",
     ),
   addressLine1: z
     .string()
@@ -43,14 +37,14 @@ const addressSchema = z.object({
   locality: z.string().min(2, "Locality is required"),
   city: z.string().min(2, "City is required"),
   state: z.string().min(2, "State is required"),
-  pincode: z
-    .string()
-    .regex(/^[1-9][0-9]{5}$/, "Enter a valid 6-digit pincode"),
+  pincode: z.string().regex(/^[1-9][0-9]{5}$/, "Enter a valid 6-digit pincode"),
   addressType: z.enum(["home", "work", "other"]).default("home"),
   isDefault: z.boolean().default(false),
 });
 
 type AddressFormData = z.infer<typeof addressSchema>;
+
+// ─── Types ─────────────────────────────────────────────────────────────────────
 
 interface PincodeInfo {
   available: boolean;
@@ -60,7 +54,7 @@ interface PincodeInfo {
   message?: string;
 }
 
-interface AddressFormProps {
+export interface AddressFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: AddressFormData) => Promise<void>;
@@ -69,11 +63,15 @@ interface AddressFormProps {
   isMobile?: boolean;
 }
 
+// ─── Constants ─────────────────────────────────────────────────────────────────
+
 const ADDRESS_TYPES = [
   { value: "home", label: "Home", icon: Home },
   { value: "work", label: "Work", icon: Briefcase },
   { value: "other", label: "Other", icon: Building2 },
 ] as const;
+
+// ─── Component ─────────────────────────────────────────────────────────────────
 
 export default function AddressForm({
   isOpen,
@@ -103,7 +101,10 @@ export default function AddressForm({
 
   const selectedType = form.watch("addressType");
   const isDefault = form.watch("isDefault");
+  const city = form.watch("city");
+  const state = form.watch("state");
 
+  // Reset form whenever the panel opens or the editing target changes
   useEffect(() => {
     if (editingAddress) {
       form.reset({
@@ -133,6 +134,8 @@ export default function AddressForm({
     setPincodeInfo(null);
   }, [editingAddress, form, isOpen]);
 
+  // ── Pincode lookup ──────────────────────────────────────────────────────────
+
   const checkPincode = async (pincode: string) => {
     if (!/^[1-9][0-9]{5}$/.test(pincode)) return;
     setPincodeLoading(true);
@@ -152,6 +155,8 @@ export default function AddressForm({
     }
   };
 
+  // ── Submit ──────────────────────────────────────────────────────────────────
+
   const handleSubmit = async (data: AddressFormData) => {
     try {
       await onSubmit(data);
@@ -165,11 +170,75 @@ export default function AddressForm({
 
   const isPincodeInvalid = pincodeInfo !== null && !pincodeInfo.available;
 
-  const city = form.watch("city");
-  const state = form.watch("state");
+  // ── Footer (sticky action buttons) ─────────────────────────────────────────
 
-  const FormContent = () => (
-    <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-3">
+  const footer = (
+    <div className="flex gap-3">
+      <Button
+        type="button"
+        variant="outline"
+        onClick={onClose}
+        disabled={isLoading}
+        className="w-full"
+        size="sm"
+      >
+        Cancel
+      </Button>
+      <Button
+        type="submit"
+        form="address-form"
+        disabled={isLoading || isPincodeInvalid || pincodeLoading}
+        className="w-full relative"
+        size="sm"
+      >
+        {isLoading && (
+          <Loader2 className="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 animate-spin" />
+        )}
+        {editingAddress ? "Update" : "Add"} Address
+      </Button>
+    </div>
+  );
+
+  // ── Form body (scrollable) ──────────────────────────────────────────────────
+
+  const formBody = (
+    <form
+      id="address-form"
+      onSubmit={form.handleSubmit(handleSubmit)}
+      className="space-y-3"
+    >
+      {/* Address type selector */}
+      <div>
+        <Label className="text-xs font-medium text-gray-600 uppercase tracking-wide">
+          Save Address As
+        </Label>
+        <div className="flex gap-2 mt-2">
+          {ADDRESS_TYPES.map(({ value, label, icon: Icon }) => {
+            const isSelected = selectedType === value;
+            return (
+              <Button
+                key={value}
+                type="button"
+                onClick={() =>
+                  form.setValue("addressType", value, { shouldValidate: true })
+                }
+                variant={isSelected ? "default" : "outline"}
+                disabled={isLoading}
+                className={[
+                  "rounded-xl border-2 text-xs font-medium",
+                  isSelected
+                    ? "border-gray-900 bg-gray-900"
+                    : "border-gray-200 hover:border-gray-400",
+                ].join(" ")}
+                size="sm"
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </Button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Name + Phone */}
       <div className="grid grid-cols-2 gap-3">
@@ -177,7 +246,7 @@ export default function AddressForm({
           id="name"
           label="Full Name"
           {...form.register("name")}
-          placeholder="John Doe"
+          placeholder="Your Name"
           disabled={isLoading}
           error={form.formState.errors.name?.message}
           inputMode="text"
@@ -188,12 +257,11 @@ export default function AddressForm({
           id="phone"
           label="Phone"
           {...form.register("phone")}
-          placeholder="9876543210"
+          placeholder="Your Phone"
           disabled={isLoading}
           error={form.formState.errors.phone?.message}
           inputMode="tel"
           autoComplete="tel"
-          helperText="Starts with 6–9"
           icon={<Phone className="h-3.5 w-3.5 text-gray-400" />}
         />
       </div>
@@ -241,10 +309,8 @@ export default function AddressForm({
           error={form.formState.errors.pincode?.message}
           inputMode="numeric"
           autoComplete="postal-code"
-          helperText="6-digit Indian pincode"
         />
 
-        {/* Pincode status */}
         {pincodeLoading && (
           <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
             <Loader2 className="h-3 w-3 animate-spin" />
@@ -252,7 +318,6 @@ export default function AddressForm({
           </p>
         )}
 
-        {/* City + State pill — shown after successful pincode lookup */}
         {pincodeInfo?.available && city && state && (
           <div className="mt-2 flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
             <Check className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
@@ -280,42 +345,11 @@ export default function AddressForm({
         )}
       </div>
 
-      {/* Hidden city/state fields — values set by pincode lookup */}
+      {/* Hidden city / state — populated by pincode lookup */}
       <input type="hidden" {...form.register("city")} />
       <input type="hidden" {...form.register("state")} />
 
-      {/* Address Type — icon button group */}
-      <div>
-        <Label className="text-xs font-medium text-gray-600 uppercase tracking-wide">
-          Address Type
-        </Label>
-        <div className="flex gap-2 mt-2">
-          {ADDRESS_TYPES.map(({ value, label, icon: Icon }) => {
-            const isSelected = selectedType === value;
-            return (
-              <button
-                key={value}
-                type="button"
-                onClick={() =>
-                  form.setValue("addressType", value, { shouldValidate: true })
-                }
-                disabled={isLoading}
-                className={[
-                  "flex-1 flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl border-2 transition-all text-xs font-medium",
-                  isSelected
-                    ? "border-gray-900 bg-gray-900 text-white"
-                    : "border-gray-200 bg-white text-gray-500 hover:border-gray-400",
-                ].join(" ")}
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Set as Default — Shopify style full-width toggle row */}
+      {/* Set as Default */}
       <button
         type="button"
         onClick={() => form.setValue("isDefault", !isDefault)}
@@ -354,80 +388,21 @@ export default function AddressForm({
         )}
       </button>
       <input type="hidden" {...form.register("isDefault")} />
-
-      {/* Action buttons */}
-      <div className="flex gap-3 pt-2">
-        <MobileButton
-          type="button"
-          variant="outline"
-          onClick={onClose}
-          disabled={isLoading}
-          fullWidth
-          size="lg"
-        >
-          Cancel
-        </MobileButton>
-        <MobileButton
-          type="submit"
-          disabled={isLoading || isPincodeInvalid || pincodeLoading}
-          loading={isLoading}
-          fullWidth
-          size="lg"
-        >
-          {editingAddress ? "Update" : "Add"} Address
-        </MobileButton>
-      </div>
     </form>
   );
 
-  if (!isOpen) return null;
-
-  if (isMobile) {
-    return (
-      <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle className="flex items-center gap-2 text-sm">
-              <MapPin className="h-4 w-4" />
-              {editingAddress ? "Edit Address" : "Add New Address"}
-            </DrawerTitle>
-            <DrawerDescription className="text-xs">
-              {editingAddress
-                ? "Update your address details"
-                : "Enter your address details for delivery"}
-            </DrawerDescription>
-          </DrawerHeader>
-          <div className="px-4 pb-4 overflow-y-auto">
-            <FormContent />
-          </div>
-        </DrawerContent>
-      </Drawer>
-    );
-  }
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="flex flex-row items-center justify-between p-3 border-b">
-          <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4" />
-            <h2 className="text-sm font-semibold">
-              {editingAddress ? "Edit Address" : "Add New Address"}
-            </h2>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="h-8 w-8"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="p-3">
-          <FormContent />
-        </div>
-      </div>
-    </div>
+    <StickyPanel
+      isOpen={isOpen}
+      onClose={onClose}
+      title={editingAddress ? "Edit Address" : "Add New Address"}
+      icon={<MapPin className="h-4 w-4" />}
+      footer={footer}
+      isMobile={isMobile}
+    >
+      {formBody}
+    </StickyPanel>
   );
 }

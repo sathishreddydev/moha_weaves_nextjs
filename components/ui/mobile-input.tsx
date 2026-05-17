@@ -15,11 +15,24 @@ interface MobileInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 const MobileInput = forwardRef<HTMLInputElement, MobileInputProps>(
-  ({ className, label, error, helperText, inputMode, autoComplete, id, icon, ...props }, ref) => {
-    const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
+  (
+    {
+      className,
+      label,
+      error,
+      helperText,
+      inputMode,
+      autoComplete,
+      id,
+      icon,
+      ...props
+    },
+    ref,
+  ) => {
+    const inputId: string = id || `input-${Math.random().toString(36).substr(2, 9)}`;
 
     return (
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         {label && (
           <Label
             htmlFor={inputId}
@@ -29,22 +42,14 @@ const MobileInput = forwardRef<HTMLInputElement, MobileInputProps>(
           </Label>
         )}
         <div className="relative">
-          {icon && (
-            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
-              {icon}
-            </span>
-          )}
           <Input
             id={inputId}
             ref={ref}
             inputMode={inputMode}
             autoComplete={autoComplete}
             className={cn(
-              "text-xs touch-manipulation h-8",
-              icon && "pl-8",
-              "focus:ring-2 focus:ring-primary-500 focus:border-primary-500",
-              error && "border-red-500 focus:ring-red-500 focus:border-red-500",
-              className
+              error && "border-red-500",
+              className,
             )}
             {...props}
           />
@@ -53,11 +58,13 @@ const MobileInput = forwardRef<HTMLInputElement, MobileInputProps>(
           <p className="text-[11px] text-red-600 touch-manipulation">{error}</p>
         )}
         {helperText && !error && (
-          <p className="text-[11px] text-gray-500 touch-manipulation">{helperText}</p>
+          <p className="text-[11px] text-gray-500 touch-manipulation">
+            {helperText}
+          </p>
         )}
       </div>
     );
-  }
+  },
 );
 
 MobileInput.displayName = "Input";
