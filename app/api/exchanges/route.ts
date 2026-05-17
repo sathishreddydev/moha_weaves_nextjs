@@ -9,6 +9,7 @@ import {
 import { db } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { storage } from "../orders/storage";
+import { publishRealtimeEvent } from "@/realtime/publisher";
 
 export async function GET(req: NextRequest) {
   try {
@@ -90,6 +91,8 @@ export async function POST(req: NextRequest) {
           exchangeId: newExchange.id,
           orderItemId,
           quantity,
+          exchangeproductId: item.exchangeproductId || null,
+          exchangeVariantId: item.exchangeVariantId || null,
         });
 
         // Fetch current status before updating
@@ -116,6 +119,14 @@ export async function POST(req: NextRequest) {
 
       return newExchange;
     });
+
+    // Emit realtime event so the order detail page auto-refreshes and shows exchangeInfo
+    publishRealtimeEvent("product_exchanged", {
+      orderId: exchange.orderId,
+      itemId: items[0]?.orderItemId ?? null,
+      userId: session.user.id,
+      status: "exchange_requested",
+    }).catch((err) => console.error("Failed to emit product_exchanged event:", err));
 
     return NextResponse.json(exchange);
   } catch (error) {

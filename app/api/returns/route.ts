@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { returnService } from "../orders/returnService/returnService";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth/server";
+import { publishRealtimeEvent } from "@/realtime/publisher";
 
 export async function GET(req: NextRequest) {
   try {
@@ -71,6 +72,14 @@ export async function POST(req: NextRequest) {
       },
       items
     );
+
+    // Emit realtime event so the order detail page auto-refreshes and shows returnInfo
+    publishRealtimeEvent("product_returned", {
+      orderId: returnRequest.orderId,
+      itemId: items[0]?.orderItemId ?? null,
+      userId: session.user.id,
+      status: "return_requested",
+    }).catch((err) => console.error("Failed to emit product_returned event:", err));
 
     return NextResponse.json(returnRequest);
   } catch (error) {

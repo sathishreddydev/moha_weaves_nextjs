@@ -79,20 +79,23 @@ export async function GET(
           .where(inArray(onlineExchangeItems.exchangeId, exchangeIds))
       : [];
 
-    // Build a map: orderItemId → exchange
-    const itemExchangeMap: Record<string, (typeof orderExchanges)[0]> = {};
+    // Build a map: orderItemId → { exchange, exchangeItem }
+    const itemExchangeMap: Record<
+      string,
+      { exchange: (typeof orderExchanges)[0]; exchangeItem: (typeof allExchangeItems)[0] }
+    > = {};
     for (const ei of allExchangeItems) {
       const exc = orderExchanges.find((e) => e.id === ei.exchangeId);
       if (!exc) continue;
       // Skip cancelled exchanges
       if (exc.status === "exchange_cancelled") continue;
-      itemExchangeMap[ei.orderItemId] = exc;
+      itemExchangeMap[ei.orderItemId] = { exchange: exc, exchangeItem: ei };
     }
 
     // Attach returnInfo and exchangeInfo to each item
     const enrichedItems = order.items.map((item: any) => {
       const returnInfo = itemReturnMap[item.id];
-      const exchange = itemExchangeMap[item.id];
+      const exchangeEntry = itemExchangeMap[item.id];
 
       return {
         ...item,
@@ -120,16 +123,18 @@ export async function GET(
               },
             }
           : {}),
-        ...(exchange
+        ...(exchangeEntry
           ? {
               exchangeInfo: {
-                exchangeId: exchange.id,
-                status: exchange.status,
-                reason: exchange.reason,
-                reasonDetails: exchange.reasonDetails,
-                exchangeOrderId: exchange.exchangeOrderId,
-                createdAt: exchange.createdAt,
-                updatedAt: exchange.updatedAt,
+                exchangeId: exchangeEntry.exchange.id,
+                status: exchangeEntry.exchange.status,
+                reason: exchangeEntry.exchange.reason,
+                reasonDetails: exchangeEntry.exchange.reasonDetails,
+                exchangeOrderId: exchangeEntry.exchange.exchangeOrderId,
+                // Variant the customer requested as replacement
+                exchangeVariantId: exchangeEntry.exchangeItem.exchangeVariantId ?? null,
+                createdAt: exchangeEntry.exchange.createdAt,
+                updatedAt: exchangeEntry.exchange.updatedAt,
               },
             }
           : {}),

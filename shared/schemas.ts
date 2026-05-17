@@ -212,6 +212,7 @@ export const insertOnlineExchangeItemSchema = z.object({
   orderItemId: z.string().min(1, "Order item ID is required"),
   quantity: z.number().int().min(1, "Quantity must be at least 1"),
   exchangeproductId: z.string().optional(),
+  exchangeVariantId: z.string().optional(),
   condition: z.string().optional(),
   isRestockable: z.boolean().default(true),
 });

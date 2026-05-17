@@ -64,6 +64,7 @@ export function OrderItem({
     reason: string;
     reasonDetails?: string;
     exchangeOrderId?: string | null;
+    exchangeVariantId?: string | null;
     createdAt: string;
     updatedAt: string;
   } | undefined;
@@ -198,7 +199,7 @@ export function OrderItem({
 
       {/* ── Exchange info panel ───────────────────────────────────────────── */}
       {exchangeInfo && (
-        <ExchangePanel exchangeInfo={exchangeInfo} />
+        <ExchangePanel exchangeInfo={exchangeInfo} variants={item.product?.variants ?? []} />
       )}
     </Card>
   );
@@ -431,6 +432,7 @@ function RefundDetail({
 /** Inline panel shown below the item when an exchange is active. */
 function ExchangePanel({
   exchangeInfo,
+  variants,
 }: {
   exchangeInfo: {
     exchangeId: string;
@@ -438,11 +440,18 @@ function ExchangePanel({
     reason: string;
     reasonDetails?: string;
     exchangeOrderId?: string | null;
+    exchangeVariantId?: string | null;
     createdAt: string;
   };
+  variants: Array<{ id: string; size: string }>;
 }) {
-  const { status, exchangeOrderId, createdAt } = exchangeInfo;
+  const { status, exchangeOrderId, exchangeVariantId, createdAt } = exchangeInfo;
   const step = getExchangeTimelineStep(status);
+
+  // Resolve the requested replacement size label
+  const requestedSize = exchangeVariantId
+    ? variants.find((v) => v.id === exchangeVariantId)?.size ?? null
+    : null;
 
   const steps = [
     { key: "requested",   label: "Exchange Requested" },
@@ -456,6 +465,17 @@ function ExchangePanel({
 
   return (
     <div className="mt-3 pt-3 border-t border-blue-100 space-y-3">
+      {/* Requested replacement size badge */}
+      {requestedSize && (
+        <div className="flex items-center gap-2 text-[10px] text-blue-700 bg-blue-50 rounded-lg px-3 py-2">
+          <RefreshCw className="w-3.5 h-3.5 flex-shrink-0" />
+          <span>
+            Replacement size requested:{" "}
+            <span className="font-semibold">{requestedSize}</span>
+          </span>
+        </div>
+      )}
+
       {/* Timeline */}
       {step === "rejected" ? (
         <div className="flex items-center gap-2 text-[10px] text-red-500">

@@ -46,6 +46,8 @@ function createOrderHistoryProduct(product: any) {
     variants: product.variants?.map((variant: any) => ({
       id: variant.id,
       size: variant.size,
+      onlineStock: variant.onlineStock ?? 0,
+      isActive: variant.isActive ?? true,
     })) || [],
   };
 }

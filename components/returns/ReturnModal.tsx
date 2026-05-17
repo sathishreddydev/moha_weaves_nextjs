@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { RotateCcw, RefreshCw, AlertCircle } from "lucide-react";
+import { RotateCcw, RefreshCw, AlertCircle, CheckCircle2 } from "lucide-react";
 import { OrderWithItems } from "@/shared";
 
 interface ReturnModalProps {
@@ -50,7 +50,7 @@ const returnReasons = [
   { value: "other", label: "Other" },
 ];
 
-// Exchange uses the same return_reason DB enum — all 9 values are valid for both
+// Exchange uses the same return_reason DB enum
 const exchangeReasons = returnReasons;
 
 export default function ReturnModal({
@@ -67,6 +67,9 @@ export default function ReturnModal({
   const [error, setError] = useState("");
   const [isMobile, setIsMobile] = useState(false);
 
+  // Exchange-only: selected replacement variant id (null = same size / no size)
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
@@ -79,10 +82,21 @@ export default function ReturnModal({
   const reasons = type === "exchange" ? exchangeReasons : returnReasons;
   const label = type === "exchange" ? "Exchange" : "Return";
 
+  // Variants available for this product (from the order item's product)
+  const variants: Array<{ id: string; size: string; onlineStock: number; isActive: boolean }> =
+    (orderItem?.product as any)?.variants ?? [];
+
+  // Only show size picker when the product actually has variants
+  const hasVariants = variants.length > 0;
+
+  // The variant the customer originally ordered
+  const orderedVariantId = (orderItem as any)?.variantId ?? null;
+
   const resetForm = () => {
     setReason("");
     setReasonDetails("");
     setQuantity(1);
+    setSelectedVariantId(null);
     setError("");
   };
 
@@ -100,6 +114,11 @@ export default function ReturnModal({
       setError("Please provide details about your request");
       return;
     }
+    // For exchange with variants, a size selection is required
+    if (type === "exchange" && hasVariants && !selectedVariantId) {
+      setError("Please select the size you want for the replacement");
+      return;
+    }
 
     setLoading(true);
     setError("");
@@ -107,9 +126,17 @@ export default function ReturnModal({
     try {
       const isExchange = type === "exchange";
       const endpoint = isExchange ? "/api/exchanges" : "/api/returns";
+
+      const itemPayload: Record<string, unknown> = { orderItemId, quantity };
+      if (isExchange && selectedVariantId) {
+        // Pass the same productId as the replacement; variant carries the size
+        itemPayload.exchangeproductId = orderItem?.product?.id;
+        itemPayload.exchangeVariantId = selectedVariantId;
+      }
+
       const payload = isExchange
-        ? { orderId: order.id, reason, reasonDetails, items: [{ orderItemId, quantity }] }
-        : { orderId: order.id, reason, reasonDetails, resolution: "refund", items: [{ orderItemId, quantity }] };
+        ? { orderId: order.id, reason, reasonDetails, items: [itemPayload] }
+        : { orderId: order.id, reason, reasonDetails, resolution: "refund", items: [itemPayload] };
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -132,7 +159,6 @@ export default function ReturnModal({
 
   if (!orderItem) return null;
 
-  // Inline content — no nested component definitions to avoid remount on state change
   const content = (
     <div className="px-4 space-y-4 overflow-y-auto">
       {/* Item Details */}
@@ -157,7 +183,8 @@ export default function ReturnModal({
             </h4>
             <p className="text-xs text-gray-500">
               {orderItem.product?.category?.name}
-              {orderItem.product?.color?.name && ` | ${orderItem.product.color.name}`}
+              {(orderItem.product as any)?.color?.name &&
+                ` | ${(orderItem.product as any).color.name}`}
             </p>
             <div className="flex items-center justify-between mt-1">
               <span className="text-xs text-gray-500">Qty: {orderItem.quantity}</span>
@@ -170,19 +197,73 @@ export default function ReturnModal({
       </div>
 
       {/* Eligibility Info */}
-      {(type === "return" ? orderItem.returnEligibility : (orderItem as any).exchangeEligibility) && (
+      {(type === "return"
+        ? orderItem.returnEligibility
+        : (orderItem as any).exchangeEligibility) && (
         <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
           <AlertCircle className="w-4 h-4 text-blue-600" />
           <p className="text-sm text-blue-800 font-medium">
             {(() => {
-              const elig = type === "return"
-                ? orderItem.returnEligibility
-                : (orderItem as any).exchangeEligibility;
+              const elig =
+                type === "return"
+                  ? orderItem.returnEligibility
+                  : (orderItem as any).exchangeEligibility;
               return elig?.remainingDays
                 ? `${elig.remainingDays} days remaining`
                 : `Eligible for ${label.toLowerCase()}`;
             })()}
           </p>
+        </div>
+      )}
+
+      {/* ── Size picker (exchange only, products with variants) ── */}
+      {type === "exchange" && hasVariants && (
+        <div className="space-y-2">
+          <Label>
+            Replacement Size{" "}
+            <span className="text-red-500">*</span>
+          </Label>
+          <p className="text-xs text-gray-500">
+            You ordered:{" "}
+            <span className="font-medium">
+              {variants.find((v) => v.id === orderedVariantId)?.size ?? "—"}
+            </span>
+            . Select the size you want instead.
+          </p>
+          <div className="flex flex-wrap gap-2 pt-1">
+            {variants.map((v) => {
+              const outOfStock = v.onlineStock < 1;
+              const isSelected = selectedVariantId === v.id;
+              const isOriginal = v.id === orderedVariantId;
+              return (
+                <button
+                  key={v.id}
+                  type="button"
+                  disabled={outOfStock || !v.isActive}
+                  onClick={() => setSelectedVariantId(v.id)}
+                  className={[
+                    "relative px-3 py-1.5 rounded-md border text-sm font-medium transition-colors",
+                    isSelected
+                      ? "border-blue-600 bg-blue-50 text-blue-700"
+                      : outOfStock || !v.isActive
+                      ? "border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed"
+                      : "border-gray-300 bg-white text-gray-700 hover:border-gray-500",
+                  ].join(" ")}
+                >
+                  {v.size}
+                  {isOriginal && (
+                    <span className="ml-1 text-[10px] text-gray-400">(yours)</span>
+                  )}
+                  {outOfStock && (
+                    <span className="ml-1 text-[10px] text-red-400">OOS</span>
+                  )}
+                  {isSelected && (
+                    <CheckCircle2 className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 text-blue-600 bg-white rounded-full" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -249,7 +330,11 @@ export default function ReturnModal({
 
   const titleContent = (
     <>
-      {type === "exchange" ? <RefreshCw className="w-5 h-5" /> : <RotateCcw className="w-5 h-5" />}
+      {type === "exchange" ? (
+        <RefreshCw className="w-5 h-5" />
+      ) : (
+        <RotateCcw className="w-5 h-5" />
+      )}
       Request {label}
     </>
   );
@@ -258,7 +343,11 @@ export default function ReturnModal({
 
   const footerButtons = (
     <>
-      <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={loading}>
+      <Button
+        variant="outline"
+        onClick={() => handleOpenChange(false)}
+        disabled={loading}
+      >
         Cancel
       </Button>
       <Button onClick={handleSubmit} disabled={loading}>
@@ -272,7 +361,9 @@ export default function ReturnModal({
       <Drawer open={open} onOpenChange={handleOpenChange}>
         <DrawerContent>
           <DrawerHeader>
-            <DrawerTitle className="flex items-center gap-2">{titleContent}</DrawerTitle>
+            <DrawerTitle className="flex items-center gap-2">
+              {titleContent}
+            </DrawerTitle>
             <DrawerDescription>{descriptionText}</DrawerDescription>
           </DrawerHeader>
           {content}
@@ -286,7 +377,9 @@ export default function ReturnModal({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">{titleContent}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            {titleContent}
+          </DialogTitle>
           <DialogDescription>{descriptionText}</DialogDescription>
         </DialogHeader>
         {content}
