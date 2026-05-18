@@ -251,6 +251,7 @@ export default function AddressForm({
           error={form.formState.errors.name?.message}
           inputMode="text"
           autoComplete="name"
+          type="text"
           icon={<User className="h-3.5 w-3.5 text-gray-400" />}
         />
         <MobileInput
@@ -260,20 +261,9 @@ export default function AddressForm({
           placeholder="Your Phone"
           disabled={isLoading}
           error={form.formState.errors.phone?.message}
-          inputMode="numeric"
+          inputMode="tel"
           autoComplete="tel"
-          type="tel"
-          onKeyDown={(e) => {
-            // Allow: backspace, delete, tab, escape, enter, arrows, home, end
-            const allowed = ["Backspace","Delete","Tab","Escape","Enter","ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Home","End"];
-            if (allowed.includes(e.key)) return;
-            // Allow: Ctrl/Cmd+A, C, V, X
-            if ((e.ctrlKey || e.metaKey) && ["a","c","v","x"].includes(e.key.toLowerCase())) return;
-            // Allow: +, space (for +91 format)
-            if (e.key === "+" || e.key === " ") return;
-            // Block anything that's not a digit
-            if (!/^\d$/.test(e.key)) e.preventDefault();
-          }}
+          type="number"
           icon={<Phone className="h-3.5 w-3.5 text-gray-400" />}
         />
       </div>
@@ -288,6 +278,7 @@ export default function AddressForm({
         error={form.formState.errors.addressLine1?.message}
         inputMode="text"
         autoComplete="address-line1"
+        type="text"
         icon={<MapPin className="h-3.5 w-3.5 text-gray-400" />}
       />
 
@@ -300,6 +291,7 @@ export default function AddressForm({
         disabled={isLoading}
         error={form.formState.errors.locality?.message}
         inputMode="text"
+        type="text"
         autoComplete="address-line2"
         icon={<MapPin className="h-3.5 w-3.5 text-gray-400" />}
       />

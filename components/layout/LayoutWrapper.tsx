@@ -9,8 +9,8 @@ interface LayoutWrapperProps {
 }
 
 // Header height constants (must match Header.tsx py-6 lg:py-4 values)
-const HEADER_HEIGHT_MOBILE = 64; // py-6 = 24px top + 24px bottom + ~16px content
-const HEADER_HEIGHT_DESKTOP = 56; // py-4 = 16px top + 16px bottom + ~24px content
+const HEADER_HEIGHT_MOBILE = 74; // py-6 = 24px top + 24px bottom + ~16px content
+const HEADER_HEIGHT_DESKTOP = 74; // py-4 = 16px top + 16px bottom + ~24px content
 
 export default function LayoutWrapper({ children }: LayoutWrapperProps) {
   const pathname = usePathname();

@@ -346,7 +346,7 @@ export default function CategoryClient({
           <ActiveFilterBadges filters={activeBadges} onClearAll={handleClearAllFilters} />
 
           {/* Sale context banner — shown when user arrives via an offer link */}
-          {currentFilters.onSale && (
+          {/* {currentFilters.onSale && (
             <div className="mt-4 mb-2 px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-2 bg-red-50 border border-red-200 text-red-800">
               <span className="text-base">🎉</span>
               <span>
@@ -363,7 +363,7 @@ export default function CategoryClient({
                 Show all
               </button>
             </div>
-          )}
+          )} */}
 
           {/* Products */}
           {displayedProducts.length === 0 ? (

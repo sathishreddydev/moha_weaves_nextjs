@@ -355,7 +355,7 @@ export default function MobileSidebar({
                           role="listitem"
                           aria-label={`View ${product.name} product`}
                         >
-                          <div className="w-28 h-28 rounded-lg overflow-hidden bg-gray-100 mb-2 mx-auto group-hover:scale-105 transition-transform duration-200 will-change-transform">
+                          <div className="w-24 h-24 rounded-lg overflow-hidden bg-gray-100 mb-2 mx-auto group-hover:scale-105 transition-transform duration-200 will-change-transform">
                             {product.imageUrl ? (
                               <img
                                 src={product.imageUrl}

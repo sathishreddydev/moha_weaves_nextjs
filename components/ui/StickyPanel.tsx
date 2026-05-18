@@ -48,7 +48,10 @@ function DesktopModal({
   maxHeight = "90vh",
 }: Omit<StickyPanelProps, "isMobile">) {
   return (
-    <DialogPrimitive.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <DialogPrimitive.Root
+      open={isOpen}
+      onOpenChange={(open) => !open && onClose()}
+    >
       <DialogPrimitive.Portal>
         {/* Backdrop */}
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
@@ -70,7 +73,9 @@ function DesktopModal({
           {/* ── Sticky header ── */}
           <div className="flex-none flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <DialogPrimitive.Title className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-              {icon && <span className="text-gray-500 flex-shrink-0">{icon}</span>}
+              {icon && (
+                <span className="text-gray-500 flex-shrink-0">{icon}</span>
+              )}
               {title}
             </DialogPrimitive.Title>
             <DialogPrimitive.Close
@@ -109,12 +114,18 @@ function MobileSheet({
   footer,
 }: Omit<StickyPanelProps, "isMobile" | "className" | "maxHeight">) {
   return (
-    <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()} dismissible={false}>
-      <DrawerContent className="max-h-[92dvh] flex flex-col">
+    <Drawer
+      open={isOpen}
+      onOpenChange={(open) => !open && onClose()}
+      dismissible={false}
+    >
+      <DrawerContent className="flex flex-col">
         {/* ── Sticky header ── */}
         <DrawerHeader className="flex-none flex items-center justify-between border-b border-gray-100 px-4 py-3">
           <DrawerTitle className="flex items-center gap-2 text-sm font-semibold">
-            {icon && <span className="text-gray-500 flex-shrink-0">{icon}</span>}
+            {icon && (
+              <span className="text-gray-500 flex-shrink-0">{icon}</span>
+            )}
             {title}
           </DrawerTitle>
           <DrawerClose asChild>
@@ -129,16 +140,13 @@ function MobileSheet({
           </DrawerClose>
         </DrawerHeader>
 
-        {/* ── Scrollable body ── */}
-        {/* data-vaul-no-drag prevents vaul from treating scroll as a dismiss gesture */}
         <div
           data-vaul-no-drag
-          className="flex-1 overflow-y-auto overscroll-contain px-4 py-3"
+          className="flex-1 max-h-[70vh] overflow-y-auto overscroll-contain px-4 py-3"
         >
           {children}
         </div>
 
-        {/* ── Sticky footer ── */}
         {footer && (
           <div className="flex-none border-t border-gray-100 px-4 py-3 bg-white">
             {footer}
@@ -174,10 +182,7 @@ function MobileSheet({
  *   <MyForm />
  * </StickyPanel>
  */
-export function StickyPanel({
-  isMobile = false,
-  ...props
-}: StickyPanelProps) {
+export function StickyPanel({ isMobile = false, ...props }: StickyPanelProps) {
   if (isMobile) {
     return <MobileSheet {...props} />;
   }
