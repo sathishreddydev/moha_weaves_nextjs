@@ -4,7 +4,17 @@ import { UserAddress } from "@/shared";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "../ui/badge";
-import { MapPin, Edit, Trash2, Check } from "lucide-react";
+import {
+  MapPin,
+  Edit,
+  Trash2,
+  Check,
+  Share2,
+  Star,
+  Edit2,
+  Loader2,
+} from "lucide-react";
+import { ThreeDotsMenu } from "../ui/three-dots-menu";
 
 interface AddressListProps {
   addresses: UserAddress[];
@@ -34,13 +44,21 @@ export default function AddressList({
             No Saved Addresses
           </h3>
           <p className="text-gray-600 mb-4">
-            You haven't saved any addresses yet. Add your first address to get started.
+            You haven't saved any addresses yet. Add your first address to get
+            started.
           </p>
         </CardContent>
       </Card>
     );
   }
-
+  const onShareAddress = (address: UserAddress) => {
+    const text = `${address.name}\n${address.phone}\n${address.locality}, ${address.city} - ${address.pincode}`;
+    if (navigator.share) {
+      navigator.share({ title: "Address", text });
+    } else {
+      navigator.clipboard.writeText(text);
+    }
+  };
   return (
     <div className="space-y-4">
       {addresses.map((address) => (
@@ -85,58 +103,55 @@ export default function AddressList({
                       <MapPin className="h-3 w-3 flex-shrink-0" />
                       {address.addressLine1 ? `${address.addressLine1}, ` : ""}
                       {address.locality}, {address.city}
-                      {address.state ? `, ${address.state}` : ""} — {address.pincode}
+                      {address.state ? `, ${address.state}` : ""} —{" "}
+                      {address.pincode}
                     </p>
                     <p className="flex items-center gap-1">
-                      <span className="font-medium">Phone:</span> {address.phone}
+                      <span className="font-medium">Phone:</span>{" "}
+                      {address.phone}
                     </p>
                   </div>
                 </div>
               </div>
+              <ThreeDotsMenu
+                items={[
+                  ...(!address.isDefault
+                    ? [
+                        {
+                          label: "Set as Default",
+                          icon: <Star className="w-4 h-4 text-yellow-500" />,
+                          onClick: () => onSetDefault(address.id),
+                          disabled: updatingId === address.id,
+                        },
+                      ]
+                    : []),
 
-              <div className="flex items-center space-x-1 ml-2">
-                {!address.isDefault && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSetDefault(address.id);
-                    }}
-                    disabled={updatingId === address.id}
-                    className="h-8 w-8 p-0"
-                    title="Set as default"
-                  >
-                    <Check className="h-4 w-4" />
-                  </Button>
-                )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEditAddress(address);
-                  }}
-                  disabled={updatingId === address.id}
-                  className="h-8 w-8 p-0"
-                  title="Edit address"
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeleteAddress(address.id);
-                  }}
-                  disabled={updatingId === address.id}
-                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                  title="Delete address"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
+                  {
+                    label: "Edit",
+                    icon: <Edit2 className="w-4 h-4 text-blue-500" />,
+                    onClick: () => onEditAddress(address),
+                  },
+
+                  {
+                    label: "Delete",
+                    icon:
+                      updatingId === address.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      ),
+                    onClick: () => onDeleteAddress(address?.id),
+                    disabled: updatingId === address.id,
+                    variant: "destructive",
+                  },
+
+                  {
+                    label: "Share",
+                    icon: <Share2 className="w-4 h-4 text-green-500" />,
+                    onClick: () => onShareAddress(address),
+                  },
+                ]}
+              />
             </div>
           </CardContent>
         </Card>

@@ -167,9 +167,10 @@ export default function Addresses() {
           <Button
             variant="outline"
             onClick={handleAddAddress}
-            className="text-base ml-auto  px-4 touch-manipulation active:scale-[0.98]"
+            className="ml-auto active:scale-[0.98]"
+            size='sm'
           >
-            <Plus className="w-5 h-5 mr-2" />
+            <Plus className="w-5 h-5" />
             Add
           </Button>
         </div>
@@ -200,10 +201,10 @@ export default function Addresses() {
                 <div className="flex items-start p-3 gap-3">
                   {/* Left: icon + type label */}
                   <div className="flex flex-col items-center gap-1 min-w-[48px] pt-0.5">
-                    <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                    <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-600">
                       <AddressTypeIcon type={address.addressType} />
                     </div>
-                    <span className="text-[10px] font-medium text-blue-700 capitalize leading-none">
+                    <span className="text-[10px] font-medium text-gray-700 capitalize leading-none">
                       {address.addressType || "home"}
                     </span>
                   </div>

@@ -5,11 +5,15 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { formatPrice } from "@/lib/formatters";
 import { useState } from "react";
-import { Truck, X } from "lucide-react";
+import { ArrowRight, Truck, X } from "lucide-react";
 import { getProductUrl } from "@/lib/utils/productUrl";
 import { CartItemStockStatus } from "@/lib/stores/cartStore";
 import { getAvailableStock } from "@/lib/stock-utils";
 import { getEffectivePrice } from "@/lib/pricing-utils";
+import ProductCard from "../products/ProductCard";
+import { useRouter } from "next/navigation";
+import { useWishlistStore } from "@/lib/stores";
+import { ProductWithDetails } from "@/shared";
 
 interface MobileCartViewProps {
   items: any[];
@@ -21,6 +25,8 @@ interface MobileCartViewProps {
   clearCart: () => Promise<void>;
   calculateTotal: () => number;
   isGuest: boolean;
+  relatedProducts?: ProductWithDetails[];
+  categoryName?: string;
 }
 
 const FREE_SHIPPING_THRESHOLD = 999;
@@ -35,8 +41,17 @@ export default function MobileCartView({
   clearCart,
   calculateTotal,
   isGuest,
+  relatedProducts = [],
+  categoryName = "all",
 }: MobileCartViewProps) {
   const [showSummary, setShowSummary] = useState(false);
+  const router = useRouter();
+  const {
+    addToWishlist,
+    removeFromWishlist,
+    isInWishlist,
+    updating: wishlistUpdating,
+  } = useWishlistStore();
 
   const subtotal = calculateTotal();
   const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 50;
@@ -64,7 +79,7 @@ export default function MobileCartView({
               disabled={updating === "all"}
               variant="outline"
               size="sm"
-              className="touch-manipulation active:scale-95 transition-transform"
+              className="active:scale-95 transition-transform"
             >
               {updating === "all" ? "Clearing..." : "Clear"}
             </Button>
@@ -101,7 +116,7 @@ export default function MobileCartView({
                 size="icon"
                 onClick={() => removeFromCart(item.id)}
                 disabled={updating === item.id}
-                className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation active:scale-95"
+                className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
                 aria-label="Remove item"
               >
                 <X className="w-4 h-4 text-gray-500 hover:text-red-600" />
@@ -202,7 +217,7 @@ export default function MobileCartView({
                       }
                       variant="outline"
                       size="icon"
-                      className="h-8 w-8 touch-manipulation active:scale-95 transition-transform"
+                      className="h-8 w-8 active:scale-95 transition-transform"
                     >
                       -
                     </Button>
@@ -218,7 +233,7 @@ export default function MobileCartView({
                       }
                       variant="outline"
                       size="icon"
-                      className="h-8 w-8 touch-manipulation active:scale-95 transition-transform"
+                      className="h-8 w-8 active:scale-95 transition-transform"
                     >
                       +
                     </Button>
@@ -327,7 +342,7 @@ export default function MobileCartView({
           {isGuest ? (
             <Button
               asChild
-              className="w-full h-12 touch-manipulation active:scale-95 transition-transform"
+              className="w-full h-12 active:scale-95 transition-transform"
               size="lg"
             >
               <Link href="/login?redirect=/checkout">Sign In to Checkout</Link>
@@ -336,7 +351,7 @@ export default function MobileCartView({
             <Button
               asChild={!checkoutDisabled}
               disabled={checkoutDisabled}
-              className="w-full h-12 touch-manipulation active:scale-95 transition-transform"
+              className="w-full h-12 active:scale-95 transition-transform"
               size="lg"
             >
               {checkoutDisabled ? (
@@ -349,8 +364,54 @@ export default function MobileCartView({
         </div>
       </div>
 
-      {/* Spacer for fixed bottom */}
-      <div className="h-32 lg:hidden"></div>
-    </div>
+      {/* Related Products */}
+      {relatedProducts.length > 0 && (
+        <div className="mt-10 mb-4 px-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-serif tracking-wide text-lg">
+              You May Also Like
+            </h2>
+            <Link
+              href={`/collections/${categoryName}`}
+              className="inline-flex items-center text-[10px] font-bold uppercase tracking-[0.2em] border-b border-black pb-1 transition-all"
+            >
+              <span>View All</span>
+              <ArrowRight className="ml-1 h-3 w-3" />
+            </Link>
+          </div>
+          <div className="flex gap-4 overflow-x-auto scroll-smooth pb-2 -mx-4 px-4 snap-x snap-mandatory scrollbar-hide">
+            {relatedProducts.slice(0, 4).map((relatedProduct: ProductWithDetails) => (
+              <div key={relatedProduct.id} className="flex-none w-[45vw] snap-start">
+                <ProductCard
+                  product={relatedProduct}
+                  showNewBadge={true}
+                  showFeaturedBadge={true}
+                  onQuickView={() => {
+                    router.push(
+                      `/collections/${categoryName}/${relatedProduct.urlSlug || relatedProduct.id}`,
+                    );
+                  }}
+                  onWishlistToggle={() => {
+                    if (isInWishlist(relatedProduct.id)) {
+                      removeFromWishlist(relatedProduct.id);
+                    } else {
+                      addToWishlist(relatedProduct.id);
+                    }
+                  }}
+                  isWishlisted={isInWishlist(relatedProduct.id)}
+                  disabled={wishlistUpdating === relatedProduct.id}
+                  className={`transition-all duration-200 ${
+                    wishlistUpdating === relatedProduct.id
+                      ? "opacity-50 cursor-not-allowed"
+                      : ""
+                  }`}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+     </div>
   );
 }

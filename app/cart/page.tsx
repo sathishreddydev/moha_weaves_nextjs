@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/lib/stores";
 import { useSocketStore } from "@/lib/stores/socketStore";
 import { useCartProductPurchasedListener } from "@/hooks/useProductPurchasedListener";
+import { ProductWithDetails } from "@/shared";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export default function CartPage() {
   const { status } = useAuth();
@@ -31,16 +32,47 @@ export default function CartPage() {
   const { socket } = useSocketStore();
   const isGuest = status === "unauthenticated";
 
+  const [relatedProducts, setRelatedProducts] = useState<ProductWithDetails[]>([]);
+  const [categoryName, setCategoryName] = useState<string>("all");
+
   // Re-validate stock when any cart product is purchased by another user
   useCartProductPurchasedListener(items, fetchCart);
 
-  // Re-fetch cart when admin updates a product (price, stock, etc.)
-  // validateCartStock runs automatically via the items useEffect below
+  const fetchRelatedProducts = useCallback((cartItems: typeof items) => {
+    if (cartItems.length === 0) return;
+
+    const firstItem = cartItems[0];
+    const category = firstItem?.product?.category;
+    if (!category) return;
+
+    const slug = category.name?.toLowerCase().replace(/\s+/g, "-") || "all";
+    const cartProductIds = cartItems.map((i: any) => i.product?.id).filter(Boolean);
+    setCategoryName(slug);
+
+    fetch(`/api/products?categories=${encodeURIComponent(category.name)}&limit=8&inStock=true`)
+      .then((res) => res.json())
+      .then((json: { success: boolean; data: ProductWithDetails[] }) => {
+        if (!json.success) return;
+        const filtered = json.data.filter((p) => !cartProductIds.includes(p.id));
+        setRelatedProducts(filtered.slice(0, 4));
+      })
+      .catch(() => {
+        // silently fail — "You May Also Like" is non-critical
+      });
+  }, []);
+
+  // Re-fetch cart + related products when admin updates a product
   useEffect(() => {
     if (!socket) return;
-    socket.on("product_event", fetchCart);
-    return () => { socket.off("product_event", fetchCart); };
-  }, [socket, fetchCart]);
+    const handleProductEvent = () => {
+      fetchCart();
+      fetchRelatedProducts(items);
+    };
+    socket.on("product_event", handleProductEvent);
+    return () => {
+      socket.off("product_event", handleProductEvent);
+    };
+  }, [socket, fetchCart, fetchRelatedProducts, items]);
 
   // Sync guest cart on page load
   useEffect(() => {
@@ -53,6 +85,11 @@ export default function CartPage() {
   useEffect(() => {
     validateCartStock();
   }, [items, validateCartStock]);
+
+  // Fetch related products whenever cart items change
+  useEffect(() => {
+    fetchRelatedProducts(items);
+  }, [items, fetchRelatedProducts]);
 
   if (loading) {
     return (
@@ -109,6 +146,8 @@ export default function CartPage() {
               clearCart={clearCart}
               calculateTotal={calculateTotal}
               isGuest={isGuest}
+              relatedProducts={relatedProducts}
+              categoryName={categoryName}
             />
             <MobileCartView
               items={items}
@@ -120,6 +159,8 @@ export default function CartPage() {
               clearCart={clearCart}
               calculateTotal={calculateTotal}
               isGuest={isGuest}
+              relatedProducts={relatedProducts}
+              categoryName={categoryName}
             />
           </>
         )}

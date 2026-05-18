@@ -11,7 +11,15 @@ import {
 import { useFilterStore } from "@/lib/stores/fillterStore";
 import { ProductWithDetails } from "@/shared";
 import { ProductService } from "@/lib/services/productService";
-import { X, Search, User, Heart, ShoppingBag, HelpCircle } from "lucide-react";
+import {
+  X,
+  Search,
+  User,
+  Heart,
+  ShoppingBag,
+  HelpCircle,
+  Info,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, {
@@ -95,8 +103,7 @@ class ErrorBoundary extends React.Component<
     return { hasError: true };
   }
 
-  componentDidCatch(error: any, errorInfo: any) {
-  }
+  componentDidCatch(error: any, errorInfo: any) {}
 
   render() {
     if (this.state.hasError) {
@@ -157,7 +164,9 @@ export default function MobileSidebar({
       e.preventDefault();
       if (mobileSearch.trim()) {
         onClose();
-        router.push(`/collections?search=${encodeURIComponent(mobileSearch.trim())}`);
+        router.push(
+          `/collections?search=${encodeURIComponent(mobileSearch.trim())}`,
+        );
         setMobileSearch("");
       }
     },
@@ -266,12 +275,12 @@ export default function MobileSidebar({
                           <Link
                             key={category.id}
                             href={`/collections/${encodeURIComponent(category.name)}`}
-                            className="group text-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 rounded-lg p-1"
+                            className="group text-center transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-gray-500 focus:ring-offset-1 rounded-lg"
                             onClick={handleMobileLinkClick}
                             role="listitem"
                             aria-label={`Browse ${category.name} collection`}
                           >
-                            <div className="w-28 h-28 rounded-lg overflow-hidden bg-gray-100 mb-2 mx-auto group-hover:scale-105 transition-transform duration-200 will-change-transform">
+                            <div className="w-24 h-24 rounded-lg overflow-hidden bg-gray-100 mb-2 mx-auto group-hover:scale-105 transition-transform duration-200 will-change-transform">
                               {category.imageUrl ? (
                                 <LazyImage
                                   src={category.imageUrl}
@@ -304,7 +313,7 @@ export default function MobileSidebar({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full rounded-full uppercase tracking-wide text-gray-900 border-gray-300 hover:bg-gray-50 hover:border-gray-400 hover:text-gray-900 transition-all duration-200 touch-manipulation active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                    className="w-full rounded-full uppercase tracking-wide text-gray-900 border-gray-300 hover:bg-gray-50 hover:border-gray-400 hover:text-gray-900 transition-all duration-200 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
                     onClick={handleMobileLinkClick}
                     asChild
                   >
@@ -372,7 +381,7 @@ export default function MobileSidebar({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="w-full rounded-full uppercase tracking-wide text-gray-900 border-gray-300 hover:bg-gray-50 hover:border-gray-400 hover:text-gray-900 transition-all duration-200 touch-manipulation active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                      className="w-full rounded-full uppercase tracking-wide text-gray-900 border-gray-300 hover:bg-gray-50 hover:border-gray-400 hover:text-gray-900 transition-all duration-200 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
                       onClick={handleMobileLinkClick}
                       asChild
                     >
@@ -399,15 +408,13 @@ export default function MobileSidebar({
               <nav className="space-y-1" role="list">
                 <Link
                   href="/about-us"
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors touch-manipulation active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
                   onClick={handleMobileLinkClick}
                   role="listitem"
                   scroll={true}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                  <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+                    <Info className="w-4 h-4" />
                   </div>
                   <div className="flex-1">
                     <p className="font-medium text-gray-900 text-sm">

@@ -526,7 +526,7 @@ export default function LiveChat({
                 onClick={handleSendMessage}
                 disabled={!inputMessage.trim() || !isOnline || isTyping}
                 size="icon"
-                className="touch-manipulation active:scale-95 flex-shrink-0"
+                className="active:scale-95 flex-shrink-0"
                 aria-label="Send message"
               >
                 <Send className="h-4 w-4" />

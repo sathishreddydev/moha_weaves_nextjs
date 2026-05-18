@@ -36,7 +36,7 @@ const MobileInput = forwardRef<HTMLInputElement, MobileInputProps>(
         {label && (
           <Label
             htmlFor={inputId}
-            className="text-xs font-medium text-gray-600 touch-manipulation"
+            className="text-xs font-medium text-gray-600"
           >
             {label}
           </Label>
@@ -55,10 +55,10 @@ const MobileInput = forwardRef<HTMLInputElement, MobileInputProps>(
           />
         </div>
         {error && (
-          <p className="text-[11px] text-red-600 touch-manipulation">{error}</p>
+          <p className="text-[11px] text-red-600">{error}</p>
         )}
         {helperText && !error && (
-          <p className="text-[11px] text-gray-500 touch-manipulation">
+          <p className="text-[11px] text-gray-500">
             {helperText}
           </p>
         )}

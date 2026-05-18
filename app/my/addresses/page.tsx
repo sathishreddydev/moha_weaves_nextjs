@@ -1,8 +1,7 @@
 "use client";
 
-import ProfileSidebar from "@/components/user/ProfileSidebar";
 import Addresses from "@/components/user/Addresses";
-import BackButton from "@/components/user/BackButton";
+import ProfileSidebar from "@/components/user/ProfileSidebar";
 
 export default function AddressesPage() {
   return (

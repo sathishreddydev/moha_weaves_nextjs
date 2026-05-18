@@ -28,6 +28,7 @@ import RazorpayPayment from "./RazorpayPayment";
 import CouponInput from "./CouponInput";
 import { useCartProductPurchasedListener } from "@/hooks/useProductPurchasedListener";
 import { useMobileDetection } from "@/hooks/use-mobile-detection";
+import { Textarea } from "../ui/textarea";
 
 interface AppliedCoupon {
   id: string;
@@ -394,12 +395,11 @@ export default function CheckoutPage() {
               <label className="text-sm font-medium text-foreground block mb-1.5">
                 Order Notes <span className="text-muted-foreground font-normal">(optional)</span>
               </label>
-              <textarea
+              <Textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Any special instructions for your order…"
                 rows={2}
-                className="w-full text-sm rounded-lg border border-input bg-background px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
 

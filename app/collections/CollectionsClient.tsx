@@ -273,7 +273,7 @@ export default function CollectionsClient({
           </h1>
 
           {/* Sort + Mobile Filter */}
-          <div className="flex justify-end items-center gap-4">
+          <div className="flex justify-end items-center gap-2">
             <Select onValueChange={handleSortChange} defaultValue="newest">
               <SelectTrigger className="w-[120px] h-8 text-xs sm:w-[180px] sm:h-10 sm:text-sm">
                 <SelectValue placeholder="Sort by" />

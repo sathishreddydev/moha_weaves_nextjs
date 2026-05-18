@@ -99,10 +99,6 @@ export default function ProductDetailClient({
     product.discountedPrice &&
     Number(product?.discountedPrice ?? 0) < Number(product.price);
 
-  // Stock status - using common utilities
-  const currentStock = getAvailableStock(product, selectedVariant?.id);
-  const stockStatus = getStockStatus(product, selectedVariant?.id);
-
   const images =
     (product?.images?.length ?? 0) > 0
       ? product.images || []
@@ -737,17 +733,10 @@ export default function ProductDetailClient({
             {/* Mobile horizontal scroll container */}
             <div className="sm:hidden">
               <div
-                className="flex gap-4 overflow-x-auto scroll-smooth pb-4 -mx-4 px-4"
-                style={
-                  {
-                    scrollbarWidth: "none",
-                    msOverflowStyle: "none",
-                    WebkitScrollbar: { display: "none" },
-                  } as React.CSSProperties
-                }
+                className="flex gap-4 overflow-x-auto scroll-smooth pb-4 -mx-4 px-4 scrollbar-hide snap-x snap-mandatory"
               >
                 {relatedProducts.slice(0, 4).map((relatedProduct) => (
-                  <div key={relatedProduct.id} className="flex-shrink-0 w-72">
+                  <div key={relatedProduct.id} className="flex-none w-[45vw] snap-start">
                     <ProductCard
                       product={relatedProduct}
                       showNewBadge={true}

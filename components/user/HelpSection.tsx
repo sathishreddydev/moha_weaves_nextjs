@@ -140,11 +140,11 @@ export default function HelpSection() {
                     Get instant answers to your questions with our live chat support.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <Button className="touch-manipulation active:scale-95">
+                    <Button className="active:scale-95">
                       <MessageCircle className="w-4 h-4 mr-2" />
                       Start Live Chat
                     </Button>
-                    <Button variant="outline" className="touch-manipulation active:scale-95">
+                    <Button variant="outline" className="active:scale-95">
                       <Mail className="w-4 h-4 mr-2" />
                       Email Support
                     </Button>

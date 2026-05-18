@@ -48,7 +48,7 @@ export async function syncGuestCart(
       const product = productData.data;
 
       // Check if product is still active and available
-      if (!product.isActive || product.totalStock <= 0) {
+      if (!product.isActive || product.onlineStock <= 0) {
         if (options.removeOutOfStock) {
           errors.push(`Product ${product.name} is no longer available`);
           removed++;

@@ -96,6 +96,8 @@ const ThreeDotsMenu = React.forwardRef<HTMLButtonElement, ThreeDotsMenuProps>(
                   menuItemVariants({
                     variant: item.variant,
                   }),
+                  "hover:bg-gray-100",
+                  "active:bg-gray-100"
                 )}
               >
                 {item.icon}

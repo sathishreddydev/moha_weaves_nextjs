@@ -4,11 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { formatPrice } from "@/lib/formatters";
-import { Minus, Plus, X, Truck } from "lucide-react";
+import { Minus, Plus, X, Truck, ArrowRight } from "lucide-react";
 import { getProductUrl } from "@/lib/utils/productUrl";
 import { CartItemStockStatus } from "@/lib/stores/cartStore";
 import { getAvailableStock } from "@/lib/stock-utils";
 import { getEffectivePrice } from "@/lib/pricing-utils";
+import ProductCard from "../products/ProductCard";
+import { useRouter } from "next/navigation";
+import { useWishlistStore } from "@/lib/stores";
+import { ProductWithDetails } from "@/shared";
 
 interface DesktopCartViewProps {
   items: any[];
@@ -20,6 +24,8 @@ interface DesktopCartViewProps {
   clearCart: () => Promise<void>;
   calculateTotal: () => number;
   isGuest: boolean;
+  relatedProducts?: ProductWithDetails[];
+  categoryName?: string;
 }
 
 const FREE_SHIPPING_THRESHOLD = 999;
@@ -34,8 +40,17 @@ export default function DesktopCartView({
   clearCart,
   calculateTotal,
   isGuest,
+  relatedProducts = [],
+  categoryName = "all",
 }: DesktopCartViewProps) {
   const subtotal = calculateTotal();
+  const router = useRouter();
+  const {
+    addToWishlist,
+    removeFromWishlist,
+    isInWishlist,
+    updating: wishlistUpdating,
+  } = useWishlistStore();
   const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 50;
   const total = subtotal + shipping;
 
@@ -84,8 +99,9 @@ export default function DesktopCartView({
                   const itemStock = stockStatus[item.id];
                   const isOutOfStock = itemStock?.outOfStock ?? false;
                   const isLimitedStock = itemStock?.limitedStock ?? false;
-                  const effectiveAvailableStock = itemStock?.availableStock
-                    ?? getAvailableStock(item.product, item.variantId);
+                  const effectiveAvailableStock =
+                    itemStock?.availableStock ??
+                    getAvailableStock(item.product, item.variantId);
 
                   return (
                     <div
@@ -234,7 +250,9 @@ export default function DesktopCartView({
 
                             {/* Item Total */}
                             <div className="mt-4 pt-4 border-t flex justify-between items-center">
-                              <span className="text-sm text-gray-600">Item total</span>
+                              <span className="text-sm text-gray-600">
+                                Item total
+                              </span>
                               <span className="text-lg font-bold text-gray-900">
                                 {formatPrice(effectivePrice * item.quantity)}
                               </span>
@@ -266,7 +284,9 @@ export default function DesktopCartView({
               <div className="space-y-3 mb-6 text-sm">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal</span>
-                  <span className="font-medium text-gray-900">{formatPrice(subtotal)}</span>
+                  <span className="font-medium text-gray-900">
+                    {formatPrice(subtotal)}
+                  </span>
                 </div>
                 {totalSavings > 0 && (
                   <div className="flex justify-between text-green-600">
@@ -279,13 +299,20 @@ export default function DesktopCartView({
                     <Truck className="w-3.5 h-3.5" />
                     Shipping
                   </span>
-                  <span className={shipping === 0 ? "font-medium text-green-600" : "font-medium text-gray-900"}>
+                  <span
+                    className={
+                      shipping === 0
+                        ? "font-medium text-green-600"
+                        : "font-medium text-gray-900"
+                    }
+                  >
                     {shipping === 0 ? "FREE" : formatPrice(shipping)}
                   </span>
                 </div>
                 {shipping > 0 && (
                   <p className="text-xs text-green-600">
-                    Add {formatPrice(FREE_SHIPPING_THRESHOLD - subtotal)} more for free shipping
+                    Add {formatPrice(FREE_SHIPPING_THRESHOLD - subtotal)} more
+                    for free shipping
                   </p>
                 )}
               </div>
@@ -300,7 +327,8 @@ export default function DesktopCartView({
               {/* Stock issue warning */}
               {checkoutDisabled && (
                 <p className="text-xs text-red-600 mb-3 text-center">
-                  Some items are unavailable. Please review your cart before checking out.
+                  Some items are unavailable. Please review your cart before
+                  checking out.
                 </p>
               )}
 
@@ -336,6 +364,58 @@ export default function DesktopCartView({
           </div>
         </div>
       </div>
+      {/* Related Products */}
+      {relatedProducts.length > 0 && (
+        <div className="mt-16">
+          <div className="flex items-center justify-between mb-8">
+            <h1
+              className="font-serif tracking-wide transition-colors text-2xl"
+              data-testid="text-featured-title"
+            >
+              You May Also Like
+            </h1>
+            <Link
+              href={`/collections/${categoryName}`}
+              className="inline-flex items-center text-[10px] font-bold uppercase tracking-[0.2em] border-b border-black pb-2 transition-all"
+            >
+              <span>View All</span>
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </div>
+       
+          {/* Desktop grid view */}
+          <div className="sm:grid grid-cols-2 lg:grid-cols-4 gap-6">
+            {relatedProducts.slice(0, 4).map((relatedProduct: ProductWithDetails) => (
+              <ProductCard
+                key={relatedProduct.id}
+                product={relatedProduct}
+                showNewBadge={true}
+                showFeaturedBadge={true}
+                onQuickView={() => {
+                  // Navigate to product detail page instead of modal
+                  router.push(
+                    `/collections/${categoryName}/${relatedProduct.urlSlug || relatedProduct.id}`,
+                  );
+                }}
+                onWishlistToggle={() => {
+                  if (isInWishlist(relatedProduct.id)) {
+                    removeFromWishlist(relatedProduct.id);
+                  } else {
+                    addToWishlist(relatedProduct.id);
+                  }
+                }}
+                isWishlisted={isInWishlist(relatedProduct.id)}
+                disabled={wishlistUpdating === relatedProduct.id}
+                className={`transition-all duration-200 ${
+                  wishlistUpdating === relatedProduct.id
+                    ? "opacity-50 cursor-not-allowed"
+                    : "hover:scale-105"
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
