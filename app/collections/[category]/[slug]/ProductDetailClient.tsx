@@ -276,14 +276,14 @@ export default function ProductDetailClient({
     <div>
       <div className="max-w-7xl mx-auto">
         {/* Mobile Breadcrumbs */}
-        <div className="block lg:hidden mb-4 sticky top-16 z-10">
+        <div className="block lg:hidden mb-4">
           <Breadcrumbs
             items={[
               { label: "Home", href: "/" },
               { label: "Collections", href: "/collections" },
               { label: categoryName, href: `/collections/${categoryName}` },
+              { label: product.name },
             ]}
-            productName={product.name}
           />
         </div>
 
@@ -444,8 +444,8 @@ export default function ProductDetailClient({
                   { label: "Home", href: "/" },
                   { label: "Collections", href: "/collections" },
                   { label: categoryName, href: `/collections/${categoryName}` },
+                  { label: product.name },
                 ]}
-                productName={product.name}
               />
             </div>
 
