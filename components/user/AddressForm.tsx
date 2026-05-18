@@ -260,8 +260,20 @@ export default function AddressForm({
           placeholder="Your Phone"
           disabled={isLoading}
           error={form.formState.errors.phone?.message}
-          inputMode="tel"
+          inputMode="numeric"
           autoComplete="tel"
+          type="tel"
+          onKeyDown={(e) => {
+            // Allow: backspace, delete, tab, escape, enter, arrows, home, end
+            const allowed = ["Backspace","Delete","Tab","Escape","Enter","ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Home","End"];
+            if (allowed.includes(e.key)) return;
+            // Allow: Ctrl/Cmd+A, C, V, X
+            if ((e.ctrlKey || e.metaKey) && ["a","c","v","x"].includes(e.key.toLowerCase())) return;
+            // Allow: +, space (for +91 format)
+            if (e.key === "+" || e.key === " ") return;
+            // Block anything that's not a digit
+            if (!/^\d$/.test(e.key)) e.preventDefault();
+          }}
           icon={<Phone className="h-3.5 w-3.5 text-gray-400" />}
         />
       </div>

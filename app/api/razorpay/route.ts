@@ -41,10 +41,30 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Get coupon details if provided
+        // Get coupon details if provided and re-validate at payment time
         let coupon = null;
         if (couponId) {
-            coupon = await couponsService.getCoupon(couponId);
+            // Calculate subtotal first so we can validate min order amount
+            const subtotalForValidation = cartItems.cart.reduce((sum: number, item: any) => {
+                const product = item.product as any;
+                const variant = item.variantId
+                    ? product.variants?.find((v: any) => v.id === item.variantId)
+                    : null;
+                const variantPrice = variant?.price ? parseFloat(variant.price) : null;
+                const price = variantPrice
+                    ?? (product.discountedPrice ? product.discountedPrice : null)
+                    ?? (typeof product.price === "string" ? parseFloat(product.price) : product.price);
+                return sum + price * item.quantity;
+            }, 0);
+
+            const validation = await couponsService.validateCoupon(couponId, user.id, subtotalForValidation);
+            if (!validation.isValid) {
+                return NextResponse.json(
+                    { message: validation.message || "Coupon is no longer valid" },
+                    { status: 400 }
+                );
+            }
+            coupon = validation.coupon ?? null;
         }
 
         // Calculate pricing using shared utility

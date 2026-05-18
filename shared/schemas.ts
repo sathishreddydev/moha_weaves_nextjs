@@ -350,7 +350,7 @@ export const insertSaleSchema = z.object({
   isActive: z.boolean().default(true),
   categoryId: z.string().optional(),
   subcategoryId: z.string().optional(),
-  offerType: z.enum(["percentage", "fixed"]).default("percentage"),
+  offerType: z.enum(["percentage", "flat", "flash_sale", "category", "product"]).default("percentage"),
   discountValue: z.string().min(1, "Discount value is required"),
   maxDiscount: z.string().optional(),
   minOrderValue: z.string().optional(),

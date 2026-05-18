@@ -47,7 +47,7 @@ export default function Header() {
     <div ref={swipeMenuRef}>
       <header
         className={`max-w-7xl mx-auto py-6 lg:py-4 px-4 sm:px-6 lg:px-8 fixed left-0 right-0 bg-white shadow-sm border-b z-40 transition-all duration-300 ease-in-out ${
-          hasOfferData && isBannerVisible ? "top-8" : "top-0"
+          hasOfferData && isBannerVisible ? "top-[var(--banner-height,32px)]" : "top-0"
         }`}
       >
         <div className="flex justify-between items-center">

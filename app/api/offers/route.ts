@@ -49,22 +49,31 @@ export async function GET() {
     const currentOffer = activeSales?.[0] || null;
 
     // ✅ Formatter
-    const formatOffer = (offer: any) => ({
-      id: offer.id,
-      title: formatOfferTitle(offer),
-      description:
-        offer.description || formatOfferDescription(offer),
-      backgroundColor: getOfferBackgroundColor(offer.offerType),
-      textColor: "#ffffff",
-      link:
-        offer.categoryId && offer.categoryName
-          ? `/collections/${offer.categoryName.toLowerCase()}`
-          : null,
-      isActive: offer.isActive,
-      isFeatured: offer.isFeatured,
-      validFrom: offer.validFrom,
-      validUntil: offer.validUntil,
-    });
+    const formatOffer = (offer: any) => {
+      // Build the destination link for the offer
+      let link: string | null = null;
+      if (offer.categoryId && offer.categoryName) {
+        // Category-scoped offer → go to that category pre-filtered to on-sale items
+        link = `/collections/${offer.categoryName.toLowerCase()}?onSale=true`;
+      } else if (offer.offerType === "flash_sale" || offer.offerType === "percentage" || offer.offerType === "flat") {
+        // Sitewide offer → go to all collections filtered to on-sale items
+        link = `/collections?onSale=true`;
+      }
+      // product-level offers without a category get no link (handled per-product)
+
+      return {
+        id: offer.id,
+        title: formatOfferTitle(offer),
+        description: offer.description || formatOfferDescription(offer),
+        backgroundColor: getOfferBackgroundColor(offer.offerType),
+        textColor: "#ffffff",
+        link,
+        isActive: offer.isActive,
+        isFeatured: offer.isFeatured,
+        validFrom: offer.validFrom,
+        validUntil: offer.validUntil,
+      };
+    };
 
     const formattedOffer = currentOffer
       ? formatOffer(currentOffer)
@@ -97,7 +106,7 @@ function formatOfferTitle(sale: any): string {
     case 'percentage':
       return `🎉 ${sale.discountValue}% OFF!`;
     case 'flat':
-      return `✨ Flat ¥${sale.discountValue} OFF!`;
+      return `✨ Flat ₹${sale.discountValue} OFF!`;
     case 'flash_sale':
       return `⚡ Flash Sale!`;
     case 'category':
@@ -111,12 +120,12 @@ function formatOfferDescription(sale: any): string {
   switch (sale.offerType) {
     case 'percentage':
       return sale.minOrderAmount
-        ? `Get ${sale.discountValue}% off on orders above ¥${sale.minOrderAmount}`
+        ? `Get ${sale.discountValue}% off on orders above ₹${sale.minOrderAmount}`
         : `Get ${sale.discountValue}% off on selected items`;
     case 'flat':
       return sale.minOrderAmount
-        ? `Flat ¥${sale.discountValue} off on orders above ¥${sale.minOrderAmount}`
-        : `Flat ¥${sale.discountValue} off on selected items`;
+        ? `Flat ₹${sale.discountValue} off on orders above ₹${sale.minOrderAmount}`
+        : `Flat ₹${sale.discountValue} off on selected items`;
     case 'flash_sale':
       return `Limited time offer - Don't miss out!`;
     case 'category':
@@ -129,17 +138,16 @@ function formatOfferDescription(sale: any): string {
 }
 
 function getOfferBackgroundColor(offerType: string): string {
-  return '#991b1b';
-  // switch (offerType) {
-  //   case 'percentage':
-  //     return '#ef4444'; // red
-  //   case 'flat':
-  //     return '#3b82f6'; // blue  
-  //   case 'flash_sale':
-  //     return '#f59e0b'; // amber
-  //   case 'category':
-  //     return '#10b981'; // green
-  //   default:
-  //     return '#6b7280'; // gray
-  // }
+  switch (offerType) {
+    case 'percentage':
+      return '#ef4444'; // red
+    case 'flat':
+      return '#3b82f6'; // blue
+    case 'flash_sale':
+      return '#f59e0b'; // amber
+    case 'category':
+      return '#10b981'; // green
+    default:
+      return '#991b1b'; // dark red
+  }
 }

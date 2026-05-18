@@ -68,21 +68,22 @@ export const isExpiringSoon = (validUntil: string) => {
 };
 
 export const getCouponStatus = (coupon: Coupon, usedCoupons: Coupon[], orderAmount: number) => {
-  // Check if coupon is used by user
-  const isUsed = usedCoupons.some((used) => used.id === coupon.id);
-  if (isUsed) return "used";
-
-  // Check if usage limit reached
+  // Check if usage limit reached globally
   if (coupon.usageLimit && (coupon.usedCount || 0) >= coupon.usageLimit)
     return "exhausted";
 
-  // Check if per-user limit reached
+  // Check if per-user limit reached — usedCoupons contains one entry per usage,
+  // so count how many times this specific coupon appears in the used list.
   if (coupon.perUserLimit) {
     const userUsageCount = usedCoupons.filter(
       (used) => used.id === coupon.id,
     ).length;
     if (userUsageCount >= coupon.perUserLimit) return "limit_reached";
   }
+
+  // Check if coupon has been used at all (and no per-user limit set means single use)
+  const isUsed = usedCoupons.some((used) => used.id === coupon.id);
+  if (isUsed && !coupon.perUserLimit) return "used";
 
   // Check minimum order amount
   if (coupon.minOrderAmount && orderAmount < Number(coupon.minOrderAmount))
@@ -132,14 +133,23 @@ export const getCouponStatusBadge = (status: string) => {
 };
 
 export const getDiscountValue = (coupon: Coupon, currentOrderAmount: number): number => {
+  const FREE_SHIPPING_THRESHOLD = 999;
+  const SHIPPING_COST = 50;
+
+  let discount = 0;
   if (coupon.type === "percentage") {
-    return (currentOrderAmount * Number(coupon.value)) / 100;
+    discount = (currentOrderAmount * Number(coupon.value)) / 100;
   } else if (coupon.type === "fixed") {
-    return Number(coupon.value);
+    discount = Number(coupon.value);
   } else if (coupon.type === "free_shipping") {
-    // Calculate shipping cost (this would depend on your shipping logic)
-    const shippingCost = currentOrderAmount < 1000 ? 50 : 0; // Assume shipping cost is ₹50
-    return shippingCost;
+    // Shipping is only charged when subtotal < threshold
+    discount = currentOrderAmount < FREE_SHIPPING_THRESHOLD ? SHIPPING_COST : 0;
   }
-  return 0;
+
+  // Apply maxDiscount cap
+  if (coupon.maxDiscount && parseFloat(coupon.maxDiscount) > 0) {
+    discount = Math.min(discount, parseFloat(coupon.maxDiscount));
+  }
+
+  return discount;
 };

@@ -329,6 +329,20 @@ export default function CollectionsClient({
           {/* Active Filter Badges - Mobile only */}
           <ActiveFilterBadges filters={activeBadges} onClearAll={handleClearAllFilters} />
 
+          {/* Sale context banner — shown when user arrives via a sitewide offer link */}
+          {currentFilters.onSale && (
+            <div className="mt-4 mb-2 px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-2 bg-red-50 border border-red-200 text-red-800">
+              <span className="text-base">🎉</span>
+              <span>Showing all sale items. Prices already reflect the discount.</span>
+              <button
+                onClick={() => handleToggleFilter("onSale", false)}
+                className="ml-auto text-red-600 hover:text-red-800 underline text-xs whitespace-nowrap"
+              >
+                Show all
+              </button>
+            </div>
+          )}
+
           {/* Products */}
           {displayedProducts.length === 0 ? (
             <div className="text-center py-12">

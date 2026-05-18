@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { formatPrice } from "@/lib/formatters";
+import { calculatePricing } from "@/lib/pricing-utils";
 import { useAddressStore, useCartStore } from "@/lib/stores";
 import { CartItemWithProduct, UserAddress } from "@/shared/types";
 import {
@@ -14,7 +15,6 @@ import {
   ImageIcon,
   Loader2,
   MapPin,
-  Plus,
   ShoppingBag,
   Tag,
   Truck,
@@ -22,7 +22,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
-import AddressList from "./AddressList";
+import AddressSelector from "./AddressSelector";
 import AddressForm from "../user/AddressForm";
 import RazorpayPayment from "./RazorpayPayment";
 import CouponInput from "./CouponInput";
@@ -67,8 +67,19 @@ export default function CheckoutPage() {
 
   // ── Pricing ──────────────────────────────────────────────────────────────
   const subtotal = calculateTotal();
-  const isFreeShippingCoupon = appliedCoupon?.type === "free_shipping";
-  const shipping = subtotal > 0 ? (subtotal >= 999 || isFreeShippingCoupon ? 0 : 50) : 0;
+
+  // Use the shared pricing utility so shipping + discount logic is in one place
+  const couponForPricing = appliedCoupon
+    ? {
+        type: appliedCoupon.type as "percentage" | "fixed" | "free_shipping",
+        value: appliedCoupon.value,
+        isActive: true,
+        // maxDiscount is already factored into discountAmount from the server response
+      }
+    : null;
+  const pricing = calculatePricing(items, couponForPricing);
+  const shipping = pricing.shipping;
+  // Use server-calculated discountAmount (already has maxDiscount cap applied)
   const couponDiscount = appliedCoupon?.discountAmount || 0;
   const total = subtotal + shipping - couponDiscount;
 
@@ -274,24 +285,11 @@ export default function CheckoutPage() {
         {/* ── LEFT: Delivery address ── */}
         <div className="lg:col-span-3 space-y-6">
           <div>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center mb-4">
               <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-muted-foreground" />
                 Delivery Address
               </h2>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setEditingAddress(null);
-                  setShowAddressModal(true);
-                }}
-                className="h-8 text-xs gap-1.5"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Add New
-              </Button>
             </div>
 
             {addressesError && (
@@ -306,10 +304,14 @@ export default function CheckoutPage() {
                 Loading addresses…
               </div>
             ) : (
-              <AddressList
+              <AddressSelector
                 addresses={addresses}
                 selectedAddressId={selectedAddressId}
                 onSelectAddress={setSelectedAddressId}
+                onAddNew={() => {
+                  setEditingAddress(null);
+                  setShowAddressModal(true);
+                }}
                 onEditAddress={(addr) => {
                   setEditingAddress(addr);
                   setShowAddressModal(true);
@@ -320,10 +322,11 @@ export default function CheckoutPage() {
                     await setDefaultAddress(id);
                     toast.success("Default address updated");
                   } catch {
-                    toast.error("Failed");
+                    toast.error("Failed to update default");
                   }
                 }}
                 updatingId={updating || undefined}
+                isMobile={isMobile}
               />
             )}
 
@@ -529,7 +532,7 @@ export default function CheckoutPage() {
         onSubmit={handleAddressSubmit}
         editingAddress={editingAddress}
         isLoading={updating !== null}
-        isMobile={false}
+        isMobile={isMobile}
       />
     </div>
   );

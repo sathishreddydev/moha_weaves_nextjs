@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { X } from "lucide-react";
+import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useOffersBanner } from "@/hooks/use-offers-banner";
 
 interface Offer {
@@ -26,12 +26,30 @@ export default function OffersBanner() {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  const [isClosed, setIsClosed] = useState(false);
+  // Fix #1: measure banner height and expose as CSS variable so Header always sits below it
+  const bannerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const updateHeight = () => {
+      if (bannerRef.current) {
+        const h = bannerRef.current.offsetHeight;
+        document.documentElement.style.setProperty("--banner-height", `${h}px`);
+      }
+    };
+    updateHeight();
+    const ro = new ResizeObserver(updateHeight);
+    if (bannerRef.current) ro.observe(bannerRef.current);
+    return () => ro.disconnect();
+  }, [offers, currentIndex]);
+
+  // Fix #4: use a ref for lastScrollY to avoid re-registering the listener on every scroll
+  const lastScrollY = useRef(0);
 
   const { setHasOfferData, setBannerVisible } = useOffersBanner();
   const [localVisible, setLocalVisible] = useState(true);
 
-  // ✅ Fetch offers
+  // Fetch offers
   useEffect(() => {
     const fetchOffers = async () => {
       try {
@@ -44,7 +62,7 @@ export default function OffersBanner() {
         } else {
           setHasOfferData(false);
         }
-      } catch (err) {
+      } catch {
         setHasOfferData(false);
       } finally {
         setIsLoading(false);
@@ -54,54 +72,98 @@ export default function OffersBanner() {
     fetchOffers();
   }, [setHasOfferData]);
 
-  // ✅ Auto-rotate offers (every 4s)
+  // Fix #5: smooth fade transition — pause auto-rotate while fading
+  const [fading, setFading] = useState(false);
+
+  const goTo = useCallback((index: number) => {
+    setFading(true);
+    setTimeout(() => {
+      setCurrentIndex(index);
+      setFading(false);
+    }, 200);
+  }, []);
+
+  const goNext = useCallback(() => {
+    goTo((currentIndex + 1) % offers.length);
+  }, [currentIndex, offers.length, goTo]);
+
+  const goPrev = useCallback(() => {
+    goTo((currentIndex - 1 + offers.length) % offers.length);
+  }, [currentIndex, offers.length, goTo]);
+
+  // Auto-rotate every 4s — only when not fading
   useEffect(() => {
-    if (offers.length <= 1) return;
-
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % offers.length);
-    }, 4000);
-
+    if (offers.length <= 1 || fading) return;
+    const interval = setInterval(goNext, 4000);
     return () => clearInterval(interval);
-  }, [offers]);
+  }, [offers.length, fading, goNext]);
 
-  // ✅ Scroll behavior
+  // Fix #4: scroll handler uses ref, registered once
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
       const shouldShow =
-        currentScrollY < lastScrollY || currentScrollY <= 50;
+        currentScrollY < lastScrollY.current || currentScrollY <= 50;
 
       setLocalVisible(shouldShow);
       setBannerVisible(shouldShow);
-      setLastScrollY(currentScrollY);
+      lastScrollY.current = currentScrollY;
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [lastScrollY, setBannerVisible]);
+  }, [setBannerVisible]); // stable — only registers once
 
-  if (isLoading || offers.length === 0) return null;
+  // Fix #3: close hides banner but doesn't permanently kill it
+  const handleClose = () => {
+    setIsClosed(true);
+    setLocalVisible(false);
+    setBannerVisible(false);
+    setHasOfferData(false);
+  };
+
+  if (isLoading || offers.length === 0 || isClosed) return null;
 
   const offer = offers[currentIndex];
+  const hasMultiple = offers.length > 1;
 
   return (
+    // Fix #1: use min-h instead of fixed height so wrapping text doesn't overlap header
     <div
+      ref={bannerRef}
       className={`fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ${
         localVisible ? "translate-y-0" : "-translate-y-full"
       }`}
     >
       <div
-        className="relative w-full text-center py-2 px-4 text-sm font-medium transition-all duration-300"
+        className="relative w-full text-center py-2 px-4 text-sm font-medium"
         style={{
           backgroundColor: offer.backgroundColor,
           color: offer.textColor,
         }}
       >
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex-1" />
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
 
-          <div className="flex items-center justify-center gap-2">
+          {/* Fix #2: prev arrow — only shown when multiple offers */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {hasMultiple && (
+              <button
+                onClick={goPrev}
+                className="p-0.5 hover:opacity-70 transition-opacity rounded"
+                style={{ color: offer.textColor }}
+                aria-label="Previous offer"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Offer content — Fix #5: fade transition */}
+          <div
+            className={`flex-1 flex items-center justify-center gap-2 transition-opacity duration-200 ${
+              fading ? "opacity-0" : "opacity-100"
+            }`}
+          >
             {offer.link ? (
               <Link
                 href={offer.link}
@@ -120,14 +182,52 @@ export default function OffersBanner() {
                 </span>
               </div>
             )}
+
+            {/* Fix #2: dot indicators */}
+            {hasMultiple && (
+              <div className="hidden sm:flex items-center gap-1 ml-3">
+                {offers.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => goTo(i)}
+                    className="rounded-full transition-all duration-200"
+                    style={{
+                      backgroundColor: offer.textColor,
+                      opacity: i === currentIndex ? 1 : 0.4,
+                      width: i === currentIndex ? "16px" : "6px",
+                      height: "6px",
+                    }}
+                    aria-label={`Go to offer ${i + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Mobile: numeric counter */}
+            {hasMultiple && (
+              <span
+                className="sm:hidden text-xs opacity-70 ml-2"
+                style={{ color: offer.textColor }}
+              >
+                {currentIndex + 1}/{offers.length}
+              </span>
+            )}
           </div>
 
-          <div className="flex-1 flex justify-end">
+          {/* Right: next arrow + close */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {hasMultiple && (
+              <button
+                onClick={goNext}
+                className="p-0.5 hover:opacity-70 transition-opacity rounded"
+                style={{ color: offer.textColor }}
+                aria-label="Next offer"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            )}
             <button
-              onClick={() => {
-                setLocalVisible(false);
-                setBannerVisible(false);
-              }}
+              onClick={handleClose}
               className="p-1 hover:opacity-70 transition-opacity rounded"
               style={{ color: offer.textColor }}
               aria-label="Close offer banner"
@@ -135,6 +235,7 @@ export default function OffersBanner() {
               <X className="w-4 h-4" />
             </button>
           </div>
+
         </div>
       </div>
     </div>

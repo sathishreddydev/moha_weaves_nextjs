@@ -12,49 +12,82 @@ export interface CouponDiscount {
   type: "percentage" | "fixed" | "free_shipping";
   value: string;
   isActive: boolean;
+  maxDiscount?: string | null;
 }
 
 /**
- * Calculate pricing consistently across frontend and backend
+ * Calculate pricing consistently across frontend and backend.
+ *
+ * Stacking policy (issue #11):
+ *   Coupons are applied on the ORIGINAL product price, not on the
+ *   already-discounted (sale) price.  This prevents double-discounting
+ *   where a 20% sale + 10% coupon would compound to ~28% off.
+ *   The coupon discount is capped so the final total never goes below
+ *   the sale-discounted subtotal (i.e. the coupon can never make the
+ *   order cheaper than what the sale already gives).
  */
 export function calculatePricing(
   cartItems: CartItemWithProduct[],
   coupon?: CouponDiscount | null
 ): PricingCalculation {
-  // Calculate subtotal using variant price > discounted product price > base product price
-  const subtotal = cartItems.reduce((sum, item) => {
+  // ── Subtotals ────────────────────────────────────────────────────────────
+  // sale-discounted subtotal  → used for shipping threshold & final total
+  // original-price subtotal   → used as the coupon discount base (no stacking)
+  let subtotal = 0;
+  let originalSubtotal = 0;
+
+  for (const item of cartItems) {
     const product = item.product as any;
 
-    // For variant items, prefer the variant's own price if set
     const variant = item.variantId
       ? product.variants?.find((v: any) => v.id === item.variantId)
       : null;
     const variantPrice = variant?.price ? parseFloat(variant.price) : null;
 
-    const price = variantPrice
-      ?? (product.discountedPrice ? product.discountedPrice : null)
-      ?? (typeof product.price === "string" ? parseFloat(product.price) : product.price);
+    // Effective (possibly sale-discounted) price
+    const effectivePrice =
+      variantPrice ??
+      (product.discountedPrice ? product.discountedPrice : null) ??
+      (typeof product.price === "string"
+        ? parseFloat(product.price)
+        : product.price);
 
-    return sum + price * item.quantity;
-  }, 0);
+    // Original price before any sale discount
+    const originalPrice =
+      variantPrice ??
+      (typeof product.price === "string"
+        ? parseFloat(product.price)
+        : product.price);
 
-  // Calculate shipping (FREE for orders >= 999, otherwise 50, or with free_shipping coupon)
+    subtotal += effectivePrice * item.quantity;
+    originalSubtotal += originalPrice * item.quantity;
+  }
+
+  // ── Shipping ─────────────────────────────────────────────────────────────
   let shipping = subtotal > 0 ? (subtotal >= 999 ? 0 : 50) : 0;
-  
-  // Apply free shipping coupon if active
   if (coupon && coupon.isActive && coupon.type === "free_shipping") {
     shipping = 0;
   }
 
-  // Calculate coupon discount
+  // ── Coupon discount ───────────────────────────────────────────────────────
+  // Calculated on originalSubtotal so it doesn't stack on top of sale prices.
   let discountAmount = 0;
   if (coupon && coupon.isActive) {
     if (coupon.type === "percentage") {
-      discountAmount = (subtotal * parseFloat(coupon.value)) / 100;
+      discountAmount = (originalSubtotal * parseFloat(coupon.value)) / 100;
     } else if (coupon.type === "fixed") {
       discountAmount = parseFloat(coupon.value);
     }
-    // free_shipping type doesn't add to discountAmount, but affects shipping calculation
+
+    // Apply maxDiscount cap
+    if (coupon.maxDiscount && parseFloat(coupon.maxDiscount) > 0) {
+      discountAmount = Math.min(discountAmount, parseFloat(coupon.maxDiscount));
+    }
+
+    // Never let the coupon make the order cheaper than the sale already does.
+    // i.e. coupon discount cannot exceed (originalSubtotal - subtotal) + subtotal
+    // which simplifies to: total after coupon >= 0
+    discountAmount = Math.min(discountAmount, subtotal);
   }
 
   const totalAmount = subtotal + shipping - discountAmount;

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -34,7 +35,7 @@ interface StickyPanelProps {
   maxHeight?: string;
 }
 
-// ─── Desktop Modal ─────────────────────────────────────────────────────────────
+// ─── Desktop Modal (Radix Dialog) ─────────────────────────────────────────────
 
 function DesktopModal({
   isOpen,
@@ -46,55 +47,54 @@ function DesktopModal({
   className,
   maxHeight = "90vh",
 }: Omit<StickyPanelProps, "isMobile">) {
-  if (!isOpen) return null;
-
   return (
-    /* Backdrop */
-    <div
-      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      {/* Modal card */}
-      <div
-        role="dialog"
-        aria-modal="true"
-        style={{ maxHeight }}
-        className={cn(
-          "bg-white rounded-xl w-full max-w-md flex flex-col shadow-xl",
-          className,
-        )}
-      >
-        {/* ── Sticky header ── */}
-        <div className="flex-none flex items-center justify-between px-4 py-3 border-b border-gray-100">
-          <div className="flex items-center gap-2">
-            {icon && (
-              <span className="text-gray-500 flex-shrink-0">{icon}</span>
-            )}
-            <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
-          >
-            <X className="h-4 w-4 text-gray-500" />
-          </button>
-        </div>
+    <DialogPrimitive.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogPrimitive.Portal>
+        {/* Backdrop */}
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
 
-        {/* ── Scrollable body ── */}
-        <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3">
-          {children}
-        </div>
-
-        {/* ── Sticky footer ── */}
-        {footer && (
-          <div className="flex-none border-t border-gray-100 px-4 py-3 bg-white">
-            {footer}
+        {/* Modal card */}
+        <DialogPrimitive.Content
+          style={{ maxHeight }}
+          className={cn(
+            "fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2",
+            "w-full max-w-md flex flex-col bg-white rounded-xl shadow-xl",
+            "data-[state=open]:animate-in data-[state=closed]:animate-out",
+            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+            "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+            "data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%]",
+            "data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
+            className,
+          )}
+        >
+          {/* ── Sticky header ── */}
+          <div className="flex-none flex items-center justify-between px-4 py-3 border-b border-gray-100">
+            <DialogPrimitive.Title className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+              {icon && <span className="text-gray-500 flex-shrink-0">{icon}</span>}
+              {title}
+            </DialogPrimitive.Title>
+            <DialogPrimitive.Close
+              aria-label="Close"
+              className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
+            >
+              <X className="h-4 w-4 text-gray-500" />
+            </DialogPrimitive.Close>
           </div>
-        )}
-      </div>
-    </div>
+
+          {/* ── Scrollable body ── */}
+          <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3">
+            {children}
+          </div>
+
+          {/* ── Sticky footer ── */}
+          {footer && (
+            <div className="flex-none border-t border-gray-100 px-4 py-3 bg-white">
+              {footer}
+            </div>
+          )}
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }
 
