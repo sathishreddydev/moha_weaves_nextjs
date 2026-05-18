@@ -309,6 +309,7 @@ export default function AddressForm({
             },
           })}
           placeholder="110001"
+          type="number"
           disabled={isLoading}
           error={form.formState.errors.pincode?.message}
           inputMode="numeric"

@@ -23,7 +23,7 @@ const MinimalItem = ({
 }) => (
   <div className="flex items-center justify-between py-4 group cursor-pointer border-b border-gray-50 last:border-0">
     <div className="flex items-center gap-4">
-      <div className="text-gray-400 group-hover:text-blue-500 transition-colors">
+      <div className="text-gray-400 transition-colors">
         {icon}
       </div>
       <div>

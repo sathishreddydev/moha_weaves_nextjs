@@ -8,6 +8,7 @@ import {
   Drawer,
   DrawerClose,
   DrawerContent,
+  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
@@ -147,11 +148,7 @@ function MobileSheet({
           {children}
         </div>
 
-        {footer && (
-          <div className="flex-none border-t border-gray-100 px-4 py-3 bg-white">
-            {footer}
-          </div>
-        )}
+        <DrawerFooter>{footer}</DrawerFooter>
       </DrawerContent>
     </Drawer>
   );

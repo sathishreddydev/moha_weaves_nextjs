@@ -6,12 +6,7 @@ import MegaMenu from "@/components/navigation/MegaMenu";
 import { useOffersBanner } from "@/hooks/use-offers-banner";
 import { useSwipeToToggleMenu } from "@/hooks/use-swipe-gesture";
 import { useCartStore, useWishlistStore } from "@/lib/stores";
-import {
-  Heart,
-  Menu,
-  ShoppingBag,
-  UserIcon,
-} from "lucide-react";
+import { Heart, Menu, ShoppingBag, UserIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
@@ -33,21 +28,26 @@ export default function Header() {
   const { count: wishlistCount, fetchWishlist } = useWishlistStore();
 
   useEffect(() => {
-    if (isAuthenticated && cartCount === 0) {
-      fetchCart();
-      fetchWishlist();
+    if (isAuthenticated) {
+      if (cartCount === 0) fetchCart();
+      if (wishlistCount === 0) fetchWishlist();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, cartCount, wishlistCount, fetchCart, fetchWishlist]);
 
   const handleMobileMenuToggle = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+
+  const profileRoute = isMobile ? "/my" : "/my/details";
 
   return (
     <div ref={swipeMenuRef}>
       <header
         className={`max-w-7xl mx-auto py-6 lg:py-4 px-4 sm:px-6 lg:px-8 fixed left-0 right-0 bg-white shadow-sm border-b z-40 transition-all duration-300 ease-in-out ${
-          hasOfferData && isBannerVisible ? "top-[var(--banner-height,32px)]" : "top-0"
+          hasOfferData && isBannerVisible
+            ? "top-[var(--banner-height,32px)]"
+            : "top-0"
         }`}
       >
         <div className="flex justify-between items-center">
@@ -101,7 +101,7 @@ export default function Header() {
                 </button>
 
                 <button
-                  onClick={() => router.push("/my")}
+                  onClick={() => router.push(profileRoute)}
                   className="touch-manipulation active:scale-95 transition-transform"
                 >
                   <UserIcon className="w-6 h-6 lg:w-5 lg:h-5" />
@@ -117,11 +117,10 @@ export default function Header() {
             )}
           </div>
         </div>
+      </header>
 
-        </header>
-      
-      <MobileSidebar 
-        isOpen={isMobileMenuOpen} 
+      <MobileSidebar
+        isOpen={isMobileMenuOpen}
         onClose={handleMobileMenuToggle}
       />
     </div>
