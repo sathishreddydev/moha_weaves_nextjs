@@ -3,6 +3,7 @@
 import SizeChart from "./SizeChart";
 import HowToMeasure from "./HowToMeasure";
 import SizeTips from "./SizeTips";
+import { X } from "lucide-react";
 
 interface SizeGuideProps {
   isOpen: boolean;
@@ -22,9 +23,7 @@ export default function SizeGuide({ isOpen, onClose }: SizeGuideProps) {
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
             aria-label="Close size guide"
           >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <X className="h-5 w-5" />
           </button>
         </div>
         

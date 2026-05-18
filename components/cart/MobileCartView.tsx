@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { formatPrice } from "@/lib/formatters";
 import { useState } from "react";
-import { ArrowRight, Truck, X } from "lucide-react";
+import { ArrowRight, ChevronDown, Truck, X } from "lucide-react";
 import { getProductUrl } from "@/lib/utils/productUrl";
 import { CartItemStockStatus } from "@/lib/stores/cartStore";
 import { getAvailableStock } from "@/lib/stock-utils";
@@ -100,8 +100,9 @@ export default function MobileCartView({
           const itemStock = stockStatus[item.id];
           const isOutOfStock = itemStock?.outOfStock ?? false;
           const isLimitedStock = itemStock?.limitedStock ?? false;
-          const effectiveAvailableStock = itemStock?.availableStock
-            ?? getAvailableStock(item.product, item.variantId);
+          const effectiveAvailableStock =
+            itemStock?.availableStock ??
+            getAvailableStock(item.product, item.variantId);
 
           return (
             <div
@@ -263,21 +264,11 @@ export default function MobileCartView({
                   {formatPrice(total)}
                 </span>
               )}
-              <svg
+              <ChevronDown
                 className={`w-5 h-5 text-gray-600 transform transition-transform ${
                   showSummary ? "rotate-180" : ""
                 }`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
+              />
             </div>
           </button>
 
@@ -380,38 +371,42 @@ export default function MobileCartView({
             </Link>
           </div>
           <div className="flex gap-4 overflow-x-auto scroll-smooth pb-2 -mx-4 px-4 snap-x snap-mandatory scrollbar-hide">
-            {relatedProducts.slice(0, 4).map((relatedProduct: ProductWithDetails) => (
-              <div key={relatedProduct.id} className="flex-none w-[45vw] snap-start">
-                <ProductCard
-                  product={relatedProduct}
-                  showNewBadge={true}
-                  showFeaturedBadge={true}
-                  onQuickView={() => {
-                    router.push(
-                      `/collections/${categoryName}/${relatedProduct.urlSlug || relatedProduct.id}`,
-                    );
-                  }}
-                  onWishlistToggle={() => {
-                    if (isInWishlist(relatedProduct.id)) {
-                      removeFromWishlist(relatedProduct.id);
-                    } else {
-                      addToWishlist(relatedProduct.id);
-                    }
-                  }}
-                  isWishlisted={isInWishlist(relatedProduct.id)}
-                  disabled={wishlistUpdating === relatedProduct.id}
-                  className={`transition-all duration-200 ${
-                    wishlistUpdating === relatedProduct.id
-                      ? "opacity-50 cursor-not-allowed"
-                      : ""
-                  }`}
-                />
-              </div>
-            ))}
+            {relatedProducts
+              .slice(0, 4)
+              .map((relatedProduct: ProductWithDetails) => (
+                <div
+                  key={relatedProduct.id}
+                  className="flex-none w-[45vw] snap-start"
+                >
+                  <ProductCard
+                    product={relatedProduct}
+                    showNewBadge={true}
+                    showFeaturedBadge={true}
+                    onQuickView={() => {
+                      router.push(
+                        `/collections/${categoryName}/${relatedProduct.urlSlug || relatedProduct.id}`,
+                      );
+                    }}
+                    onWishlistToggle={() => {
+                      if (isInWishlist(relatedProduct.id)) {
+                        removeFromWishlist(relatedProduct.id);
+                      } else {
+                        addToWishlist(relatedProduct.id);
+                      }
+                    }}
+                    isWishlisted={isInWishlist(relatedProduct.id)}
+                    disabled={wishlistUpdating === relatedProduct.id}
+                    className={`transition-all duration-200 ${
+                      wishlistUpdating === relatedProduct.id
+                        ? "opacity-50 cursor-not-allowed"
+                        : ""
+                    }`}
+                  />
+                </div>
+              ))}
           </div>
         </div>
       )}
-
-     </div>
+    </div>
   );
 }
