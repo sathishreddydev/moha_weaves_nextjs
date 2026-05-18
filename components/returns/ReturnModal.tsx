@@ -386,6 +386,7 @@ export default function ReturnModal({
           onChange={(e) => setReasonDetails(e.target.value)}
           rows={2}
           className="text-xs resize-none"
+          inputMode="text"
         />
       </div>
 

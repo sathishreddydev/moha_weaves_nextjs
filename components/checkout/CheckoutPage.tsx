@@ -403,6 +403,7 @@ export default function CheckoutPage() {
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Any special instructions for your order…"
                 rows={2}
+                inputMode="text"
               />
             </div>
 

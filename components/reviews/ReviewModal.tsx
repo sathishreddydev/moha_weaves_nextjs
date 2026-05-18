@@ -194,6 +194,7 @@ export default function ReviewModal({
               onChange={(e) => setComment(e.target.value)}
               rows={4}
               maxLength={500}
+              inputMode="text"
             />
             <p className="text-xs text-gray-500 text-right">{comment.length}/500</p>
           </div>
