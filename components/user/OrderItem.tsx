@@ -1,7 +1,11 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { getExchangeTimelineStep, getRefundStatusLabel, getStatusConfig } from "@/lib/orderStatus";
+import {
+  getExchangeTimelineStep,
+  getRefundStatusLabel,
+  getStatusConfig,
+} from "@/lib/orderStatus";
 import {
   AlertCircle,
   CheckCircle,
@@ -13,12 +17,90 @@ import {
   XCircle,
 } from "lucide-react";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface ProductVariant {
+  id: string;
+  size: string;
+  [key: string]: unknown;
+}
+
+interface OrderItemProduct {
+  id: string;
+  name: string;
+  imageUrl?: string | null;
+  variants?: ProductVariant[];
+  [key: string]: unknown;
+}
+
+interface ReturnEligibility {
+  eligible: boolean;
+  reason?: string;
+  remainingDays?: number;
+}
+
+interface ExchangeEligibility {
+  eligible: boolean;
+  reason?: string;
+  remainingDays?: number;
+}
+
+interface RefundInfo {
+  id: string;
+  status: string;
+  amount: string;
+  initiatedAt?: string;
+  completedAt?: string;
+  failureReason?: string;
+}
+
+interface ReturnInfo {
+  returnRequestId: string;
+  status: string;
+  resolution: string;
+  reason: string;
+  reasonDetails?: string;
+  refundAmount?: string;
+  createdAt: string;
+  updatedAt: string;
+  refund?: RefundInfo | null;
+}
+
+interface ExchangeInfo {
+  exchangeId: string;
+  status: string;
+  reason: string;
+  reasonDetails?: string;
+  exchangeOrderId?: string | null;
+  exchangeVariantId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrderItemType {
+  id: string;
+  status: string;
+  currentStatus?: string;
+  quantity: number;
+  price: string;
+  productPrice?: string | null;
+  discountedPrice?: string | null;
+  variantId?: string | null;
+  product: OrderItemProduct;
+  returnEligibility?: ReturnEligibility;
+  exchangeEligibility?: ExchangeEligibility;
+  returnInfo?: ReturnInfo;
+  exchangeInfo?: ExchangeInfo;
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export function OrderItem({
   item,
   onReview,
   onReturn,
 }: {
-  item: any;
+  item: OrderItemType;
   onReview: (orderItemId: string, productId: string) => void;
   onReturn: (itemId: string, type: "return" | "exchange") => void;
 }) {
@@ -29,45 +111,21 @@ export function OrderItem({
 
   // Find the correct variant by variantId
   const selectedVariant = item.variantId
-    ? item.product?.variants?.find((v: any) => v.id === item.variantId)
+    ? item.product?.variants?.find((v) => v.id === item.variantId)
     : item.product?.variants?.[0];
 
   const isDelivered = currentStatus === "delivered";
   const isCancelled = currentStatus === "cancelled";
-  const isInReturn = currentStatus.startsWith("return_");
-  const isInExchange = currentStatus.startsWith("exchange_");
 
-  // Return / refund info attached by the order detail API
-  const returnInfo = item.returnInfo as {
-    returnRequestId: string;
-    status: string;
-    resolution: string;
-    reason: string;
-    reasonDetails?: string;
-    refundAmount?: string;
-    createdAt: string;
-    updatedAt: string;
-    refund?: {
-      id: string;
-      status: string;
-      amount: string;
-      initiatedAt?: string;
-      completedAt?: string;
-      failureReason?: string;
-    } | null;
-  } | undefined;
+  // Also check returnInfo / exchangeInfo presence to handle race conditions
+  // where currentStatus hasn't been patched yet but the info object exists.
+  const returnInfo = item.returnInfo;
+  const exchangeInfo = item.exchangeInfo;
 
-  // Exchange info attached by the order detail API
-  const exchangeInfo = item.exchangeInfo as {
-    exchangeId: string;
-    status: string;
-    reason: string;
-    reasonDetails?: string;
-    exchangeOrderId?: string | null;
-    exchangeVariantId?: string | null;
-    createdAt: string;
-    updatedAt: string;
-  } | undefined;
+  const isInReturn =
+    currentStatus.startsWith("return_") || !!returnInfo;
+  const isInExchange =
+    currentStatus.startsWith("exchange_") || !!exchangeInfo;
 
   return (
     <Card className="p-4 hover:border-slate-300 transition-colors bg-white">
@@ -105,17 +163,19 @@ export function OrderItem({
               </div>
             </div>
 
-            {/* Price */}
+            {/* Price — show productPrice as strikethrough if it differs from
+                the actual paid price (item.price). discountedPrice may not
+                account for coupon discounts, so we always use item.price as
+                the authoritative paid amount. */}
             <div className="text-right flex-shrink-0">
-              {item.productPrice &&
-              item.discountedPrice &&
-              item.productPrice !== item.discountedPrice ? (
+              {item.productPrice != null &&
+              parseFloat(item.productPrice) !== parseFloat(item.price) ? (
                 <div className="flex items-center gap-1 justify-end">
                   <span className="text-xs text-gray-400 line-through">
                     ₹{parseFloat(item.productPrice).toFixed(2)}
                   </span>
                   <span className="text-xs font-bold text-green-600">
-                    ₹{parseFloat(item.discountedPrice).toFixed(2)}
+                    ₹{parseFloat(item.price).toFixed(2)}
                   </span>
                 </div>
               ) : (
@@ -140,7 +200,8 @@ export function OrderItem({
         <div className="flex items-center gap-2 ml-auto">
           {isDelivered && !isInReturn && !isInExchange && (
             <button
-              className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1.5 transition-colors"
+              type="button"
+              className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1.5 transition-colors active:scale-95 transition-transform"
               onClick={() => onReview(item.id, item.product.id)}
             >
               <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
@@ -154,8 +215,9 @@ export function OrderItem({
                 <div className="w-1 h-1 bg-slate-300 rounded-full" />
               )}
               <button
+                type="button"
                 onClick={() => onReturn(item.id, "return")}
-                className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1.5 transition-colors"
+                className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1.5 transition-colors active:scale-95 transition-transform"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 Return
@@ -169,8 +231,9 @@ export function OrderItem({
                 <div className="w-1 h-1 bg-slate-300 rounded-full" />
               )}
               <button
+                type="button"
                 onClick={() => onReturn(item.id, "exchange")}
-                className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1.5 transition-colors"
+                className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1.5 transition-colors active:scale-95 transition-transform"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 Exchange
@@ -193,30 +256,27 @@ export function OrderItem({
       </div>
 
       {/* ── Return / Refund info panel ─────────────────────────────────────── */}
-      {returnInfo && (
-        <ReturnRefundPanel returnInfo={returnInfo} />
-      )}
+      {returnInfo && <ReturnRefundPanel returnInfo={returnInfo} />}
 
       {/* ── Exchange info panel ───────────────────────────────────────────── */}
       {exchangeInfo && (
-        <ExchangePanel exchangeInfo={exchangeInfo} variants={item.product?.variants ?? []} />
+        <ExchangePanel
+          exchangeInfo={exchangeInfo}
+          variants={item.product?.variants ?? []}
+        />
       )}
     </Card>
   );
 }
 
-/** Inline panel shown below the item when a return/refund is active. */
-function ReturnRefundPanel({
-  returnInfo,
-}: {
-  returnInfo: NonNullable<ReturnType<typeof extractReturnInfo>>;
-}) {
+// ─── Return / Refund panel ────────────────────────────────────────────────────
+
+function ReturnRefundPanel({ returnInfo }: { returnInfo: ReturnInfo }) {
   const { status, resolution, refundAmount, refund, createdAt } = returnInfo;
 
   const isRefundResolution = resolution === "refund";
   const isCreditResolution = resolution === "store_credit";
 
-  // Timeline steps
   const step = getReturnStep(status);
 
   return (
@@ -234,8 +294,8 @@ function ReturnRefundPanel({
         <div className="flex items-center gap-2 text-[10px] text-green-700 bg-green-50 rounded-lg px-3 py-2">
           <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
           <span>
-            Store credit of ₹{parseFloat(refundAmount || "0").toFixed(2)} has been issued.
-            Check your email for the coupon code.
+            Store credit of ₹{parseFloat(refundAmount || "0").toFixed(2)} has
+            been issued. Check your email for the coupon code.
           </span>
         </div>
       )}
@@ -262,12 +322,18 @@ function ReturnRefundPanel({
 }
 
 function getReturnStep(
-  status: string
+  status: string,
 ): "requested" | "in_progress" | "done" | "rejected" {
   if (status === "return_requested") return "requested";
   if (
-    ["return_approved", "return_pickup_scheduled", "return_picked_up",
-     "return_in_transit", "return_received", "return_inspected"].includes(status)
+    [
+      "return_approved",
+      "return_pickup_scheduled",
+      "return_picked_up",
+      "return_in_transit",
+      "return_received",
+      "return_inspected",
+    ].includes(status)
   )
     return "in_progress";
   if (status === "return_completed") return "done";
@@ -285,13 +351,13 @@ function ReturnTimeline({
     resolution === "refund"
       ? "Refund Initiated"
       : resolution === "store_credit"
-      ? "Credit Issued"
-      : "Completed";
+        ? "Credit Issued"
+        : "Completed";
 
   const steps = [
-    { key: "requested",   label: "Return Requested" },
+    { key: "requested", label: "Return Requested" },
     { key: "in_progress", label: "Return in Progress" },
-    { key: "done",        label: doneLabel },
+    { key: "done", label: doneLabel },
   ];
 
   const order = ["requested", "in_progress", "done"];
@@ -312,13 +378,17 @@ function ReturnTimeline({
         const done = idx < currentIdx;
         const active = idx === currentIdx;
         return (
-          <div key={s.key} className="flex items-center gap-1 flex-1 min-w-0">
+          <div
+            key={s.key}
+            className="flex items-center gap-1 flex-1 min-w-0"
+          >
             <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
               <div
                 className={`w-4 h-4 rounded-full flex items-center justify-center
-                  ${done || active
-                    ? "bg-orange-500 text-white"
-                    : "bg-slate-200 text-slate-400"
+                  ${
+                    done || active
+                      ? "bg-orange-500 text-white"
+                      : "bg-slate-200 text-slate-400"
                   }`}
               >
                 {done ? (
@@ -338,9 +408,7 @@ function ReturnTimeline({
             </span>
             {idx < steps.length - 1 && (
               <div
-                className={`h-px flex-1 mx-1 ${
-                  done ? "bg-orange-400" : "bg-slate-200"
-                }`}
+                className={`h-px flex-1 mx-1 ${done ? "bg-orange-400" : "bg-slate-200"}`}
               />
             )}
           </div>
@@ -354,13 +422,7 @@ function RefundDetail({
   refund,
   refundAmount,
 }: {
-  refund: {
-    status: string;
-    amount: string;
-    initiatedAt?: string;
-    completedAt?: string;
-    failureReason?: string;
-  };
+  refund: RefundInfo;
   refundAmount?: string;
 }) {
   const amount = parseFloat(refund.amount || refundAmount || "0").toFixed(2);
@@ -429,39 +491,33 @@ function RefundDetail({
   );
 }
 
-/** Inline panel shown below the item when an exchange is active. */
+// ─── Exchange panel ───────────────────────────────────────────────────────────
+
 function ExchangePanel({
   exchangeInfo,
   variants,
 }: {
-  exchangeInfo: {
-    exchangeId: string;
-    status: string;
-    reason: string;
-    reasonDetails?: string;
-    exchangeOrderId?: string | null;
-    exchangeVariantId?: string | null;
-    createdAt: string;
-  };
-  variants: Array<{ id: string; size: string }>;
+  exchangeInfo: ExchangeInfo;
+  variants: ProductVariant[];
 }) {
-  const { status, exchangeOrderId, exchangeVariantId, createdAt } = exchangeInfo;
+  const { status, exchangeOrderId, exchangeVariantId, createdAt } =
+    exchangeInfo;
   const step = getExchangeTimelineStep(status);
 
-  // Resolve the requested replacement size label
   const requestedSize = exchangeVariantId
     ? variants.find((v) => v.id === exchangeVariantId)?.size ?? null
     : null;
 
   const steps = [
-    { key: "requested",   label: "Exchange Requested" },
+    { key: "requested", label: "Exchange Requested" },
     { key: "in_progress", label: "Exchange in Progress" },
-    { key: "shipped",     label: "Replacement Shipped" },
-    { key: "done",        label: "Exchange Completed" },
+    { key: "shipped", label: "Replacement Shipped" },
+    { key: "done", label: "Exchange Completed" },
   ];
 
-  const order = ["requested", "in_progress", "shipped", "done"];
-  const currentIdx = step === "rejected" ? -1 : order.indexOf(step);
+  const stepOrder = ["requested", "in_progress", "shipped", "done"];
+  const currentIdx =
+    step === "rejected" ? -1 : stepOrder.indexOf(step);
 
   return (
     <div className="mt-3 pt-3 border-t border-blue-100 space-y-3">
@@ -488,13 +544,17 @@ function ExchangePanel({
             const done = idx < currentIdx;
             const active = idx === currentIdx;
             return (
-              <div key={s.key} className="flex items-center gap-1 flex-1 min-w-0">
+              <div
+                key={s.key}
+                className="flex items-center gap-1 flex-1 min-w-0"
+              >
                 <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
                   <div
                     className={`w-4 h-4 rounded-full flex items-center justify-center
-                      ${done || active
-                        ? "bg-blue-500 text-white"
-                        : "bg-slate-200 text-slate-400"
+                      ${
+                        done || active
+                          ? "bg-blue-500 text-white"
+                          : "bg-slate-200 text-slate-400"
                       }`}
                   >
                     {done ? (
@@ -528,7 +588,9 @@ function ExchangePanel({
         <div className="flex items-center gap-2 text-[10px] text-blue-700 bg-blue-50 rounded-lg px-3 py-2">
           <Package className="w-3.5 h-3.5 flex-shrink-0" />
           <span>
-            Replacement order <span className="font-semibold">#{exchangeOrderId}</span> is on its way.
+            Replacement order{" "}
+            <span className="font-semibold">#{exchangeOrderId}</span> is on its
+            way.
           </span>
         </div>
       )}
@@ -536,7 +598,9 @@ function ExchangePanel({
       {step === "done" && (
         <div className="flex items-center gap-2 text-[10px] text-green-700 bg-green-50 rounded-lg px-3 py-2">
           <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
-          <span className="font-semibold">Exchange completed. Enjoy your new item!</span>
+          <span className="font-semibold">
+            Exchange completed. Enjoy your new item!
+          </span>
         </div>
       )}
 
@@ -551,26 +615,4 @@ function ExchangePanel({
       </p>
     </div>
   );
-}
-
-// Helper to satisfy TypeScript for the panel prop type
-function extractReturnInfo(item: any) {
-  return item.returnInfo as {
-    returnRequestId: string;
-    status: string;
-    resolution: string;
-    reason: string;
-    reasonDetails?: string;
-    refundAmount?: string;
-    createdAt: string;
-    updatedAt: string;
-    refund?: {
-      id: string;
-      status: string;
-      amount: string;
-      initiatedAt?: string;
-      completedAt?: string;
-      failureReason?: string;
-    } | null;
-  } | undefined;
 }

@@ -1,7 +1,9 @@
 "use client";
 
 import { CouponBadge } from "@/components/orders/CouponBadge";
-import ReturnModal from "@/components/returns/ReturnModal";
+import ExchangeForm from "@/components/returns/ExchangeForm";
+import MultiReturnView from "@/components/returns/MultiReturnView";
+import ReturnForm from "@/components/returns/ReturnForm";
 import ReviewModal from "@/components/reviews/ReviewModal";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -28,27 +30,33 @@ import {
   MapPin,
   Package,
   ReceiptText,
+  RotateCcw,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
+
+// ─── View state ───────────────────────────────────────────────────────────────
+// "detail"      → normal order detail view
+// "return"      → multi-item return flow (order-level button)
+// "return-item" → single-item return form (item-level Return button)
+// "exchange"    → single-item exchange form (item-level Exchange button)
+type OrderView = "detail" | "return" | "return-item" | "exchange";
+
 
 export default function OrderDetailsPage() {
   const params = useParams();
   const router = useRouter();
 
-  // Extract orderId directly — no useEffect needed, avoids null on first render
-  // which would cause socket listeners to scope to "all orders" briefly
   const orderId = (params as { id: string }).id ?? null;
 
   const [order, setOrder] = useState<OrderWithItems | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
-  const [returnModalOpen, setReturnModalOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<{
-    id: string;
-    type: "return" | "exchange";
-  } | null>(null);
+  const [orderView, setOrderView] = useState<OrderView>("detail");
+  const [preSelectedReturnItemId, setPreSelectedReturnItemId] = useState<string | null>(null);
+  const [exchangeItemId, setExchangeItemId] = useState<string | null>(null);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedReviewItem, setSelectedReviewItem] = useState<{
     orderItemId: string;
@@ -130,7 +138,14 @@ export default function OrderDetailsPage() {
 
   // Refund status updated → patch returnInfo.refund in state directly (no refetch)
   const handleRefundStatusChange = useCallback(
-    ({ orderId: oid, status, amount, failureReason, completedAt, initiatedAt }: {
+    ({
+      orderId: oid,
+      status,
+      amount,
+      failureReason,
+      completedAt,
+      initiatedAt,
+    }: {
       orderId: string;
       status: string;
       amount: string;
@@ -186,10 +201,32 @@ export default function OrderDetailsPage() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (err) {
-      // Use a non-blocking notification instead of alert
       setInvoiceError("Failed to download invoice. Please try again.");
     }
   };
+
+  const handleReturnClick = useCallback(
+    (itemId: string, type: "return" | "exchange") => {
+      if (type === "exchange") {
+        setExchangeItemId(itemId);
+        setOrderView("exchange");
+      } else if (itemId) {
+        setPreSelectedReturnItemId(itemId);
+        setOrderView("return-item");
+      } else {
+        setOrderView("return");
+      }
+    },
+    [],
+  );
+
+  const handleReviewClick = useCallback(
+    (orderItemId: string, productId: string) => {
+      setSelectedReviewItem({ orderItemId, productId });
+      setReviewModalOpen(true);
+    },
+    [],
+  );
 
   if (loading) {
     return (
@@ -217,80 +254,136 @@ export default function OrderDetailsPage() {
         </div>
       </div>
     );
-  }  return (
-    <div>
-      {/* Invoice error banner */}
+  }
+
+  // ── Return view ────────────────────────────────────────────────────────────
+  if (orderView === "return") {
+    return (
+      <div className="max-w-7xl mx-auto">
+        <div className="lg:grid lg:grid-cols-4 lg:gap-8">
+          <div className="hidden lg:block lg:col-span-1">
+            <ProfileSidebar />
+          </div>
+          <div className="lg:col-span-3">
+            <MultiReturnView
+              order={order}
+              preSelectedItemId={preSelectedReturnItemId}
+              onBack={() => {
+                setOrderView("detail");
+                setPreSelectedReturnItemId(null);
+              }}
+              onSuccess={() => {
+                setOrderView("detail");
+                setPreSelectedReturnItemId(null);
+                fetchOrderDetails();
+                toast.success("Return request submitted");
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Return-item view ───────────────────────────────────────────────────────
+  if (orderView === "return-item" && preSelectedReturnItemId) {
+    return (
+      <div className="max-w-7xl mx-auto">
+        <div className="lg:grid lg:grid-cols-4 lg:gap-8">
+          <div className="hidden lg:block lg:col-span-1">
+            <ProfileSidebar />
+          </div>
+          <div className="lg:col-span-3">
+            <ReturnForm
+              order={order}
+              orderItemId={preSelectedReturnItemId}
+              onClose={() => {
+                setOrderView("detail");
+                setPreSelectedReturnItemId(null);
+              }}
+              onSuccess={() => {
+                setOrderView("detail");
+                setPreSelectedReturnItemId(null);
+                fetchOrderDetails();
+                toast.success("Return request submitted");
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Exchange view ──────────────────────────────────────────────────────────
+  if (orderView === "exchange" && exchangeItemId) {
+    return (
+      <div className="max-w-7xl mx-auto">
+        <div className="lg:grid lg:grid-cols-4 lg:gap-8">
+          <div className="hidden lg:block lg:col-span-1">
+            <ProfileSidebar />
+          </div>
+          <div className="lg:col-span-3">
+            <ExchangeForm
+              order={order}
+              orderItemId={exchangeItemId}
+              onClose={() => {
+                setOrderView("detail");
+                setExchangeItemId(null);
+              }}
+              onSuccess={() => {
+                setOrderView("detail");
+                setExchangeItemId(null);
+                fetchOrderDetails();
+                toast.success("Exchange request submitted");
+              }}
+              showBackButton
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Detail view ────────────────────────────────────────────────────────────
+  return (
+    <div className="max-w-7xl mx-auto">
+      {/* Invoice error banner — inside the same container */}
       {invoiceError && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+        <div className="px-4 sm:px-0 pt-4">
           <div className="flex items-center justify-between gap-3 bg-red-50 border border-red-200 text-red-700 text-xs px-4 py-2 rounded-lg">
             <span>{invoiceError}</span>
             <button
+              type="button"
               onClick={() => setInvoiceError(null)}
               className="text-red-500 hover:text-red-700 font-bold text-sm leading-none"
-              aria-label="Dismiss"
+              aria-label="Dismiss invoice error"
             >
               ×
             </button>
           </div>
         </div>
       )}
-      <div className="max-w-7xl mx-auto">
-        {/* Mobile: Back Button + Content Only */}
-        <div className="lg:hidden">
+
+      <div className="lg:grid lg:grid-cols-4 lg:gap-8">
+        {/* Sidebar — desktop only */}
+        <div className="hidden lg:block lg:col-span-1">
+          <ProfileSidebar />
+        </div>
+
+        {/* Main content — single render for both mobile and desktop */}
+        <div className="lg:col-span-3">
           <OrderDetailsContent
             order={order}
             onDownloadInvoice={downloadInvoice}
             onHelpClick={() => setHelpChatOpen(true)}
-            onReturnClick={(itemId: string, type: "return" | "exchange") => {
-              setSelectedItem({ id: itemId, type });
-              setReturnModalOpen(true);
-            }}
-            onReviewClick={(orderItemId: string, productId: string) => {
-              setSelectedReviewItem({ orderItemId, productId });
-              setReviewModalOpen(true);
-            }}
+            onReturnClick={handleReturnClick}
+            onReviewClick={handleReviewClick}
           />
-        </div>
-
-        {/* Desktop: Sidebar + Content */}
-        <div className="hidden lg:grid lg:grid-cols-4 lg:gap-8">
-          {/* Sidebar Navigation */}
-          <div className="lg:col-span-1">
-            <ProfileSidebar />
-          </div>
-
-          {/* Main Content */}
-          <div className="lg:col-span-3">
-            <OrderDetailsContent
-              order={order}
-              onDownloadInvoice={downloadInvoice}
-              onHelpClick={() => setHelpChatOpen(true)}
-              onReturnClick={(itemId: string, type: "return" | "exchange") => {
-                setSelectedItem({ id: itemId, type });
-                setReturnModalOpen(true);
-              }}
-              onReviewClick={(orderItemId: string, productId: string) => {
-                setSelectedReviewItem({ orderItemId, productId });
-                setReviewModalOpen(true);
-              }}
-            />
-          </div>
         </div>
       </div>
 
-      {/* Return Modal */}
-      {selectedItem && order && (
-        <ReturnModal
-          open={returnModalOpen}
-          onOpenChange={setReturnModalOpen}
-          order={order}
-          orderItemId={selectedItem.id}
-          type={selectedItem.type}
-        />
-      )}
-
       {/* Review Modal */}
-      {selectedReviewItem && order && (
+      {selectedReviewItem && (
         <ReviewModal
           open={reviewModalOpen}
           onOpenChange={setReviewModalOpen}
@@ -301,13 +394,12 @@ export default function OrderDetailsPage() {
       )}
 
       {/* Contextual Help Chat */}
-      {order && orderId && (
+      {orderId && (
         <LiveChat
           isOpen={helpChatOpen}
           onOpenChange={setHelpChatOpen}
           onReturnClick={(itemId: string, type: "return" | "exchange") => {
-            setSelectedItem({ id: itemId, type });
-            setReturnModalOpen(true);
+            handleReturnClick(itemId, type);
             setHelpChatOpen(false);
           }}
           orderContext={{
@@ -339,24 +431,37 @@ function OrderDetailsContent({
 }) {
   const router = useRouter();
 
+  // Only show "Return Items" if at least one item is eligible AND doesn't
+  // already have an active return or exchange in progress.
+  const hasReturnEligible = order.items.some(
+    (item) =>
+      (item as any).returnEligibility?.eligible &&
+      !(item as any).returnInfo &&
+      !(item as any).exchangeInfo,
+  );
+
   return (
     <div className="space-y-6">
       <Card className="p-4 sm:p-5 space-y-4 hover:border-slate-300 transition-colors bg-white">
         {/* Header */}
         <div className="flex justify-between items-center gap-2">
-          <div
+          {/* Back button — proper <button> for accessibility */}
+          <button
+            type="button"
+            aria-label="Back to orders"
             onClick={() => router.push("/my/orders")}
-            className="flex items-center gap-2 cursor-pointer"
+            className="flex items-center gap-2"
           >
             <ArrowLeft className="w-5 h-5" />
             <h2 className="text-base sm:text-lg font-semibold text-gray-900">
               Order Summary
             </h2>
-          </div>
+          </button>
 
           <div className="text-xs">
             <span className="mr-1">Need</span>
             <button
+              type="button"
               onClick={onHelpClick}
               className="text-blue-800 underline hover:text-blue-600"
             >
@@ -378,7 +483,6 @@ function OrderDetailsContent({
 
           {/* Order Details */}
           <div className="flex justify-between gap-4">
-            {/* Order Details */}
             <div className="flex items-center justify-between gap-4 sm:gap-8">
               {/* Order ID */}
               <div>
@@ -403,7 +507,7 @@ function OrderDetailsContent({
               </div>
             </div>
 
-            {/* Button */}
+            {/* Invoice button */}
             <div>
               <Button
                 onClick={onDownloadInvoice}
@@ -427,13 +531,26 @@ function OrderDetailsContent({
           </h3>
         </div>
         {order.items.map((item) => (
-          <OrderItem
-            key={item.id}
-            item={item}
-            onReview={onReviewClick}
-            onReturn={onReturnClick}
-          />
+          <div key={item.id}>
+            <OrderItem
+              item={item}
+              onReview={onReviewClick}
+              onReturn={onReturnClick}
+            />
+          </div>
         ))}
+
+        {/* Order-level Return Items button — only when eligible items exist */}
+        {hasReturnEligible && (
+          <button
+            type="button"
+            onClick={() => onReturnClick("", "return")}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-gray-200 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors"
+          >
+            <RotateCcw className="w-4 h-4" />
+            Return Items from this order
+          </button>
+        )}
       </div>
 
       {/* Price Breakdown */}
@@ -468,7 +585,6 @@ function OrderDetailsContent({
             <span className="font-medium text-green-600">
               ₹
               {(() => {
-                // Item-level savings: difference between original and discounted price
                 const itemSavings = order.items.reduce((total, item) => {
                   if (item.productPrice && item.discountedPrice) {
                     return (
@@ -480,7 +596,6 @@ function OrderDetailsContent({
                   }
                   return total;
                 }, 0);
-                // Coupon discount is already shown separately above — don't add it again
                 return itemSavings.toFixed(2);
               })()}
             </span>
@@ -489,9 +604,6 @@ function OrderDetailsContent({
             <span className="text-gray-600">Shipping</span>
             <span className="font-medium">
               {(() => {
-                // item.price = the effective price paid per unit (already discounted)
-                // finalAmount = subtotal_paid - couponDiscount + shipping
-                // → shipping = finalAmount - subtotal_paid + couponDiscount
                 const subtotalPaid = order.items.reduce(
                   (sum, item) => sum + parseFloat(item.price) * item.quantity,
                   0,
@@ -499,7 +611,6 @@ function OrderDetailsContent({
                 const couponDiscount = parseFloat(order.discountAmount || "0");
                 const shipping =
                   parseFloat(order.finalAmount) - subtotalPaid + couponDiscount;
-                // Guard against floating-point noise (e.g. -0.000001)
                 return shipping > 0.01 ? `₹${shipping.toFixed(2)}` : "FREE";
               })()}
             </span>
