@@ -90,7 +90,7 @@ export default function ProductSection({
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, index) => (
               <div key={index} className="animate-pulse">
                 <div className="bg-gray-200 aspect-[3/4] rounded-sm mb-2"></div>
@@ -150,7 +150,7 @@ export default function ProductSection({
   }
 
   return (
-    <section className="px-6">
+    <section >
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -171,7 +171,7 @@ export default function ProductSection({
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {products.map((product, index) => (
             <ProductCard
               key={product.id}
