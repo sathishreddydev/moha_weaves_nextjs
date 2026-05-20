@@ -65,7 +65,6 @@ export default function CategoryClient({
   const [totalCount, setTotalCount] = useState(initialCount || 0);
   const [offset, setOffset] = useState(initialProducts?.length || 0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [isApplyingFilters, setIsApplyingFilters] = useState(false);
 
   // Reset when server re-renders with new filter results
   useEffect(() => {
@@ -102,11 +101,9 @@ export default function CategoryClient({
   // ── Filter handlers ────────────────────────────────────────────────────────
   const handleFilterChange = useCallback(
     (newFilters: Partial<ProductFilters>) => {
-      setIsApplyingFilters(true);
       const updated = { ...currentFilters, ...newFilters, offset: 0 };
       setCurrentFilters(updated);
       updateURL(updated);
-      setTimeout(() => setIsApplyingFilters(false), 500);
     },
     [currentFilters, updateURL],
   );
@@ -164,7 +161,6 @@ export default function CategoryClient({
   );
 
   const handleClearAllFilters = useCallback(() => {
-    setIsApplyingFilters(true);
     const cleared: ProductFilters = {
       ...initialFilters,
       subcategories: [],
@@ -180,7 +176,6 @@ export default function CategoryClient({
     };
     setCurrentFilters(cleared);
     updateURL(cleared);
-    setTimeout(() => setIsApplyingFilters(false), 500);
   }, [updateURL, initialFilters]);
 
   // ── Load More ──────────────────────────────────────────────────────────────

@@ -34,8 +34,8 @@ export default function LoginPage() {
   const { isAuthenticated } = useAuth();
   const [serverError, setServerError] = useState("");
 
-  // Get return URL from search params
-  const returnUrl = searchParams.get('returnUrl') || '/';
+  // Support both 'returnUrl' and 'redirect' param names for compatibility
+  const returnUrl = searchParams.get('returnUrl') || searchParams.get('redirect') || '/';
 
   // Redirect if already authenticated
   useEffect(() => {

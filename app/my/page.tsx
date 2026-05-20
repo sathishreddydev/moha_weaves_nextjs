@@ -1,47 +1,11 @@
 "use client";
 
 import ProfileSidebar from "@/components/user/ProfileSidebar";
-import SidebarSkeleton from "@/components/user/SidebarSkeleton";
-import DashboardSkeleton from "@/components/user/DashboardSkeleton";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function ProfilePage() {
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    // Simulate loading time for demo
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (isLoading) {
-    return (
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-4">
-          <Skeleton className="h-7 w-32" />
-        </div>
-
-        {/* Mobile: Sidebar Skeleton */}
-        <div className="lg:hidden">
-          <SidebarSkeleton />
-        </div>
-
-        {/* Desktop: Sidebar + Content Skeleton */}
-        <div className="hidden lg:grid lg:grid-cols-4 lg:gap-8">
-          <div className="lg:col-span-1">
-            <SidebarSkeleton />
-          </div>
-          <div className="lg:col-span-3">
-            <DashboardSkeleton />
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const router = useRouter();
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -72,24 +36,33 @@ export default function ProfilePage() {
                 Select an option from the sidebar to get started
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="border rounded-lg p-4 hover:border-primary-600 cursor-pointer transition-colors">
+                <Link
+                  href="/my/details"
+                  className="border rounded-lg p-4 hover:border-gray-400 cursor-pointer transition-colors text-left"
+                >
                   <h3 className="font-medium text-gray-900">Profile Details</h3>
                   <p className="text-sm text-gray-600 mt-1">
                     View and edit your information
                   </p>
-                </div>
-                <div className="border rounded-lg p-4 hover:border-primary-600 cursor-pointer transition-colors">
+                </Link>
+                <Link
+                  href="/my/addresses"
+                  className="border rounded-lg p-4 hover:border-gray-400 cursor-pointer transition-colors text-left"
+                >
                   <h3 className="font-medium text-gray-900">Addresses</h3>
                   <p className="text-sm text-gray-600 mt-1">
                     Manage shipping addresses
                   </p>
-                </div>
-                <div className="border rounded-lg p-4 hover:border-primary-600 cursor-pointer transition-colors">
+                </Link>
+                <Link
+                  href="/my/orders"
+                  className="border rounded-lg p-4 hover:border-gray-400 cursor-pointer transition-colors text-left"
+                >
                   <h3 className="font-medium text-gray-900">Order History</h3>
                   <p className="text-sm text-gray-600 mt-1">
                     View your past orders
                   </p>
-                </div>
+                </Link>
               </div>
             </div>
           </div>

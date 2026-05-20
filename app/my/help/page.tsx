@@ -1,24 +1,21 @@
-"use client";
-
 import HelpSection from "@/components/user/HelpSection";
 import ProfileSidebar from "@/components/user/ProfileSidebar";
+
+export const metadata = {
+  title: "Help & Support – Moha Weaves",
+  description: "Get help with your orders, returns, and account.",
+};
 
 export default function HelpPage() {
   return (
     <div className="max-w-7xl mx-auto">
-      {/* Mobile: Back Button + Content Only */}
-      <div className="lg:hidden">
-        <HelpSection />
-      </div>
-
-      {/* Desktop: Sidebar + Content */}
-      <div className="hidden lg:grid lg:grid-cols-4 lg:gap-8">
-        {/* Sidebar Navigation */}
-        <div className="lg:col-span-1">
+      <div className="lg:grid lg:grid-cols-4 lg:gap-8">
+        {/* Sidebar — desktop only */}
+        <div className="hidden lg:block lg:col-span-1">
           <ProfileSidebar />
         </div>
 
-        {/* Main Content */}
+        {/* Main content */}
         <div className="lg:col-span-3">
           <HelpSection />
         </div>
