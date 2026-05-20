@@ -381,8 +381,8 @@ export default function CategoryClient({
               <p className="text-gray-600">Try adjusting your filters or search terms</p>
             </div>
           ) : (
-            <div className="grid gap-6 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 pt-6">
-              {displayedProducts.map((product) => (
+            <div className="grid gap-8 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 pt-6">
+              {displayedProducts.map((product, index) => (
                 <ProductCard
                   key={product.id}
                   product={product}
@@ -391,6 +391,7 @@ export default function CategoryClient({
                   onQuickView={handleQuickView}
                   onWishlistToggle={handleWishlistToggle}
                   isWishlisted={isInWishlist(product.id)}
+                  priority={index < 4}
                 />
               ))}
             </div>
