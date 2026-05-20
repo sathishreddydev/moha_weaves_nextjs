@@ -205,7 +205,7 @@ export default function AddressForm({
     <form
       id="address-form"
       onSubmit={form.handleSubmit(handleSubmit)}
-      className="space-y-3"
+      className="space-y-2"
     >
       {/* Address type selector */}
       <div>
