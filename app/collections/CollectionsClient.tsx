@@ -359,7 +359,7 @@ export default function CollectionsClient({
               <p className="text-gray-600">Try adjusting your filters or search terms</p>
             </div>
           ) : (
-            <div className="grid gap-6 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 pt-6">
+            <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 pt-6">
               {displayedProducts.map((product) => (
                 <ProductCard
                   key={product.id}
