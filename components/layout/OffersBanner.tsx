@@ -120,6 +120,8 @@ export default function OffersBanner() {
     setLocalVisible(false);
     setBannerVisible(false);
     setHasOfferData(false);
+    // Reset the CSS variable so the header snaps back to top-0
+    document.documentElement.style.setProperty("--banner-height", "0px");
   };
 
   if (isLoading || offers.length === 0 || isClosed) return null;

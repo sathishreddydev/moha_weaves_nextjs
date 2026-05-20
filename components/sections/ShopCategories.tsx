@@ -15,7 +15,7 @@ export default function ShopCategories() {
 
 
   return (
-    <section className="px-6">
+    <section>
       <div>
         <div className="flex items-center justify-between mb-4">
           <div>

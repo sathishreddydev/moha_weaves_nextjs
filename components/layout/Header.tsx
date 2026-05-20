@@ -18,10 +18,11 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeMegaMenu, setActiveMegaMenu] = useState(null);
   const { hasOfferData, isBannerVisible } = useOffersBanner();
+  const headerRef = useRef<HTMLElement>(null);
 
   const swipeMenuRef = useSwipeToToggleMenu(
-    () => setIsMobileMenuOpen(true), // Swipe left to open menu
-    () => setIsMobileMenuOpen(false), // Swipe right to close menu
+    () => setIsMobileMenuOpen(true),
+    () => setIsMobileMenuOpen(false),
   ) as React.RefObject<HTMLDivElement>;
 
   const { count: cartCount, fetchCart } = useCartStore();
@@ -34,23 +35,41 @@ export default function Header() {
     }
   }, [isAuthenticated, cartCount, wishlistCount, fetchCart, fetchWishlist]);
 
+  // Expose --header-height CSS variable so LayoutWrapper and sticky elements
+  // can always reference the real measured height instead of hardcoded values.
+  useEffect(() => {
+    const updateHeaderHeight = () => {
+      if (headerRef.current) {
+        const h = headerRef.current.offsetHeight;
+        document.documentElement.style.setProperty("--header-height", `${h}px`);
+      }
+    };
+    updateHeaderHeight();
+    const ro = new ResizeObserver(updateHeaderHeight);
+    if (headerRef.current) ro.observe(headerRef.current);
+    return () => ro.disconnect();
+  }, []);
+
   const handleMobileMenuToggle = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
   const profileRoute = isMobile ? "/my" : "/my/details";
 
   return (
     <div ref={swipeMenuRef}>
+      {/* Full-viewport-width fixed bar — shadow/border spans the whole screen */}
       <header
-        className={`max-w-7xl mx-auto py-6 lg:py-4 px-4 sm:px-6 lg:px-8 fixed left-0 right-0 bg-white shadow-sm border-b z-40 transition-all duration-300 ease-in-out ${
+        ref={headerRef}
+        className={`fixed left-0 right-0 bg-white shadow-sm border-b z-40 transition-all duration-300 ease-in-out ${
           hasOfferData && isBannerVisible
-            ? "top-[var(--banner-height,32px)]"
+            ? "top-[var(--banner-height,0px)]"
             : "top-0"
         }`}
       >
-        <div className="flex justify-between items-center">
+        {/* Inner content constrained to max-w-7xl */}
+        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
           <div className="flex items-center gap-4">
             <button
               onClick={handleMobileMenuToggle}

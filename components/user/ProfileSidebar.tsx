@@ -46,7 +46,7 @@ export default function ProfileSidebar({ activeSection, onItemClick }: ProfileSi
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow p-6 sticky top-20">
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow p-6 sticky top-[calc(var(--banner-height,0px)+var(--header-height,74px)+1.5rem)]">
       <nav className="space-y-2">
         {menuItems.map((item) => {
           const Icon = item.icon;

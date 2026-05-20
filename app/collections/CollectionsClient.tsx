@@ -236,7 +236,7 @@ export default function CollectionsClient({
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Filters Sidebar - Desktop */}
         <aside className="hidden lg:block w-64 flex-shrink-0">
-          <div className="sticky top-24 space-y-6">
+          <div className="sticky space-y-6" style={{ top: "calc(var(--banner-height, 0px) + var(--header-height, 74px) + 1.5rem)" }}>
             <h1 className="text-xl font-light text-gray-900 uppercase tracking-[0.1em]">
               Collections
             </h1>

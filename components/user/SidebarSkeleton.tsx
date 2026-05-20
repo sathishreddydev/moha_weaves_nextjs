@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function SidebarSkeleton() {
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden p-6 sticky top-20">
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden p-6 sticky top-[calc(var(--banner-height,0px)+var(--header-height,74px)+1.5rem)]">
       <nav className="space-y-2">
         {[...Array(3)].map((_, index) => (
           <div key={index} className="flex items-center space-x-3 px-4 py-3 rounded-lg">

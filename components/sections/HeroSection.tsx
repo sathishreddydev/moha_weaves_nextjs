@@ -86,7 +86,7 @@ export default function HeroSection() {
     return (
       <section className="relative h-[70vh] w-full bg-zinc-950 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />
-        <div className="relative z-10 h-full max-w-[1800px] mx-auto px-8 flex flex-col justify-center">
+        <div className="relative z-10 h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center">
           <div className="max-w-4xl">
             <div className="animate-pulse">
               <div className="h-4 bg-gray-700 rounded w-32 mb-6"></div>
@@ -104,7 +104,7 @@ export default function HeroSection() {
     return (
       <section className="relative h-[70vh] w-full bg-zinc-950 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />
-        <div className="relative z-10 h-full max-w-[1800px] mx-auto px-8 flex flex-col justify-center">
+        <div className="relative z-10 h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center">
           <div className="max-w-4xl text-center">
             <h2 className="text-white text-5xl font-serif leading-[0.85] tracking-tighter mb-4">
               Discover Our Collection
@@ -155,7 +155,7 @@ export default function HeroSection() {
       ))}
 
       {/* Content Layer */}
-      <div className="relative z-10 h-full max-w-[1800px] mx-auto px-8 flex flex-col justify-center">
+      <div className="relative z-10 h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center">
         <div className="max-w-4xl">
           <p className="text-amber-500 font-bold tracking-[0.5em] uppercase text-xs mb-6 overflow-hidden">
             <span className="inline-block animate-in slide-in-from-bottom-full duration-700">

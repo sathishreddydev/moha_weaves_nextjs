@@ -270,7 +270,7 @@ export default function DesktopCartView({
 
         {/* Order Summary - Desktop */}
         <div className="lg:col-span-1">
-          <div className="sticky top-24">
+          <div className="sticky" style={{ top: "calc(var(--banner-height, 0px) + var(--header-height, 74px) + 1.5rem)" }}>
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-base font-semibold text-gray-900 mb-4">
                 Order Summary

@@ -98,7 +98,7 @@ export default function ProductSection({
 
   if (products.length === 0) {
     return (
-      <section className="px-6">
+      <section>
         <div>
           <div className="flex items-center justify-between mb-4">
             <div>

@@ -210,7 +210,7 @@ export default function FAQsPage() {
         {/* FAQ Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 border-b border-slate-100 pb-8">
           {/* Navigation/Sidebar */}
-          <aside className="hidden lg:block lg:col-span-3 space-y-6 sticky top-12 h-fit">
+          <aside className="hidden lg:block lg:col-span-3 space-y-6 sticky h-fit" style={{ top: "calc(var(--banner-height, 0px) + var(--header-height, 74px) + 1.5rem)" }}>
             <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-900 mb-6">
               Policy Directory
             </h3>

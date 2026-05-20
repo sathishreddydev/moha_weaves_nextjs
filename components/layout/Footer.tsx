@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="bg-slate-50 text-slate-900 border-t border-slate-200 px-10 overflow-hidden">
+    <footer className="bg-slate-50 text-slate-900 border-t border-slate-200 px-4 sm:px-6 lg:px-8 overflow-hidden">
       <div className="max-w-7xl mx-auto py-8">
         {/* Brand Anchor */}
         <div className="flex flex-col md:flex-row justify-between items-baseline mb-16 gap-8">

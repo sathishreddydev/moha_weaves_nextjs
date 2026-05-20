@@ -580,7 +580,7 @@ export default function CheckoutPage() {
 
           {/* ── RIGHT: Order summary (desktop sticky) ── */}
           <div className="hidden lg:block lg:col-span-2">
-            <div className="sticky top-6 space-y-5">
+            <div className="sticky space-y-5" style={{ top: "calc(var(--banner-height, 0px) + var(--header-height, 74px) + 1.5rem)" }}>
               <div>
                 <h2 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-3">
                   <ShoppingBag className="h-4 w-4 text-muted-foreground" />
