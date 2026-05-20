@@ -285,45 +285,54 @@ export default function CollectionsClient({
                 <SelectItem value="name" className="text-xs sm:text-sm">Name: A to Z</SelectItem>
               </SelectContent>
             </Select>
-            <Drawer open={showFilters} onOpenChange={setShowFilters}>
-              <DrawerTrigger asChild>
-                <Button variant="link" className="sm:hidden h-8 sm:h-10 px-2 border border-gray-300 rounded-lg">
-                  <FilterIcon className="h-4 w-4" />
-                </Button>
-              </DrawerTrigger>
-              <DrawerContent className="h-[85vh] flex flex-col">
-                <DrawerHeader className="flex-shrink-0 border-b border-gray-100">
-                  <div className="flex items-center justify-between">
-                    <DrawerTitle className="text-left">Filters</DrawerTitle>
-                    <Button
-                      variant="link"
-                      onClick={handleClearAllFilters}
-                      className="text-sm text-blue-600 hover:text-blue-800 font-light"
-                    >
-                      Clear All
+
+            {/* Mobile-only filter drawer — hidden on sm+ so it never renders on desktop */}
+            <div className="sm:hidden">
+              <Drawer open={showFilters} onOpenChange={setShowFilters}>
+                <DrawerTrigger asChild>
+                  <Button variant="outline" className="h-8 px-2 border border-gray-300 rounded-lg">
+                    <FilterIcon className="h-4 w-4" />
+                  </Button>
+                </DrawerTrigger>
+                <DrawerContent className="h-[85vh] flex flex-col overflow-hidden">
+                  {/* Drag handle */}
+                  <div className="mx-auto mt-3 mb-1 h-1.5 w-12 rounded-full bg-gray-300 flex-shrink-0" />
+                  {/* Sticky header */}
+                  <DrawerHeader className="flex-shrink-0 border-b border-gray-100 px-5 py-4">
+                    <div className="flex items-center justify-between">
+                      <DrawerTitle className="text-left text-base font-semibold">Filters</DrawerTitle>
+                      <Button
+                        variant="link"
+                        onClick={handleClearAllFilters}
+                        className="text-sm text-blue-600 hover:text-blue-800 font-light p-0 h-auto"
+                      >
+                        Clear All
+                      </Button>
+                    </div>
+                  </DrawerHeader>
+                  {/* Scrollable content */}
+                  <div className="flex-1 min-h-0 overflow-y-auto px-5 py-5">
+                    <CollectionsFilterSections
+                      categories={categories}
+                      colors={colors}
+                      fabrics={fabrics}
+                      currentFilters={currentFilters}
+                      onCategoryChange={handleCategoryChange}
+                      onColorChange={handleColorChange}
+                      onFabricChange={handleFabricChange}
+                      onToggleFilter={handleToggleFilter}
+                      onPriceRangeChange={handlePriceRangeChange}
+                    />
+                  </div>
+                  {/* Sticky footer */}
+                  <div className="flex-shrink-0 px-5 py-4 border-t border-gray-100 bg-white">
+                    <Button className="w-full h-11 text-sm font-medium" onClick={() => setShowFilters(false)}>
+                      Apply Filters
                     </Button>
                   </div>
-                </DrawerHeader>
-                <div className="flex-1 overflow-y-auto px-6 py-4">
-                  <CollectionsFilterSections
-                    categories={categories}
-                    colors={colors}
-                    fabrics={fabrics}
-                    currentFilters={currentFilters}
-                    onCategoryChange={handleCategoryChange}
-                    onColorChange={handleColorChange}
-                    onFabricChange={handleFabricChange}
-                    onToggleFilter={handleToggleFilter}
-                    onPriceRangeChange={handlePriceRangeChange}
-                  />
-                </div>
-                <div className="flex-shrink-0 px-6 py-4 border-t border-gray-100 bg-white">
-                  <Button className="w-full" onClick={() => setShowFilters(false)}>
-                    Apply Filters
-                  </Button>
-                </div>
-              </DrawerContent>
-            </Drawer>
+                </DrawerContent>
+              </Drawer>
+            </div>
           </div>
 
           {/* Active Filter Badges - Mobile only */}

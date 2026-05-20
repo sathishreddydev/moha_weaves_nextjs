@@ -4,49 +4,43 @@ import { Card } from "@/components/ui/card";
 import { useFilterStore } from "@/lib/stores/fillterStore";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { useEffect } from "react";
 
 export default function ShopCategories() {
-  const {
-    categories,
-    loading: loadingCategories,
-    error,
-  } = useFilterStore();
-
+  const { categories, loading: loadingCategories } = useFilterStore();
 
   return (
     <section>
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1
-              className="font-serif tracking-wide transition-colors
-               text-2xl"
-              data-testid="text-categories-title"
-            >
-              Shop by Category
-            </h1>
-
-            <p
-              className="text-muted-foreground
-               text-xs"
-            >
-              Explore our curated collections
-            </p>
-          </div>
-          <Link
-            href="/categories"
-            className="inline-flex items-center text-[10px] font-bold uppercase tracking-[0.2em] border-b border-black pb-2 transition-all  touch-manipulation active:scale-95"
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2
+            className="font-serif tracking-wide transition-colors text-2xl"
+            data-testid="text-categories-title"
           >
-            <span>View All</span>
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
+            Shop by Category
+          </h2>
+          <p className="text-muted-foreground text-xs">
+            Explore our curated collections
+          </p>
         </div>
+        <Link
+          href="/categories"
+          className="inline-flex items-center text-[10px] font-bold uppercase tracking-[0.2em] border-b border-black pb-2 transition-all touch-manipulation active:scale-95"
+        >
+          <span>View All</span>
+          <ArrowRight className="ml-2 h-4 w-4" />
+        </Link>
+      </div>
 
+      {loadingCategories ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="animate-pulse aspect-square bg-gray-200 rounded-lg" />
+          ))}
+        </div>
+      ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {categories?.slice(0, 8).map((category) => {
             const categoryUrl = `/collections/${encodeURIComponent(category.name)}`;
-
             return (
               <Link key={category.id} href={categoryUrl}>
                 <Card
@@ -72,7 +66,7 @@ export default function ShopCategories() {
             );
           })}
         </div>
-      </div>
+      )}
     </section>
   );
 }

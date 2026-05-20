@@ -64,12 +64,12 @@ export default async function RootLayout({
       <body className={inter.className}>
         <Providers session={session}>
           <OffersBannerProvider>
-            <GlobalSwipeNavigation>
+            {/* <GlobalSwipeNavigation> */}
               <OffersBanner />
               <Header />
               <LayoutWrapper>{children}</LayoutWrapper>
               <Footer />
-            </GlobalSwipeNavigation>
+            {/* </GlobalSwipeNavigation> */}
           </OffersBannerProvider>
         </Providers>
       </body>

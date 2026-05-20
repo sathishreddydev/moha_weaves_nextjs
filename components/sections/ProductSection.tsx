@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import ProductCard from "@/components/products/ProductCard";
 import { ProductWithDetails } from "@/shared";
 import { ProductService } from "@/lib/services/productService";
@@ -61,36 +61,40 @@ export default function ProductSection({
     }
   };
 
+  // Shared header used in all states
+  const sectionHeader = (
+    <div className="flex items-center justify-between mb-4">
+      <div>
+        <h2
+          className="font-serif tracking-wide transition-colors text-2xl"
+          data-testid="text-featured-title"
+        >
+          {title}
+        </h2>
+        <p className="text-muted-foreground text-xs">{subtitle}</p>
+      </div>
+      <Link
+        href={viewAllLink}
+        className="inline-flex items-center text-[10px] font-bold uppercase tracking-[0.2em] border-b border-black pb-2 transition-all touch-manipulation active:scale-95"
+      >
+        <span>View All</span>
+        <ArrowRight className="ml-2 h-4 w-4" />
+      </Link>
+    </div>
+  );
+
   if (loading) {
     return (
       <section>
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="font-serif tracking-wide transition-colors text-2xl">
-                {title}
-              </h1>
-              <p className="text-muted-foreground text-xs">{subtitle}</p>
+        {sectionHeader}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-8">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <div key={index} className="animate-pulse">
+              <div className="bg-gray-200 aspect-[3/4] rounded-sm mb-2" />
+              <div className="h-4 bg-gray-200 rounded mb-1" />
+              <div className="h-4 bg-gray-200 rounded w-3/4" />
             </div>
-
-            <Link
-              href={viewAllLink}
-              className="inline-flex items-center text-[10px] font-bold uppercase tracking-[0.2em] border-b border-black pb-2 transition-all touch-manipulation active:scale-95"
-            >
-              <span>View All</span>
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-8">
-            {Array.from({ length: 8 }).map((_, index) => (
-              <div key={index} className="animate-pulse">
-                <div className="bg-gray-200 aspect-[3/4] rounded-sm mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded mb-1"></div>
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              </div>
-            ))}
-          </div>
+          ))}
         </div>
       </section>
     );
@@ -99,86 +103,44 @@ export default function ProductSection({
   if (products.length === 0) {
     return (
       <section>
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1
-                className="font-serif tracking-wide transition-colors text-2xl"
-                data-testid="text-featured-title"
-              >
-                {title}
-              </h1>
-              <p className="text-muted-foreground text-xs">{subtitle}</p>
-            </div>
-
-            <Link
-              href={viewAllLink}
-              className="inline-flex items-center text-[10px] font-bold uppercase tracking-[0.2em] border-b border-black pb-2 transition-all touch-manipulation active:scale-95"
-            >
-              <span>View All</span>
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
+        {sectionHeader}
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+            <RefreshCw className="w-8 h-8 text-gray-400" />
           </div>
-
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-              <RefreshCw className="w-8 h-8 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No products available
-            </h3>
-            <p className="text-gray-500 text-sm mb-6">
-              Check back later for new arrivals
-            </p>
-            <Link
-              href={viewAllLink}
-              className="inline-flex items-center px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
-            >
-              <span>Browse All Products</span>
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            No products available
+          </h3>
+          <p className="text-gray-500 text-sm mb-6">
+            Check back later for new arrivals
+          </p>
+          <Link
+            href={viewAllLink}
+            className="inline-flex items-center px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+          >
+            <span>Browse All Products</span>
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
         </div>
       </section>
     );
   }
 
   return (
-    <section className="px-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1
-              className="font-serif tracking-wide transition-colors text-2xl"
-              data-testid="text-featured-title"
-            >
-              {title}
-            </h1>
-            <p className="text-muted-foreground text-xs">{subtitle}</p>
-          </div>
-
-          <Link
-            href={viewAllLink}
-            className="inline-flex items-center text-[10px] font-bold uppercase tracking-[0.2em] border-b border-black pb-2 transition-all touch-manipulation active:scale-95"
-          >
-            <span>View All</span>
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-8">
-          {products.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              showNewBadge={endpoint.includes("/new")}
-              showFeaturedBadge={endpoint.includes("/featured")}
-              onWishlistToggle={handleWishlistToggle}
-              isWishlisted={isInWishlist(product.id)}
-              disabled={updating === product.id}
-            />
-          ))}
-        </div>
+    <section>
+      {sectionHeader}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-8">
+        {products.map((product) => (
+          <ProductCard
+            key={product.id}
+            product={product}
+            showNewBadge={endpoint.includes("/new")}
+            showFeaturedBadge={endpoint.includes("/featured")}
+            onWishlistToggle={handleWishlistToggle}
+            isWishlisted={isInWishlist(product.id)}
+            disabled={updating === product.id}
+          />
+        ))}
       </div>
     </section>
   );
