@@ -107,7 +107,7 @@ function MobileSheet({
       onOpenChange={(open) => !open && onClose()}
       dismissible={false}
     >
-      <DrawerContent className="data-[vaul-drawer-direction=bottom]:max-h-[90vh] data-[vaul-drawer-direction=top]:max-h-[50vh] flex flex-col overflow-hidden">
+      <DrawerContent className="data-[vaul-drawer-direction=top]:max-h-[50vh] flex flex-col overflow-hidden">
         <DrawerHeader className="flex-none flex items-center justify-between border-b border-gray-100 px-4 py-3">
           <DrawerTitle className="flex items-center gap-2 text-sm font-semibold">
             {icon && (
