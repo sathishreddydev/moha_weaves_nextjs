@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   CheckCircle2,
+  CheckCircle,
   ImageIcon,
   Loader2,
   MapPin,
