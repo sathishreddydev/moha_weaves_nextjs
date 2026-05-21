@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { UserAddress } from "@/shared/types";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 declare global {
   interface Window {
@@ -42,12 +42,72 @@ export default function RazorpayPayment({
 }: RazorpayPaymentProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [scriptLoaded, setScriptLoaded] = useState(false);
+  // Safety ref: if the modal never resolves (dismiss/success/fail), reset after timeout
+  const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Track whether the Razorpay modal is currently open
+  const modalOpenRef = useRef(false);
+  // Track the active Razorpay instance so we can close it on unmount
+  const razorpayInstanceRef = useRef<any>(null);
 
-  // Check if Razorpay is available
-  useEffect(() => {
-    if (window.Razorpay) {
-      setScriptLoaded(true);
+  const clearLoadingTimeout = () => {
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current);
+      loadingTimeoutRef.current = null;
     }
+  };
+
+  const resetLoading = () => {
+    clearLoadingTimeout();
+    modalOpenRef.current = false;
+    setIsLoading(false);
+  };
+
+  // ── Cleanup on unmount ────────────────────────────────────────────────────
+  // If the user navigates away while the modal is open, close it cleanly
+  // so Razorpay doesn't leave a zombie overlay on the next page.
+  useEffect(() => {
+    return () => {
+      clearLoadingTimeout();
+      if (razorpayInstanceRef.current) {
+        try { razorpayInstanceRef.current.close(); } catch {}
+        razorpayInstanceRef.current = null;
+      }
+    };
+  }, []);
+
+  // ── Visibility / focus recovery ───────────────────────────────────────────
+  // When the user switches back to this tab and the modal is no longer visible
+  // (they navigated away in another tab, or the modal closed without firing ondismiss),
+  // reset the loading state so the button isn't stuck on "Processing...".
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && modalOpenRef.current) {
+        // Give Razorpay 800ms to fire ondismiss first; if it doesn't, reset ourselves
+        setTimeout(() => {
+          if (modalOpenRef.current) {
+            resetLoading();
+          }
+        }, 800);
+      }
+    };
+
+    const handleFocus = () => {
+      if (modalOpenRef.current) {
+        setTimeout(() => {
+          if (modalOpenRef.current) {
+            resetLoading();
+          }
+        }, 800);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fallback loader if Script component fails
@@ -81,6 +141,13 @@ export default function RazorpayPayment({
 
     setIsLoading(true);
 
+    // Safety net: if the modal never resolves within 10 minutes, reset the button.
+    // Covers edge cases like browser crash/reopen, Razorpay JS errors, etc.
+    clearLoadingTimeout();
+    loadingTimeoutRef.current = setTimeout(() => {
+      setIsLoading(false);
+    }, 10 * 60 * 1000); // 10 minutes — matches Razorpay order expiry
+
     try {
       // Create Razorpay order
       const response = await fetch("/api/razorpay", {
@@ -94,7 +161,10 @@ export default function RazorpayPayment({
       });
 
       if (!response.ok) {
-        throw new Error("Failed to create Razorpay order");
+        resetLoading();
+        const data = await response.json().catch(() => ({}));
+        onError(data.message || "Failed to initiate payment. Please try again.");
+        return;
       }
 
       const { razorpayOrderId, amount: razorpayAmount, currency } = await response.json();
@@ -120,21 +190,24 @@ export default function RazorpayPayment({
         },
         modal: {
           ondismiss: () => {
-            setIsLoading(false);
-            toast.info("Payment cancelled");
+            razorpayInstanceRef.current = null;
+            resetLoading();
+            toast.info("Payment cancelled. Your cart is saved.");
           },
         },
       };
 
       const razorpay = new window.Razorpay(options);
+      razorpayInstanceRef.current = razorpay;
+      modalOpenRef.current = true;
       razorpay.open();
 
       razorpay.on("payment.failed", function (response: any) {
-        setIsLoading(false);
+        resetLoading();
         onError(response.error?.description || "Payment failed. Please try again.");
       });
     } catch (error) {
-      setIsLoading(false);
+      resetLoading();
       onError(error instanceof Error ? error.message : "Payment failed. Please try again.");
     }
   };
@@ -162,10 +235,12 @@ export default function RazorpayPayment({
       }
 
       const result = await response.json();
+      razorpayInstanceRef.current = null;
+      clearLoadingTimeout(); // success — no need for the safety timeout anymore
       onSuccess(result.orderId);
       toast.success("Payment successful! Order placed.");
     } catch (error) {
-      setIsLoading(false);
+      resetLoading();
       onError(error instanceof Error ? error.message : "Payment verification failed. Please contact support.");
     }
   };
@@ -183,7 +258,7 @@ export default function RazorpayPayment({
             Processing...
           </>
         ) : (
-          `Pay ${amount > 0 ? `₹${amount}` : ''}`
+          amount > 0 ? `Pay ₹${amount}` : "Place Order"
         )}
       </Button>
   );

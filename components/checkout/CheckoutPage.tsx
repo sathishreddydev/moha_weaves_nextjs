@@ -10,17 +10,19 @@ import { calculatePricing } from "@/lib/pricing-utils";
 import { useAddressStore, useCartStore } from "@/lib/stores";
 import { CartItemWithProduct, UserAddress } from "@/shared/types";
 import {
+  AlertTriangle,
   ArrowLeft,
   CheckCircle2,
   ImageIcon,
   Loader2,
   MapPin,
+  Package,
   ShoppingBag,
   Tag,
   Truck,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import AddressSelector, { AddressListView } from "./AddressSelector";
 import AddressForm, { type AddressFormData } from "../user/AddressForm";
@@ -63,11 +65,15 @@ export default function CheckoutPage() {
 
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [orderTotal, setOrderTotal] = useState<number>(0);
+  const [orderItemCount, setOrderItemCount] = useState<number>(0);
   const [checkoutView, setCheckoutView] = useState<CheckoutView>("checkout");
   const [editingAddress, setEditingAddress] = useState<UserAddress | null>(null);
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
+  // Track whether address was loaded at least once so we don't block pay prematurely
+  const addressLoadedRef = useRef(false);
 
   // ── Pricing ──────────────────────────────────────────────────────────────
   const subtotal = calculateTotal();
@@ -111,11 +117,14 @@ export default function CheckoutPage() {
 
   // ── Auto-select default address ───────────────────────────────────────────
   useEffect(() => {
+    if (!addressesLoading) {
+      addressLoadedRef.current = true;
+    }
     const defaultAddress = getDefaultAddress();
     if (defaultAddress && !selectedAddressId) {
       setSelectedAddressId(defaultAddress.id);
     }
-  }, [addresses, selectedAddressId, getDefaultAddress]);
+  }, [addresses, addressesLoading, selectedAddressId, getDefaultAddress]);
 
   // ── Validate stock ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -144,14 +153,22 @@ export default function CheckoutPage() {
   };
 
   const handleDeleteAddress = async (addressId: string) => {
-    if (!window.confirm("Delete this address?")) return;
-    try {
-      await deleteAddress(addressId);
-      toast.success("Address deleted");
-      if (selectedAddressId === addressId) setSelectedAddressId("");
-    } catch {
-      toast.error("Failed to delete address");
-    }
+    // Use toast confirmation instead of window.confirm (accessible + works on all mobile browsers)
+    toast("Delete this address?", {
+      action: {
+        label: "Delete",
+        onClick: async () => {
+          try {
+            await deleteAddress(addressId);
+            toast.success("Address deleted");
+            if (selectedAddressId === addressId) setSelectedAddressId("");
+          } catch {
+            toast.error("Failed to delete address");
+          }
+        },
+      },
+      cancel: { label: "Cancel", onClick: () => {} },
+    });
   };
 
   const handleSelectAddress = (id: string) => {
@@ -162,11 +179,14 @@ export default function CheckoutPage() {
 
   const handlePaymentSuccess = useCallback(
     (newOrderId: string) => {
+      // Snapshot the order details before clearing cart
+      setOrderTotal(total);
+      setOrderItemCount(items.length);
       clearCart();
       setOrderId(newOrderId);
       setOrderPlaced(true);
     },
-    [clearCart],
+    [clearCart, total, items.length],
   );
 
   // ── Loading ───────────────────────────────────────────────────────────────
@@ -181,26 +201,67 @@ export default function CheckoutPage() {
   // ── Order success ─────────────────────────────────────────────────────────
   if (orderPlaced && orderId) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <Card className="w-full max-w-md text-center">
+      <div className="flex flex-col items-center px-4 pt-16 pb-16 min-h-[60vh]">
+        <Card className="w-full max-w-md text-center shadow-md">
           <CardContent className="pt-10 pb-8 space-y-5">
+            {/* Success icon */}
             <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
               <CheckCircle2 className="h-8 w-8 text-green-600" />
             </div>
+
+            {/* Heading */}
             <div>
               <h1 className="text-xl font-bold text-foreground mb-1">Order Placed!</h1>
               <p className="text-sm text-muted-foreground">
-                Thank you. Your order ID is:
+                Thank you for your purchase. Your order ID is:
               </p>
               <Badge variant="secondary" className="mt-2 text-sm px-3 py-1 font-mono">
                 {orderId}
               </Badge>
             </div>
-            <p className="text-xs text-muted-foreground">
-              You'll receive a confirmation shortly.
-            </p>
+
+            {/* Order summary snapshot */}
+            <div className="bg-muted/40 rounded-xl px-4 py-3 space-y-1.5 text-left">
+              <div className="flex items-center justify-between text-sm">
+                <span className="flex items-center gap-1.5 text-muted-foreground">
+                  <Package className="h-3.5 w-3.5" />
+                  Items
+                </span>
+                <span className="font-medium">{orderItemCount}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="flex items-center gap-1.5 text-muted-foreground">
+                  <Tag className="h-3.5 w-3.5" />
+                  Total paid
+                </span>
+                <span className="font-semibold">{formatPrice(orderTotal)}</span>
+              </div>
+            </div>
+
+            {/* What happens next */}
+            <div className="text-left space-y-1.5">
+              <p className="text-xs font-semibold text-foreground">What happens next?</p>
+              <ul className="text-xs text-muted-foreground space-y-1 list-none">
+                <li className="flex items-start gap-1.5">
+                  <span className="text-green-500 font-bold mt-0.5">✓</span>
+                  Order confirmed — we're preparing your items
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="text-muted-foreground font-bold mt-0.5">→</span>
+                  You'll get a shipping notification once dispatched
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="text-muted-foreground font-bold mt-0.5">→</span>
+                  Estimated delivery: 3–7 business days
+                </li>
+              </ul>
+            </div>
+
+            {/* CTA buttons */}
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-              <Button onClick={() => router.push("/my/orders")}>View Orders</Button>
+              <Button onClick={() => router.push("/my/orders")}>
+                View My Orders
+              </Button>
               <Button variant="outline" onClick={() => router.push("/")}>
                 Continue Shopping
               </Button>
@@ -212,7 +273,21 @@ export default function CheckoutPage() {
   }
 
   // ── Derived state ─────────────────────────────────────────────────────────
-  const payDisabled = !selectedAddressId || items.length === 0 || hasStockIssues;
+  // Block pay while addresses haven't loaded yet (prevents premature "no address" state)
+  const addressStillLoading = addressesLoading && !addressLoadedRef.current;
+  const payDisabled =
+    addressStillLoading ||
+    !selectedAddressId ||
+    items.length === 0 ||
+    hasStockIssues;
+
+  // Human-readable reason why pay is disabled (shown near the button on mobile)
+  const payBlockedReason = (() => {
+    if (hasStockIssues) return "Resolve stock issues in your cart to proceed";
+    if (addressStillLoading) return "Loading your addresses…";
+    if (!selectedAddressId) return "Please select a delivery address to continue";
+    return null;
+  })();
 
   const razorpayProps = {
     amount: total,
@@ -644,12 +719,12 @@ export default function CheckoutPage() {
                   Order Notes{" "}
                   <span className="text-muted-foreground font-normal">(optional)</span>
                 </label>
-                <textarea
+                <Textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Any special instructions for your order…"
                   rows={2}
-                  className="w-full text-sm rounded-lg border border-input bg-background px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="resize-none"
                 />
               </div>
 
@@ -659,9 +734,10 @@ export default function CheckoutPage() {
 
               <RazorpayPayment {...razorpayProps} />
 
-              {hasStockIssues && (
-                <p className="text-xs text-red-600 text-center -mt-2">
-                  Resolve stock issues in your cart to proceed
+              {payBlockedReason && (
+                <p className="text-xs text-red-600 text-center -mt-2 flex items-center justify-center gap-1">
+                  <AlertTriangle className="h-3 w-3 flex-shrink-0" />
+                  {payBlockedReason}
                 </p>
               )}
 
@@ -679,9 +755,10 @@ export default function CheckoutPage() {
       {!isMobileAddressView && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-t shadow-xl">
           <div className="px-4 pt-3 pb-5 space-y-2 max-w-lg mx-auto">
-            {hasStockIssues && (
-              <p className="text-xs text-red-600 text-center">
-                Resolve stock issues in your cart to proceed
+            {payBlockedReason && (
+              <p className="text-xs text-red-600 text-center flex items-center justify-center gap-1">
+                <AlertTriangle className="h-3 w-3 flex-shrink-0" />
+                {payBlockedReason}
               </p>
             )}
             <RazorpayPayment {...razorpayProps} />

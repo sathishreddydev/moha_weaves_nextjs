@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
       couponId,
     } = await req.json();
 
+    // ── 1. Verify Razorpay signature ──────────────────────────────────────────
     const generatedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
       .update(`${razorpayOrderId}|${razorpayPaymentId}`)
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if order already exists for this payment id (idempotency)
+    // ── 2. Idempotency: return existing order if payment already processed ────
     const existingOrder = await db
       .select()
       .from(orders)
@@ -50,6 +51,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // ── 3. Fetch cart ─────────────────────────────────────────────────────────
     const cartItems = await cartServices.getCartItems(user.id);
 
     if (cartItems.cart.length === 0) {
@@ -59,7 +61,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate stock availability using stock transaction service
+    // ── 4. Validate stock (read-only check before deduction) ─────────────────
     const stockValidation =
       await stockTransactionService.validateStockAvailability(cartItems.cart);
     if (!stockValidation.valid) {
@@ -72,16 +74,42 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get coupon details if provided
+    // ── 5. Re-validate coupon at payment time (prevents stale coupon abuse) ───
     let coupon = null;
     if (couponId) {
-      coupon = await couponsService.getCoupon(couponId);
+      // Calculate subtotal for min-order validation
+      const subtotalForValidation = cartItems.cart.reduce((sum: number, item: any) => {
+        const product = item.product as any;
+        const variant = item.variantId
+          ? product.variants?.find((v: any) => v.id === item.variantId)
+          : null;
+        const variantPrice = variant?.price ? parseFloat(variant.price) : null;
+        const price =
+          variantPrice ??
+          (product.discountedPrice ? product.discountedPrice : null) ??
+          (typeof product.price === "string" ? parseFloat(product.price) : product.price);
+        return sum + price * item.quantity;
+      }, 0);
+
+      const validation = await couponsService.validateCoupon(
+        couponId,
+        user.id,
+        subtotalForValidation,
+      );
+
+      if (!validation.isValid) {
+        return NextResponse.json(
+          { message: validation.message || "Coupon is no longer valid" },
+          { status: 400 },
+        );
+      }
+      coupon = validation.coupon ?? null;
     }
 
-    // Calculate pricing using shared utility
+    // ── 6. Calculate final pricing ────────────────────────────────────────────
     const pricing = calculatePricing(cartItems.cart, coupon);
 
-    // Atomically validate and deduct stock first
+    // ── 7. Atomically deduct stock ────────────────────────────────────────────
     const stockResult = await stockTransactionService.validateAndDeductStock(
       cartItems.cart,
       razorpayOrderId,
@@ -97,51 +125,62 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Create order (stock already deducted) with coupon usage tracking
-    const order = await couponsService.createOrderWithCoupon(
-      {
-        userId: user.id,
-        totalAmount: pricing.subtotal.toString(),
-        discountAmount: pricing.discountAmount.toString(),
-        finalAmount: pricing.totalAmount.toString(),
-        shippingAddress:
-          typeof shippingAddress === "object"
-            ? JSON.stringify(shippingAddress)
-            : shippingAddress,
-        phone,
-        notes,
+    // ── 8. Create order (wrapped in transaction — rolls back stock on failure) ─
+    let order;
+    try {
+      order = await couponsService.createOrderWithCoupon(
+        {
+          userId: user.id,
+          totalAmount: pricing.subtotal.toString(),
+          discountAmount: pricing.discountAmount.toString(),
+          finalAmount: pricing.totalAmount.toString(),
+          shippingAddress:
+            typeof shippingAddress === "object"
+              ? JSON.stringify(shippingAddress)
+              : shippingAddress,
+          phone,
+          notes,
+          couponId,
+          status: "created",
+          paymentStatus: "paid",
+          paymentMethod: "razorpay",
+          razorpayPaymentId,
+        },
+        cartItems.cart.map((item) => {
+          const variant = item.variantId
+            ? (item.product as any).variants?.find(
+                (v: any) => v.id === item.variantId,
+              )
+            : null;
+          const variantPrice = variant?.price ? parseFloat(variant.price) : null;
+          const effectivePrice = variantPrice ?? getEffectivePrice(item.product);
+
+          return {
+            productId: item.productId,
+            variantId: item.variantId || undefined,
+            quantity: item.quantity,
+            price: effectivePrice.toString(),
+            productPrice: item.product.price.toString(),
+            discountedPrice: effectivePrice.toString(),
+            offerDetails: (item.product as any).activeSale || null,
+          };
+        }),
         couponId,
-        status: "created",
-        paymentStatus: "paid",
-        paymentMethod: "razorpay",
-        razorpayPaymentId,
-      },
-      cartItems.cart.map((item) => {
-        // For variant products, use the variant's own price if set; fall back to product price
-        const variant = item.variantId
-          ? (item.product as any).variants?.find(
-              (v: any) => v.id === item.variantId,
-            )
-          : null;
-        const variantPrice = variant?.price ? parseFloat(variant.price) : null;
-        const effectivePrice = variantPrice ?? getEffectivePrice(item.product);
+        user.id,
+        pricing.discountAmount.toString(),
+      );
+    } catch (orderErr) {
+      // Order creation failed after stock was deducted — restore stock so
+      // inventory is not permanently lost. Best-effort; log if it also fails.
+      try {
+        await stockTransactionService.restoreStock(cartItems.cart, razorpayOrderId);
+      } catch (restoreErr) {
+        console.error("[verify-payment] Failed to restore stock after order creation error:", restoreErr);
+      }
+      throw orderErr;
+    }
 
-        return {
-          productId: item.productId,
-          variantId: item.variantId || undefined,
-          quantity: item.quantity,
-          price: effectivePrice.toString(),
-          productPrice: item.product.price.toString(),
-          discountedPrice: effectivePrice.toString(),
-          offerDetails: (item.product as any).activeSale || null,
-        };
-      }),
-      couponId,
-      user.id,
-      pricing.discountAmount.toString(),
-    );
-
-    // Clear cart only after successful order creation
+    // ── 9. Clear cart after successful order creation ─────────────────────────
     await cartServices.clearCart(user.id);
 
     return NextResponse.json({
@@ -149,6 +188,7 @@ export async function POST(req: NextRequest) {
       message: "Payment successful",
     });
   } catch (err) {
+    console.error("[verify-payment] Error:", err);
     return NextResponse.json(
       { message: "Payment verification failed" },
       { status: 500 },

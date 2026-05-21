@@ -366,7 +366,7 @@ export default function OrderDetailsPage() {
             onHelpClick={() => setHelpChatOpen(true)}
             onReturnClick={handleReturnClick}
             reviewedItemIds={reviewedItemIds}
-            onReviewSubmitted={(orderItemId) => {
+            onReviewSubmitted={(orderItemId, reviewInfo) => {
               setReviewedItemIds((prev) => {
                 const next = new Set(prev);
                 next.add(orderItemId);
@@ -413,7 +413,7 @@ function OrderDetailsContent({
   onHelpClick: () => void;
   onReturnClick: (itemId: string, type: "return" | "exchange") => void;
   reviewedItemIds: Set<string>;
-  onReviewSubmitted: (orderItemId: string) => void;
+  onReviewSubmitted: (orderItemId: string, reviewInfo: NonNullable<import("@/components/user/OrderItem").OrderItemType["reviewInfo"]>) => void;
 }) {
   const router = useRouter();
 
