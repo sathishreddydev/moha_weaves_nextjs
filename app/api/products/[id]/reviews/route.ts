@@ -1,4 +1,5 @@
 import { authOptions } from "@/auth/server";
+import { revalidateTag } from "next/cache";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { reviewService } from "./reviewsService";
@@ -95,6 +96,9 @@ export async function POST(
       images: Array.isArray(images) && images.length > 0 ? images : undefined,
       isVerifiedPurchase: true,
     });
+
+    // Bust the product page review cache so the new review appears immediately
+    revalidateTag(`product-reviews-${productId}`);
 
     return NextResponse.json(review, { status: 201 });
   } catch (error) {

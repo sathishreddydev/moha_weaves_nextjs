@@ -13,7 +13,10 @@ import { productService } from "../../productService";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type ReviewWithUser = Omit<typeof productReviews.$inferSelect, "userId"> & {
+export type ReviewWithUser = Omit<
+  typeof productReviews.$inferSelect,
+  "userId"
+> & {
   user: { id: string; name: string };
 };
 
@@ -38,7 +41,7 @@ export class ReviewRepository {
    */
   async getProductReviews(
     productId: string,
-    opts: { page: number; limit: number } = { page: 1, limit: 10 }
+    opts: { page: number; limit: number } = { page: 1, limit: 10 },
   ): Promise<PaginatedReviews> {
     const offset = (opts.page - 1) * opts.limit;
 
@@ -71,25 +74,38 @@ export class ReviewRepository {
    * Used to populate the summary bar regardless of current page.
    */
   async getReviewStats(productId: string): Promise<ReviewStats> {
-    const rows = await db
-      .select({ rating: productReviews.rating })
+    const [summary] = await db
+      .select({
+        averageRating: sql<number>`COALESCE(AVG(${productReviews.rating}), 0)`,
+        totalReviews: sql<number>`COUNT(*)`,
+      })
       .from(productReviews)
       .where(eq(productReviews.productId, productId));
 
-    const totalReviews = rows.length;
-    const ratingDistribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    const distributionRows = await db
+      .select({
+        rating: productReviews.rating,
+        count: sql<number>`COUNT(*)`,
+      })
+      .from(productReviews)
+      .where(eq(productReviews.productId, productId))
+      .groupBy(productReviews.rating);
 
-    let ratingSum = 0;
-    for (const row of rows) {
-      ratingSum += row.rating;
-      if (ratingDistribution[row.rating] !== undefined) {
-        ratingDistribution[row.rating]++;
-      }
+    const ratingDistribution: Record<number, number> = {
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0,
+    };
+
+    for (const row of distributionRows) {
+      ratingDistribution[row.rating] = row.count;
     }
 
     return {
-      averageRating: totalReviews > 0 ? ratingSum / totalReviews : 0,
-      totalReviews,
+      averageRating: Number(summary.averageRating),
+      totalReviews: Number(summary.totalReviews),
       ratingDistribution,
     };
   }
@@ -105,9 +121,7 @@ export class ReviewRepository {
   /**
    * Insert a new review and return the created record with user info.
    */
-  async createReview(
-    review: InsertProductReview
-  ): Promise<ReviewWithUser> {
+  async createReview(review: InsertProductReview): Promise<ReviewWithUser> {
     const [inserted] = await db
       .insert(productReviews)
       .values(review)
@@ -134,11 +148,16 @@ export class ReviewRepository {
       .orderBy(desc(productReviews.createdAt));
   }
 
-  async getProductWithReviews(productId: string): Promise<ProductWithReviews | undefined> {
+  async getProductWithReviews(
+    productId: string,
+  ): Promise<ProductWithReviews | undefined> {
     const product = await productService.getProductByRole(productId, "user");
     if (!product) return undefined;
 
-    const { reviews, total } = await this.getProductReviews(productId, { page: 1, limit: 10 });
+    const { reviews, total } = await this.getProductReviews(productId, {
+      page: 1,
+      limit: 10,
+    });
     const stats = await this.getReviewStats(productId);
 
     return {
@@ -160,7 +179,7 @@ export class ReviewRepository {
   async canUserReviewProduct(
     userId: string,
     productId: string,
-    orderItemId?: string
+    orderItemId?: string,
   ): Promise<boolean> {
     if (orderItemId) {
       // Precise check: this specific order item must be delivered and unreviewed
@@ -173,8 +192,8 @@ export class ReviewRepository {
             eq(orders.userId, userId),
             eq(orderItems.id, orderItemId),
             eq(orderItems.productId, productId),
-            eq(orderItems.status, "delivered")
-          )
+            eq(orderItems.status, "delivered"),
+          ),
         )
         .limit(1);
 
@@ -186,8 +205,8 @@ export class ReviewRepository {
         .where(
           and(
             eq(productReviews.userId, userId),
-            eq(productReviews.orderItemId, orderItemId)
-          )
+            eq(productReviews.orderItemId, orderItemId),
+          ),
         )
         .limit(1);
 
@@ -203,8 +222,8 @@ export class ReviewRepository {
         and(
           eq(orders.userId, userId),
           eq(orderItems.status, "delivered"),
-          eq(orderItems.productId, productId)
-        )
+          eq(orderItems.productId, productId),
+        ),
       )
       .limit(1);
 
@@ -216,8 +235,8 @@ export class ReviewRepository {
       .where(
         and(
           eq(productReviews.userId, userId),
-          eq(productReviews.productId, productId)
-        )
+          eq(productReviews.productId, productId),
+        ),
       )
       .limit(1);
 
@@ -225,10 +244,29 @@ export class ReviewRepository {
   }
 
   /**
-   * Check whether a user has already reviewed a product.
-   * Used by the frontend to hide the Review button after submission.
+   * Check whether a user has already reviewed a specific order item.
+   * Scoped by orderItemId so the same product in two orders is handled correctly.
+   * Falls back to productId check when no orderItemId is provided.
    */
-  async hasUserReviewed(userId: string, productId: string): Promise<boolean> {
+  async hasUserReviewed(
+    userId: string,
+    productId: string,
+    orderItemId?: string
+  ): Promise<boolean> {
+    if (orderItemId) {
+      const existing = await db
+        .select({ id: productReviews.id })
+        .from(productReviews)
+        .where(
+          and(
+            eq(productReviews.userId, userId),
+            eq(productReviews.orderItemId, orderItemId)
+          )
+        )
+        .limit(1);
+      return existing.length > 0;
+    }
+
     const existing = await db
       .select({ id: productReviews.id })
       .from(productReviews)

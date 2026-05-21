@@ -57,7 +57,7 @@ export default function OrderDetailsPage() {
   const [orderView, setOrderView] = useState<OrderView>("detail");
   const [preSelectedReturnItemId, setPreSelectedReturnItemId] = useState<string | null>(null);
   const [exchangeItemId, setExchangeItemId] = useState<string | null>(null);
-  const [reviewedProductIds, setReviewedProductIds] = useState<Set<string>>(new Set());
+  const [reviewedItemIds, setReviewedItemIds] = useState<Set<string>>(new Set());
   const [helpChatOpen, setHelpChatOpen] = useState(false);
 
   const fetchOrderDetails = useCallback(async () => {
@@ -365,11 +365,11 @@ export default function OrderDetailsPage() {
             onDownloadInvoice={downloadInvoice}
             onHelpClick={() => setHelpChatOpen(true)}
             onReturnClick={handleReturnClick}
-            reviewedProductIds={reviewedProductIds}
-            onReviewSubmitted={(productId) => {
-              setReviewedProductIds((prev) => {
+            reviewedItemIds={reviewedItemIds}
+            onReviewSubmitted={(orderItemId) => {
+              setReviewedItemIds((prev) => {
                 const next = new Set(prev);
-                next.add(productId);
+                next.add(orderItemId);
                 return next;
               });
             }}
@@ -405,15 +405,15 @@ function OrderDetailsContent({
   onDownloadInvoice,
   onHelpClick,
   onReturnClick,
-  reviewedProductIds,
+  reviewedItemIds,
   onReviewSubmitted,
 }: {
   order: OrderWithItems;
   onDownloadInvoice: () => void;
   onHelpClick: () => void;
   onReturnClick: (itemId: string, type: "return" | "exchange") => void;
-  reviewedProductIds: Set<string>;
-  onReviewSubmitted: (productId: string) => void;
+  reviewedItemIds: Set<string>;
+  onReviewSubmitted: (orderItemId: string) => void;
 }) {
   const router = useRouter();
 
@@ -522,11 +522,11 @@ function OrderDetailsContent({
               item={{
                 ...item,
                 // Preserve server-side hasReviewed (true when review already exists in DB).
-                // Also check local reviewedProductIds for reviews submitted this session
-                // without a page reload.
+                // Also check local reviewedItemIds for reviews submitted this session
+                // without a page reload — keyed by orderItemId.
                 hasReviewed:
                   (item as any).hasReviewed ||
-                  reviewedProductIds.has(item.product?.id ?? ""),
+                  reviewedItemIds.has(item.id),
               }}
               orderId={order.id}
               onReviewSubmitted={onReviewSubmitted}

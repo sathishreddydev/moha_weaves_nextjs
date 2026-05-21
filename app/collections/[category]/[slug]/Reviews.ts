@@ -1,3 +1,5 @@
+import { reviewService } from "@/app/api/products/[id]/reviews/reviewsService";
+
 const REVIEWS_PER_PAGE = 10;
 
 const EMPTY_REVIEWS = {
@@ -17,17 +19,21 @@ const EMPTY_REVIEWS = {
 
 export async function getProductReviews(productId: string, page = 1) {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const url = `${baseUrl}/api/products/${productId}/reviews?page=${page}&limit=${REVIEWS_PER_PAGE}`;
+    const [{ reviews, total }, stats] = await Promise.all([
+      reviewService.getProductReviews(productId, { page, limit: REVIEWS_PER_PAGE }),
+      reviewService.getReviewStats(productId),
+    ]);
 
-    const res = await fetch(url, {
-      // Cache for 5 minutes on the server; router.refresh() busts this after a new review
-      next: { revalidate: 300, tags: [`product-reviews-${productId}`] },
-    });
-
-    if (!res.ok) return EMPTY_REVIEWS;
-
-    return res.json();
+    return {
+      reviews,
+      stats,
+      pagination: {
+        page,
+        limit: REVIEWS_PER_PAGE,
+        total,
+        totalPages: Math.ceil(total / REVIEWS_PER_PAGE),
+      },
+    };
   } catch {
     return EMPTY_REVIEWS;
   }

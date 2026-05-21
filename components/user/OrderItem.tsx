@@ -16,6 +16,8 @@ import {
   AlertCircle,
   CheckCircle,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   ImagePlus,
   Package,
@@ -166,8 +168,8 @@ function InlineReviewPanel({
     setError("");
 
     try {
-      const uploaded: string[] = [];
-      for (const file of toUpload) {
+      // Upload all selected files in parallel
+      const uploadPromises = toUpload.map(async (file) => {
         const fd = new FormData();
         fd.append("file", file);
         const res = await fetch("/api/uploads/review-image", {
@@ -179,8 +181,10 @@ function InlineReviewPanel({
           throw new Error(data.message || "Image upload failed");
         }
         const { url } = await res.json();
-        uploaded.push(url);
-      }
+        return url as string;
+      });
+
+      const uploaded = await Promise.all(uploadPromises);
       setImages((prev) => [...prev, ...uploaded]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Image upload failed");
@@ -223,17 +227,19 @@ function InlineReviewPanel({
       }
       const created = await res.json();
       setSuccess(true);
-      router.refresh();
-      setTimeout(() => onSubmitted({
-        id: created.id,
-        rating,
-        title: title.trim() || null,
-        comment: comment.trim(),
-        images,
-        isVerifiedPurchase: true,
-        helpfulCount: 0,
-        createdAt: created.createdAt ?? new Date().toISOString(),
-      }), 1600);
+      setTimeout(() => {
+        router.refresh(); // refresh after panel closes so it doesn't interrupt the success state
+        onSubmitted({
+          id: created.id,
+          rating,
+          title: title.trim() || null,
+          comment: comment.trim(),
+          images,
+          isVerifiedPurchase: true,
+          helpfulCount: 0,
+          createdAt: created.createdAt ?? new Date().toISOString(),
+        });
+      }, 1600);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to submit review");
     } finally {
@@ -438,7 +444,7 @@ export function OrderItem({
   /** The parent order's ID — needed to link the review to the order */
   orderId: string;
   /** Called after a successful review so the parent can mark the item as reviewed */
-  onReviewSubmitted?: (productId: string, reviewInfo: NonNullable<OrderItemType["reviewInfo"]>) => void;
+  onReviewSubmitted?: (orderItemId: string, reviewInfo: NonNullable<OrderItemType["reviewInfo"]>) => void;
   onReturn: (itemId: string, type: "return" | "exchange") => void;
 }) {
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -604,7 +610,7 @@ export function OrderItem({
           onSubmitted={(submittedReview) => {
             setReviewOpen(false);
             setLocalReview(submittedReview);
-            onReviewSubmitted?.(item.product.id, submittedReview);
+            onReviewSubmitted?.(item.id, submittedReview); // pass orderItemId, not productId
           }}
           onCancel={() => setReviewOpen(false)}
         />
@@ -771,7 +777,7 @@ function SubmittedReviewPanel({
                 }}
                 className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white p-2 rounded-full"
               >
-                <ChevronDown className="w-4 h-4 rotate-90" />
+                <ChevronLeft className="w-4 h-4" />
               </button>
               <button
                 type="button"
@@ -781,7 +787,7 @@ function SubmittedReviewPanel({
                 }}
                 className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white p-2 rounded-full"
               >
-                <ChevronDown className="w-4 h-4 -rotate-90" />
+                <ChevronRight className="w-4 h-4" />
               </button>
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/20 text-white text-xs px-3 py-1 rounded-full">
                 {lightboxIndex + 1} / {images.length}

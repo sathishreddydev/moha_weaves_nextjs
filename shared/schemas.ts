@@ -231,6 +231,7 @@ export const insertProductReviewSchema = z.object({
   productId: z.string().min(1, "Product ID is required"),
   userId: z.string().min(1, "User ID is required"),
   orderId: z.string().optional(),
+  orderItemId: z.string().optional(),
   rating: z.number().int().min(1).max(5),
   title: z.string().optional(),
   comment: z.string().optional(),

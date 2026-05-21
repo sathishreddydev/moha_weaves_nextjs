@@ -554,7 +554,6 @@ export const productReviews = pgTable("product_reviews", {
   comment: text("comment"),
   images: text("images").array(),
   isVerifiedPurchase: boolean("is_verified_purchase").default(false),
-  isApproved: boolean("is_approved").default(true),
   helpfulCount: integer("helpful_count").default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

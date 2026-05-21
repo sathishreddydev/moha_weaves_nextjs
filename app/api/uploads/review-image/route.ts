@@ -5,10 +5,31 @@ import { NextRequest, NextResponse } from "next/server";
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
+// ─── Simple in-memory rate limiter ───────────────────────────────────────────
+// Allows MAX_UPLOADS uploads per user per WINDOW_MS window.
+const MAX_UPLOADS = 10;
+const WINDOW_MS = 60 * 1000; // 1 minute
+const uploadCounts = new Map<string, { count: number; resetAt: number }>();
+
+function isRateLimited(userId: string): boolean {
+  const now = Date.now();
+  const entry = uploadCounts.get(userId);
+
+  if (!entry || now > entry.resetAt) {
+    uploadCounts.set(userId, { count: 1, resetAt: now + WINDOW_MS });
+    return false;
+  }
+
+  if (entry.count >= MAX_UPLOADS) return true;
+
+  entry.count++;
+  return false;
+}
+
 /**
  * POST /api/uploads/review-image
  * Accepts multipart/form-data with a single "file" field.
- * Uploads to Cloudinary under the "review-images" folder.
+ * Uploads to Cloudinary under the "review-images" folder with auto resize + compress.
  * Returns { url: string }
  */
 export async function POST(request: NextRequest) {
@@ -16,6 +37,14 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    // Rate limit: max 10 uploads per user per minute
+    if (isRateLimited(session.user.id)) {
+      return NextResponse.json(
+        { message: "Too many uploads. Please wait a moment and try again." },
+        { status: 429 }
+      );
     }
 
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
@@ -50,16 +79,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Build signed upload request for Cloudinary REST API
+    // Build signed upload request for Cloudinary REST API.
+    // Transformation: resize to max 1200px wide, auto quality + format.
     const timestamp = Math.floor(Date.now() / 1000).toString();
     const folder = "review-images";
-    const paramsToSign = `folder=${folder}&timestamp=${timestamp}`;
+    const transformation = "c_limit,w_1200,q_auto,f_auto";
 
-    // Cloudinary signature = SHA1(params_string + api_secret)
-    // NOT HMAC — just a plain SHA1 digest of the concatenated string
+    // Params must be sorted alphabetically for the signature
+    const paramsToSign = `folder=${folder}&timestamp=${timestamp}&transformation=${transformation}`;
+
     const encoder = new TextEncoder();
     const msgData = encoder.encode(paramsToSign + apiSecret);
-
     const hashBuffer = await crypto.subtle.digest("SHA-1", msgData);
     const signature = Array.from(new Uint8Array(hashBuffer))
       .map((b) => b.toString(16).padStart(2, "0"))
@@ -72,6 +102,7 @@ export async function POST(request: NextRequest) {
     uploadForm.append("timestamp", timestamp);
     uploadForm.append("signature", signature);
     uploadForm.append("folder", folder);
+    uploadForm.append("transformation", transformation);
 
     const cloudRes = await fetch(
       `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
