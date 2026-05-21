@@ -679,11 +679,13 @@ export default function ProductDetailClient({
 
               {/* Specifications */}
               <Specifications product={product} />
-
-              {/* Product Reviews */}
-              <ProductReviews reviewsData={reviewsData} />
             </div>
           </div>
+        </div>
+
+        {/* ── Customer Reviews — full width below product grid ── */}
+        <div className="mt-10">
+          <ProductReviews reviewsData={reviewsData} productId={product.id} />
         </div>
 
         {/* Related Products */}

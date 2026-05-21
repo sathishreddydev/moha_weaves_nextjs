@@ -3,8 +3,8 @@ import { orderService } from "../orderService";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth/server";
 import { db } from "@/lib/db";
-import { onlineExchangeItems, onlineExchanges, refunds, returnItems, returnRequests } from "@/shared";
-import { eq, inArray } from "drizzle-orm";
+import { onlineExchangeItems, onlineExchanges, productReviews, refunds, returnItems, returnRequests } from "@/shared";
+import { and, eq, inArray } from "drizzle-orm";
 
 export async function GET(
   req: NextRequest,
@@ -92,10 +92,45 @@ export async function GET(
       itemExchangeMap[ei.orderItemId] = { exchange: exc, exchangeItem: ei };
     }
 
-    // Attach returnInfo and exchangeInfo to each item
+    // ── Enrich each item with its review (if submitted by this user) ─────────
+    const orderItemIds = order.items.map((item: any) => item.id);
+
+    // Fetch all reviews for these order items that belong to this user.
+    // Scoped by orderItemId so the same product in two orders shows the right review per item.
+    const userReviewsFiltered = orderItemIds.length
+      ? await db
+          .select({
+            id: productReviews.id,
+            productId: productReviews.productId,
+            orderItemId: productReviews.orderItemId,
+            rating: productReviews.rating,
+            title: productReviews.title,
+            comment: productReviews.comment,
+            images: productReviews.images,
+            isVerifiedPurchase: productReviews.isVerifiedPurchase,
+            helpfulCount: productReviews.helpfulCount,
+            createdAt: productReviews.createdAt,
+          })
+          .from(productReviews)
+          .where(
+            and(
+              eq(productReviews.userId, user.id),
+              inArray(productReviews.orderItemId, orderItemIds)
+            )
+          )
+      : [];
+
+    // Build map: orderItemId → review
+    const reviewMap: Record<string, (typeof userReviewsFiltered)[0]> = {};
+    for (const review of userReviewsFiltered) {
+      if (review.orderItemId) reviewMap[review.orderItemId] = review;
+    }
+
+    // Attach returnInfo, exchangeInfo, and reviewInfo to each item
     const enrichedItems = order.items.map((item: any) => {
       const returnInfo = itemReturnMap[item.id];
       const exchangeEntry = itemExchangeMap[item.id];
+      const review = reviewMap[item.id]; // keyed by orderItemId
 
       return {
         ...item,
@@ -131,11 +166,26 @@ export async function GET(
                 reason: exchangeEntry.exchange.reason,
                 reasonDetails: exchangeEntry.exchange.reasonDetails,
                 exchangeOrderId: exchangeEntry.exchange.exchangeOrderId,
-                // Variant the customer requested as replacement
                 exchangeVariantId: exchangeEntry.exchangeItem.exchangeVariantId ?? null,
                 createdAt: exchangeEntry.exchange.createdAt,
                 updatedAt: exchangeEntry.exchange.updatedAt,
               },
+            }
+          : {}),
+        // Attach this user's review for this product (if any)
+        ...(review
+          ? {
+              reviewInfo: {
+                id: review.id,
+                rating: review.rating,
+                title: review.title,
+                comment: review.comment,
+                images: review.images ?? [],
+                isVerifiedPurchase: review.isVerifiedPurchase,
+                helpfulCount: review.helpfulCount,
+                createdAt: review.createdAt,
+              },
+              hasReviewed: true,
             }
           : {}),
       };

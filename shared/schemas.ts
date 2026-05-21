@@ -232,8 +232,10 @@ export const insertProductReviewSchema = z.object({
   userId: z.string().min(1, "User ID is required"),
   orderId: z.string().optional(),
   rating: z.number().int().min(1).max(5),
+  title: z.string().optional(),
   comment: z.string().optional(),
-  isVerified: z.boolean().default(false),
+  images: z.array(z.string()).optional(),
+  isVerifiedPurchase: z.boolean().default(false),
 });
 
 export const insertCouponSchema = z.object({

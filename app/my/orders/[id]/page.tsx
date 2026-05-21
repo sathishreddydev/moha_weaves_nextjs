@@ -4,7 +4,7 @@ import { CouponBadge } from "@/components/orders/CouponBadge";
 import ExchangeForm from "@/components/returns/ExchangeForm";
 import MultiReturnView from "@/components/returns/MultiReturnView";
 import ReturnForm from "@/components/returns/ReturnForm";
-import ReviewModal from "@/components/reviews/ReviewModal";
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import LiveChat from "@/components/user/LiveChat";
@@ -57,11 +57,7 @@ export default function OrderDetailsPage() {
   const [orderView, setOrderView] = useState<OrderView>("detail");
   const [preSelectedReturnItemId, setPreSelectedReturnItemId] = useState<string | null>(null);
   const [exchangeItemId, setExchangeItemId] = useState<string | null>(null);
-  const [reviewModalOpen, setReviewModalOpen] = useState(false);
-  const [selectedReviewItem, setSelectedReviewItem] = useState<{
-    orderItemId: string;
-    productId: string;
-  } | null>(null);
+  const [reviewedProductIds, setReviewedProductIds] = useState<Set<string>>(new Set());
   const [helpChatOpen, setHelpChatOpen] = useState(false);
 
   const fetchOrderDetails = useCallback(async () => {
@@ -220,14 +216,6 @@ export default function OrderDetailsPage() {
     [],
   );
 
-  const handleReviewClick = useCallback(
-    (orderItemId: string, productId: string) => {
-      setSelectedReviewItem({ orderItemId, productId });
-      setReviewModalOpen(true);
-    },
-    [],
-  );
-
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -377,21 +365,17 @@ export default function OrderDetailsPage() {
             onDownloadInvoice={downloadInvoice}
             onHelpClick={() => setHelpChatOpen(true)}
             onReturnClick={handleReturnClick}
-            onReviewClick={handleReviewClick}
+            reviewedProductIds={reviewedProductIds}
+            onReviewSubmitted={(productId) => {
+              setReviewedProductIds((prev) => {
+                const next = new Set(prev);
+                next.add(productId);
+                return next;
+              });
+            }}
           />
         </div>
       </div>
-
-      {/* Review Modal */}
-      {selectedReviewItem && (
-        <ReviewModal
-          open={reviewModalOpen}
-          onOpenChange={setReviewModalOpen}
-          order={order}
-          orderItemId={selectedReviewItem.orderItemId}
-          productId={selectedReviewItem.productId}
-        />
-      )}
 
       {/* Contextual Help Chat */}
       {orderId && (
@@ -421,13 +405,15 @@ function OrderDetailsContent({
   onDownloadInvoice,
   onHelpClick,
   onReturnClick,
-  onReviewClick,
+  reviewedProductIds,
+  onReviewSubmitted,
 }: {
   order: OrderWithItems;
   onDownloadInvoice: () => void;
   onHelpClick: () => void;
   onReturnClick: (itemId: string, type: "return" | "exchange") => void;
-  onReviewClick: (orderItemId: string, productId: string) => void;
+  reviewedProductIds: Set<string>;
+  onReviewSubmitted: (productId: string) => void;
 }) {
   const router = useRouter();
 
@@ -533,8 +519,17 @@ function OrderDetailsContent({
         {order.items.map((item) => (
           <div key={item.id}>
             <OrderItem
-              item={item}
-              onReview={onReviewClick}
+              item={{
+                ...item,
+                // Preserve server-side hasReviewed (true when review already exists in DB).
+                // Also check local reviewedProductIds for reviews submitted this session
+                // without a page reload.
+                hasReviewed:
+                  (item as any).hasReviewed ||
+                  reviewedProductIds.has(item.product?.id ?? ""),
+              }}
+              orderId={order.id}
+              onReviewSubmitted={onReviewSubmitted}
               onReturn={onReturnClick}
             />
           </div>
