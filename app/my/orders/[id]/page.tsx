@@ -54,6 +54,7 @@ export default function OrderDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [orderView, setOrderView] = useState<OrderView>("detail");
   const [preSelectedReturnItemId, setPreSelectedReturnItemId] = useState<string | null>(null);
   const [exchangeItemId, setExchangeItemId] = useState<string | null>(null);
@@ -180,6 +181,9 @@ export default function OrderDetailsPage() {
   useRefundStatusListener(orderId, handleRefundStatusChange);
 
   const downloadInvoice = async () => {
+    if (invoiceLoading) return;
+    setInvoiceLoading(true);
+    setInvoiceError(null);
     try {
       const response = await fetch(`/api/orders/${orderId}/invoice`);
 
@@ -196,8 +200,11 @@ export default function OrderDetailsPage() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      toast.success("Invoice downloaded");
     } catch (err) {
       setInvoiceError("Failed to download invoice. Please try again.");
+    } finally {
+      setInvoiceLoading(false);
     }
   };
 
@@ -363,6 +370,7 @@ export default function OrderDetailsPage() {
           <OrderDetailsContent
             order={order}
             onDownloadInvoice={downloadInvoice}
+            invoiceLoading={invoiceLoading}
             onHelpClick={() => setHelpChatOpen(true)}
             onReturnClick={handleReturnClick}
             reviewedItemIds={reviewedItemIds}
@@ -403,6 +411,7 @@ export default function OrderDetailsPage() {
 function OrderDetailsContent({
   order,
   onDownloadInvoice,
+  invoiceLoading,
   onHelpClick,
   onReturnClick,
   reviewedItemIds,
@@ -410,6 +419,7 @@ function OrderDetailsContent({
 }: {
   order: OrderWithItems;
   onDownloadInvoice: () => void;
+  invoiceLoading: boolean;
   onHelpClick: () => void;
   onReturnClick: (itemId: string, type: "return" | "exchange") => void;
   reviewedItemIds: Set<string>;
@@ -497,12 +507,17 @@ function OrderDetailsContent({
             <div>
               <Button
                 onClick={onDownloadInvoice}
+                disabled={invoiceLoading}
                 variant="outline"
                 size="sm"
                 className="rounded-3xl w-full sm:w-auto flex items-center justify-center gap-2"
               >
-                <Download className="w-4 h-4" />
-                Invoice
+                {invoiceLoading ? (
+                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                {invoiceLoading ? "Generating…" : "Invoice"}
               </Button>
             </div>
           </div>

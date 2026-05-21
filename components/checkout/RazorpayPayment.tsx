@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { UserAddress } from "@/shared/types";
-import { AlertCircle, AlertTriangle, CheckCircle2, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
+import { AlertCircle, AlertTriangle, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect, useRef } from "react";
 import { formatPrice } from "@/lib/formatters";
@@ -22,9 +22,6 @@ interface RazorpayPaymentProps {
   onSuccess: (orderId: string) => void;
   onError: (error: string) => void;
   disabled?: boolean;
-  subtotal?: number;
-  shipping?: number;
-  discountAmount?: number;
 }
 
 export default function RazorpayPayment({
@@ -38,24 +35,25 @@ export default function RazorpayPayment({
   disabled = false,
 }: RazorpayPaymentProps) {
   const [isLoading, setIsLoading] = useState(false);
-  // ── Server-confirmed amount (fetched from /api/razorpay before modal opens) ──
-  // null  = not yet fetched
-  // number = confirmed by server
+
+  // ── Server-confirmed amount ───────────────────────────────────────────────
+  // Pre-fetched via previewOnly so the user sees the server-computed total
+  // before clicking Pay. null = not yet fetched.
   const [confirmedAmount, setConfirmedAmount] = useState<number | null>(null);
   const [isFetchingAmount, setIsFetchingAmount] = useState(false);
-  // ── Persistent payment failure state ──────────────────────────────────────
+
+  // ── Persistent payment failure state ─────────────────────────────────────
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [failureCount, setFailureCount] = useState(0);
 
-  // Safety ref: if the modal never resolves (dismiss/success/fail), reset after timeout
+  // ── Refs ──────────────────────────────────────────────────────────────────
   const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Track whether the Razorpay modal is currently open
   const modalOpenRef = useRef(false);
-  // Track the active Razorpay instance so we can close it on unmount
   const razorpayInstanceRef = useRef<any>(null);
-  // Cache the razorpay order so we don't re-create it on retry
+  // Cache the Razorpay order so we don't re-create it unnecessarily
   const razorpayOrderRef = useRef<{ id: string; amount: number; currency: string } | null>(null);
 
+  // ── Helpers ───────────────────────────────────────────────────────────────
   const clearLoadingTimeout = () => {
     if (loadingTimeoutRef.current) {
       clearTimeout(loadingTimeoutRef.current);
@@ -69,9 +67,9 @@ export default function RazorpayPayment({
     setIsLoading(false);
   };
 
-  // ── Pre-fetch server amount when component is ready ───────────────────────
-  // This runs as soon as the pay button is enabled so the confirmed amount
-  // is ready to display before the user even clicks.
+  // ── Pre-fetch server amount ───────────────────────────────────────────────
+  // Runs when the pay button becomes enabled (address selected, no stock issues).
+  // Uses previewOnly=true so no Razorpay order is created yet.
   useEffect(() => {
     if (disabled || !selectedAddress) {
       setConfirmedAmount(null);
@@ -91,17 +89,13 @@ export default function RazorpayPayment({
         if (!res.ok || cancelled) return;
         const data = await res.json();
         if (!cancelled) {
-          const serverAmount = data.amount / 100; // Razorpay returns paise
-          setConfirmedAmount(serverAmount);
-          // Cache the order for use when user clicks pay
-          razorpayOrderRef.current = {
-            id: data.razorpayOrderId,
-            amount: data.amount,
-            currency: data.currency,
-          };
+          // Razorpay returns amount in paise; convert to rupees
+          setConfirmedAmount(data.amount / 100);
+          // previewOnly doesn't return a razorpayOrderId — clear any stale cache
+          razorpayOrderRef.current = null;
         }
       } catch {
-        // Non-critical — fall back to client amount
+        // Non-critical — fall back to client-computed amount silently
       } finally {
         if (!cancelled) setIsFetchingAmount(false);
       }
@@ -109,8 +103,7 @@ export default function RazorpayPayment({
 
     fetchAmount();
     return () => { cancelled = true; };
-  // Re-fetch when coupon or address changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [disabled, selectedAddress?.id, couponId]);
 
   // ── Cleanup on unmount ────────────────────────────────────────────────────
@@ -125,19 +118,17 @@ export default function RazorpayPayment({
   }, []);
 
   // ── Visibility / focus recovery ───────────────────────────────────────────
+  // If the user switches tabs while the modal is open and comes back,
+  // reset the loading state so the button isn't stuck on "Processing…".
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible" && modalOpenRef.current) {
-        setTimeout(() => {
-          if (modalOpenRef.current) resetLoading();
-        }, 800);
+        setTimeout(() => { if (modalOpenRef.current) resetLoading(); }, 800);
       }
     };
     const handleFocus = () => {
       if (modalOpenRef.current) {
-        setTimeout(() => {
-          if (modalOpenRef.current) resetLoading();
-        }, 800);
+        setTimeout(() => { if (modalOpenRef.current) resetLoading(); }, 800);
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -146,11 +137,11 @@ export default function RazorpayPayment({
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("focus", handleFocus);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Fallback loader if Razorpay script isn't loaded
-  const loadRazorpayFallback = () => {
+  // ── Razorpay script fallback ──────────────────────────────────────────────
+  const loadRazorpayScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
       if (window.Razorpay) { resolve(true); return; }
       const script = document.createElement("script");
@@ -161,56 +152,55 @@ export default function RazorpayPayment({
     });
   };
 
+  // ── Pay handler ───────────────────────────────────────────────────────────
   const handlePayment = async () => {
     if (!window.Razorpay) {
-      const loaded = await loadRazorpayFallback();
+      const loaded = await loadRazorpayScript();
       if (!loaded || !window.Razorpay) {
         onError("Razorpay not loaded. Please refresh the page.");
         return;
       }
     }
 
-    // Clear any previous failure state when user retries
+    // Clear previous failure state on retry
     setPaymentError(null);
     setIsLoading(true);
 
+    // Safety timeout — resets button if modal never resolves (10 min = Razorpay order expiry)
     clearLoadingTimeout();
-    loadingTimeoutRef.current = setTimeout(() => {
-      setIsLoading(false);
-    }, 10 * 60 * 1000);
+    loadingTimeoutRef.current = setTimeout(() => setIsLoading(false), 10 * 60 * 1000);
 
     try {
-      // Use cached order if available, otherwise create a new one
-      let orderData = razorpayOrderRef.current;
-      if (!orderData) {
-        const response = await fetch("/api/razorpay", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ couponId: couponId || undefined }),
-        });
-        if (!response.ok) {
-          resetLoading();
-          const data = await response.json().catch(() => ({}));
-          const msg = data.message || "Failed to initiate payment. Please try again.";
-          setPaymentError(msg);
-          onError(msg);
-          return;
-        }
-        const json = await response.json();
-        orderData = { id: json.razorpayOrderId, amount: json.amount, currency: json.currency };
-        razorpayOrderRef.current = orderData;
-        setConfirmedAmount(json.amount / 100);
+      // Always create a fresh Razorpay order when the user clicks Pay
+      // (previewOnly cached the amount but not an order ID)
+      const response = await fetch("/api/razorpay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ couponId: couponId || undefined }),
+      });
+
+      if (!response.ok) {
+        resetLoading();
+        const data = await response.json().catch(() => ({}));
+        const msg = data.message || "Failed to initiate payment. Please try again.";
+        setPaymentError(msg);
+        onError(msg);
+        return;
       }
+
+      const { razorpayOrderId, amount: razorpayAmount, currency } = await response.json();
+      // Update confirmed amount with the real order amount
+      setConfirmedAmount(razorpayAmount / 100);
 
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
-        amount: orderData.amount,
-        currency: orderData.currency,
+        amount: razorpayAmount,
+        currency,
         name: "Moha Weaves",
         description: "Purchase from Moha Weaves",
-        order_id: orderData.id,
-        handler: async (response: any) => {
-          await handlePaymentSuccess(response);
+        order_id: razorpayOrderId,
+        handler: async (paymentResponse: any) => {
+          await handlePaymentSuccess(paymentResponse);
         },
         prefill: {
           name: user?.name || "",
@@ -232,14 +222,11 @@ export default function RazorpayPayment({
       modalOpenRef.current = true;
       razorpay.open();
 
-      razorpay.on("payment.failed", (response: any) => {
+      razorpay.on("payment.failed", (failResponse: any) => {
         resetLoading();
-        // Invalidate cached order — Razorpay requires a new order on retry
-        razorpayOrderRef.current = null;
-        setConfirmedAmount(null);
         const errorMsg =
-          response.error?.description ||
-          response.error?.reason ||
+          failResponse.error?.description ||
+          failResponse.error?.reason ||
           "Payment failed. Please try again.";
         setFailureCount((c) => c + 1);
         setPaymentError(errorMsg);
@@ -253,6 +240,7 @@ export default function RazorpayPayment({
     }
   };
 
+  // ── Verify payment after Razorpay success callback ────────────────────────
   const handlePaymentSuccess = async (paymentResponse: any) => {
     try {
       const response = await fetch("/api/verify-payment", {
@@ -290,15 +278,14 @@ export default function RazorpayPayment({
     }
   };
 
-  // ── Derived display amount ────────────────────────────────────────────────
-  // Show server-confirmed amount once available; fall back to client amount
+  // ── Derived values ────────────────────────────────────────────────────────
   const displayAmount = confirmedAmount ?? amount;
-  const amountMismatch =
-    confirmedAmount !== null && Math.abs(confirmedAmount - amount) > 0.5;
+  const amountMismatch = confirmedAmount !== null && Math.abs(confirmedAmount - amount) > 0.5;
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-3">
-      {/* ── Server-confirmed amount badge ── */}
+      {/* Server-confirmed amount row */}
       {!disabled && (
         <div className="flex items-center justify-between text-xs px-1">
           <span className="flex items-center gap-1 text-muted-foreground">
@@ -320,7 +307,7 @@ export default function RazorpayPayment({
         </div>
       )}
 
-      {/* ── Amount mismatch warning (client vs server diverged) ── */}
+      {/* Amount mismatch warning */}
       {amountMismatch && (
         <div className="flex items-start gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
           <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-amber-600" />
@@ -331,7 +318,7 @@ export default function RazorpayPayment({
         </div>
       )}
 
-      {/* ── Persistent payment failure banner ── */}
+      {/* Persistent payment failure banner */}
       {paymentError && (
         <div className="flex items-start gap-2.5 px-3 py-2.5 bg-red-50 border border-red-200 rounded-lg">
           <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5 text-red-500" />
@@ -351,7 +338,7 @@ export default function RazorpayPayment({
           <button
             type="button"
             onClick={() => setPaymentError(null)}
-            className="text-red-400 hover:text-red-600 flex-shrink-0"
+            className="text-red-400 hover:text-red-600 flex-shrink-0 text-base leading-none"
             aria-label="Dismiss error"
           >
             ×
@@ -359,7 +346,7 @@ export default function RazorpayPayment({
         </div>
       )}
 
-      {/* ── Pay button ── */}
+      {/* Pay button */}
       <Button
         onClick={handlePayment}
         disabled={disabled || isLoading}
@@ -383,7 +370,7 @@ export default function RazorpayPayment({
         )}
       </Button>
 
-      {/* ── Security note ── */}
+      {/* Security note */}
       {!disabled && !paymentError && (
         <p className="text-[10px] text-center text-muted-foreground flex items-center justify-center gap-1">
           <ShieldCheck className="h-3 w-3 text-green-500" />
@@ -391,242 +378,5 @@ export default function RazorpayPayment({
         </p>
       )}
     </div>
-  );
-}
-
-export default function RazorpayPayment({
-  amount,
-  user,
-  selectedAddress,
-  notes,
-  couponId,
-  onSuccess,
-  onError,
-  disabled = false,
-  subtotal,
-  shipping,
-  discountAmount,
-}: RazorpayPaymentProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [scriptLoaded, setScriptLoaded] = useState(false);
-  // Safety ref: if the modal never resolves (dismiss/success/fail), reset after timeout
-  const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Track whether the Razorpay modal is currently open
-  const modalOpenRef = useRef(false);
-  // Track the active Razorpay instance so we can close it on unmount
-  const razorpayInstanceRef = useRef<any>(null);
-
-  const clearLoadingTimeout = () => {
-    if (loadingTimeoutRef.current) {
-      clearTimeout(loadingTimeoutRef.current);
-      loadingTimeoutRef.current = null;
-    }
-  };
-
-  const resetLoading = () => {
-    clearLoadingTimeout();
-    modalOpenRef.current = false;
-    setIsLoading(false);
-  };
-
-  // ── Cleanup on unmount ────────────────────────────────────────────────────
-  // If the user navigates away while the modal is open, close it cleanly
-  // so Razorpay doesn't leave a zombie overlay on the next page.
-  useEffect(() => {
-    return () => {
-      clearLoadingTimeout();
-      if (razorpayInstanceRef.current) {
-        try { razorpayInstanceRef.current.close(); } catch {}
-        razorpayInstanceRef.current = null;
-      }
-    };
-  }, []);
-
-  // ── Visibility / focus recovery ───────────────────────────────────────────
-  // When the user switches back to this tab and the modal is no longer visible
-  // (they navigated away in another tab, or the modal closed without firing ondismiss),
-  // reset the loading state so the button isn't stuck on "Processing...".
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible" && modalOpenRef.current) {
-        // Give Razorpay 800ms to fire ondismiss first; if it doesn't, reset ourselves
-        setTimeout(() => {
-          if (modalOpenRef.current) {
-            resetLoading();
-          }
-        }, 800);
-      }
-    };
-
-    const handleFocus = () => {
-      if (modalOpenRef.current) {
-        setTimeout(() => {
-          if (modalOpenRef.current) {
-            resetLoading();
-          }
-        }, 800);
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("focus", handleFocus);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("focus", handleFocus);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Fallback loader if Script component fails
-  const loadRazorpayFallback = () => {
-    return new Promise((resolve) => {
-      if (window.Razorpay) {
-        resolve(true);
-        return;
-      }
-      
-      const script = document.createElement("script");
-      script.src = "https://checkout.razorpay.com/v1/checkout.js";
-      script.onload = () => {
-        setScriptLoaded(true);
-        resolve(true);
-      };
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  };
-
-  const handlePayment = async () => {
-    if (!window.Razorpay) {
-      // Try fallback loader
-      const loaded = await loadRazorpayFallback();
-      if (!loaded || !window.Razorpay) {
-        onError("Razorpay not loaded. Please refresh the page.");
-        return;
-      }
-    }
-
-    setIsLoading(true);
-
-    // Safety net: if the modal never resolves within 10 minutes, reset the button.
-    // Covers edge cases like browser crash/reopen, Razorpay JS errors, etc.
-    clearLoadingTimeout();
-    loadingTimeoutRef.current = setTimeout(() => {
-      setIsLoading(false);
-    }, 10 * 60 * 1000); // 10 minutes — matches Razorpay order expiry
-
-    try {
-      // Create Razorpay order
-      const response = await fetch("/api/razorpay", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          couponId: couponId || undefined,
-        }),
-      });
-
-      if (!response.ok) {
-        resetLoading();
-        const data = await response.json().catch(() => ({}));
-        onError(data.message || "Failed to initiate payment. Please try again.");
-        return;
-      }
-
-      const { razorpayOrderId, amount: razorpayAmount, currency } = await response.json();
-
-      // Open Razorpay checkout
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
-        amount: razorpayAmount,
-        currency: currency,
-        name: "Mohaweavs",
-        description: "Purchase from Mohaweavs",
-        order_id: razorpayOrderId,
-        handler: async (response: any) => {
-          await handlePaymentSuccess(response);
-        },
-        prefill: {
-          name: user?.name || "",
-          email: user?.email || "",
-          contact: selectedAddress?.phone || "",
-        },
-        theme: {
-          color: "#3399cc",
-        },
-        modal: {
-          ondismiss: () => {
-            razorpayInstanceRef.current = null;
-            resetLoading();
-            toast.info("Payment cancelled. Your cart is saved.");
-          },
-        },
-      };
-
-      const razorpay = new window.Razorpay(options);
-      razorpayInstanceRef.current = razorpay;
-      modalOpenRef.current = true;
-      razorpay.open();
-
-      razorpay.on("payment.failed", function (response: any) {
-        resetLoading();
-        onError(response.error?.description || "Payment failed. Please try again.");
-      });
-    } catch (error) {
-      resetLoading();
-      onError(error instanceof Error ? error.message : "Payment failed. Please try again.");
-    }
-  };
-
-  const handlePaymentSuccess = async (paymentResponse: any) => {
-    try {
-      const response = await fetch("/api/verify-payment", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          razorpayOrderId: paymentResponse.razorpay_order_id,
-          razorpayPaymentId: paymentResponse.razorpay_payment_id,
-          razorpaySignature: paymentResponse.razorpay_signature,
-          shippingAddress: selectedAddress,
-          phone: selectedAddress?.phone,
-          notes: notes,
-          couponId: couponId || undefined,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Payment verification failed");
-      }
-
-      const result = await response.json();
-      razorpayInstanceRef.current = null;
-      clearLoadingTimeout(); // success — no need for the safety timeout anymore
-      onSuccess(result.orderId);
-      toast.success("Payment successful! Order placed.");
-    } catch (error) {
-      resetLoading();
-      onError(error instanceof Error ? error.message : "Payment verification failed. Please contact support.");
-    }
-  };
-
-  return (
-    <Button
-      onClick={handlePayment}
-      disabled={disabled || isLoading}
-      size="lg"
-      className="w-full"
-    >
-        {isLoading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Processing...
-          </>
-        ) : (
-          amount > 0 ? `Pay ₹${amount}` : "Place Order"
-        )}
-      </Button>
   );
 }

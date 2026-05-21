@@ -32,6 +32,9 @@ import {
 // ─── Constants ────────────────────────────────────────────────────────────────
 const MAX_PAGE_BUTTONS = 5;
 const STORAGE_KEY = "orderHistory_pagination";
+// Set before navigating into an order detail; cleared on mount so a fresh
+// visit always starts at page 1 while back-navigation restores the saved page.
+const RESTORE_KEY = "orderHistory_restorePagination";
 const pageSizeOptions = [5, 10, 20, 50];
 
 const STATUS_PRIORITY = [
@@ -85,10 +88,19 @@ function savePagination(page: number, pageSize: number) {
 export default function OrderHistory() {
   const router = useRouter();
 
-  // Initialise from sessionStorage so back navigation restores the correct page
+  // Restore pagination only when coming back from an order detail page.
+  // On a fresh visit the flag is absent, so we always start at page 1.
   const [currentPage, setCurrentPage] = useState<number>(() => {
     if (typeof window === "undefined") return 1;
-    return readSavedPagination().page;
+    const shouldRestore = sessionStorage.getItem(RESTORE_KEY) === "1";
+    if (shouldRestore) {
+      sessionStorage.removeItem(RESTORE_KEY);
+      return readSavedPagination().page;
+    }
+    // Fresh load — reset saved page to 1 so the next back-navigation is sane
+    const saved = readSavedPagination();
+    savePagination(1, saved.pageSize);
+    return 1;
   });
   const [ordersPerPage, setOrdersPerPage] = useState<number>(() => {
     if (typeof window === "undefined") return 5;
@@ -199,6 +211,9 @@ export default function OrderHistory() {
                 <Link
                   key={order.id}
                   href={`/my/orders/${order.id}`}
+                  onClick={() => {
+                    try { sessionStorage.setItem(RESTORE_KEY, "1"); } catch { /* ignore */ }
+                  }}
                   className="block bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow"
                 >
                   {/* Order header */}
