@@ -9,14 +9,17 @@ import { reviewService } from "./reviewsService";
 // ?page=1&limit=10
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id: productId } = await params;
     const { searchParams } = new URL(request.url);
 
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
-    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") || "10", 10)));
+    const limit = Math.min(
+      50,
+      Math.max(1, parseInt(searchParams.get("limit") || "10", 10)),
+    );
 
     // Run paginated reviews + stats in parallel
     const [{ reviews, total }, stats] = await Promise.all([
@@ -36,7 +39,10 @@ export async function GET(
     });
   } catch (error) {
     console.error("GET /reviews error:", error);
-    return NextResponse.json({ message: "Failed to fetch reviews" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Failed to fetch reviews" },
+      { status: 500 },
+    );
   }
 }
 
@@ -45,7 +51,7 @@ export async function GET(
 // One review per user per product.
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -61,13 +67,13 @@ export async function POST(
     if (!rating || !comment?.trim()) {
       return NextResponse.json(
         { message: "Rating and comment are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
     if (typeof rating !== "number" || rating < 1 || rating > 5) {
       return NextResponse.json(
         { message: "Rating must be a number between 1 and 5" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -75,12 +81,15 @@ export async function POST(
     const canReview = await reviewService.canUserReviewProduct(
       session.user.id,
       productId,
-      orderItemId ?? undefined
+      orderItemId ?? undefined,
     );
     if (!canReview) {
       return NextResponse.json(
-        { message: "You can only review products you have purchased and received, or you have already reviewed this product." },
-        { status: 403 }
+        {
+          message:
+            "You can only review products you have purchased and received, or you have already reviewed this product.",
+        },
+        { status: 403 },
       );
     }
 
@@ -98,12 +107,14 @@ export async function POST(
     });
 
     // Bust the product page review cache so the new review appears immediately
-    revalidateTag(`product-reviews-${productId}`);
-
+    revalidateTag(`product-reviews-${productId}`, "max");
     return NextResponse.json(review, { status: 201 });
   } catch (error) {
     console.error("POST /reviews error:", error);
-    return NextResponse.json({ message: "Failed to submit review" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Failed to submit review" },
+      { status: 500 },
+    );
   }
 }
 
@@ -112,7 +123,7 @@ export async function POST(
 // Body: { reviewId: string }
 export async function PATCH(
   request: NextRequest,
-  { params: _params }: { params: Promise<{ id: string }> }
+  { params: _params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -124,17 +135,26 @@ export async function PATCH(
     const { reviewId } = body;
 
     if (!reviewId) {
-      return NextResponse.json({ message: "reviewId is required" }, { status: 400 });
+      return NextResponse.json(
+        { message: "reviewId is required" },
+        { status: 400 },
+      );
     }
 
     const updated = await reviewService.markHelpful(reviewId);
     if (!updated) {
-      return NextResponse.json({ message: "Review not found" }, { status: 404 });
+      return NextResponse.json(
+        { message: "Review not found" },
+        { status: 404 },
+      );
     }
 
     return NextResponse.json(updated);
   } catch (error) {
     console.error("PATCH /reviews error:", error);
-    return NextResponse.json({ message: "Failed to mark review as helpful" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Failed to mark review as helpful" },
+      { status: 500 },
+    );
   }
 }
