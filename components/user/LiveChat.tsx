@@ -55,11 +55,56 @@ export default function LiveChat({
   const [stage, setStage] = useState<ConversationStage>("greeting");
   const [previousMessages, setPreviousMessages] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const hasRestoredRef = useRef(false);
 
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
   const setIsOpen = onOpenChange ?? setInternalIsOpen;
 
-  // Reset conversation when chat closes
+  // ─── Session storage persistence ──────────────────────────────────────────
+  const storageKey = orderContext
+    ? `livechat_${orderContext.orderId}`
+    : "livechat_general";
+
+  // Restore messages from sessionStorage on mount (regardless of isOpen)
+  useEffect(() => {
+    if (hasRestoredRef.current) return;
+    hasRestoredRef.current = true;
+    try {
+      const saved = sessionStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved) as {
+          messages: Message[];
+          stage: ConversationStage;
+          previousMessages: string[];
+        };
+        const restored = parsed.messages.map((m) => ({
+          ...m,
+          timestamp: new Date(m.timestamp),
+        }));
+        setMessages(restored);
+        setStage(parsed.stage);
+        setPreviousMessages(parsed.previousMessages);
+      }
+    } catch {
+      // Corrupted storage — ignore and start fresh
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey]);
+
+  // Save messages to sessionStorage on every change
+  useEffect(() => {
+    if (messages.length === 0) return;
+    try {
+      sessionStorage.setItem(
+        storageKey,
+        JSON.stringify({ messages, stage, previousMessages }),
+      );
+    } catch {
+      // Storage full or unavailable — silently ignore
+    }
+  }, [messages, stage, previousMessages, storageKey]);
+
+  // Reset conversation when user explicitly closes chat (X button)
   const handleSetIsOpen = useCallback(
     (value: boolean) => {
       if (!value) {
@@ -69,17 +114,21 @@ export default function LiveChat({
         setStage("greeting");
         setPreviousMessages([]);
         setIsMinimized(false);
+        hasRestoredRef.current = false;
+        try {
+          sessionStorage.removeItem(storageKey);
+        } catch {}
       }
       setIsOpen(value);
     },
-    [setIsOpen],
+    [setIsOpen, storageKey],
   );
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Initialize with order context greeting when chat opens
+  // Initialize with order context greeting when chat opens (skip if restored from storage)
   useEffect(() => {
     if (!orderContext || !isOpen || messages.length > 0) return;
 
@@ -97,9 +146,37 @@ export default function LiveChat({
     setTimeout(() => {
       const itemCount = orderContext.order.items.length;
       const total = parseFloat(orderContext.order.finalAmount).toFixed(2);
+
+      // Categorize items by their current status
+      const itemsWithReturn = orderContext.order.items.filter((item: any) => item.returnInfo);
+      const itemsWithExchange = orderContext.order.items.filter((item: any) => item.exchangeInfo);
+      const itemsWithNoRequest = orderContext.order.items.filter(
+        (item: any) => !item.returnInfo && !item.exchangeInfo,
+      );
+
+      let greetingText = `I can see you need help with order #${orderContext.orderId}. It contains ${itemCount} item(s) totalling ₹${total}.\n\n`;
+
+      // Show per-item status
+      if (itemsWithExchange.length > 0 || itemsWithReturn.length > 0) {
+        greetingText += `📋 Here's the status of your items:\n`;
+        orderContext.order.items.forEach((item: any) => {
+          const name = item.product?.name || "Item";
+          if (item.exchangeInfo) {
+            greetingText += `• ${name} — Exchange ${item.exchangeInfo.status}\n`;
+          } else if (item.returnInfo) {
+            greetingText += `• ${name} — Return ${item.returnInfo.status}\n`;
+          } else {
+            greetingText += `• ${name} — No active request\n`;
+          }
+        });
+        greetingText += `\nHow can I help you?`;
+      } else {
+        greetingText += `How can I help you today?`;
+      }
+
       const supportMsg: Message = {
         id: (Date.now() + 1).toString(),
-        text: `I can see you need help with order #${orderContext.orderId}. I have your order details open — it contains ${itemCount} item(s) totalling ₹${total}. How can I help you today?`,
+        text: greetingText,
         sender: "support",
         timestamp: new Date(),
         showQuickActions: true,
@@ -122,22 +199,108 @@ export default function LiveChat({
       }
 
       if (orderContext) {
-        if (input.includes("quality") || input.includes("damaged") || input.includes("defect")) {
+        // Check for active return/exchange per item
+        const itemsWithReturn = orderContext.order.items.filter((item: any) => item.returnInfo);
+        const itemsWithExchange = orderContext.order.items.filter((item: any) => item.exchangeInfo);
+        const itemsWithNoRequest = orderContext.order.items.filter(
+          (item: any) => !item.returnInfo && !item.exchangeInfo,
+        );
+
+        // If user asks about status/tracking — show per-item breakdown
+        if (input.includes("status") || input.includes("track")) {
+          if (itemsWithExchange.length > 0 || itemsWithReturn.length > 0) {
+            let statusText = "Here's the current status of your items:\n\n";
+            itemsWithExchange.forEach((item: any) => {
+              statusText += `🔄 ${item.product?.name || "Item"} — Exchange: ${item.exchangeInfo.status}\n`;
+            });
+            itemsWithReturn.forEach((item: any) => {
+              statusText += `↩️ ${item.product?.name || "Item"} — Return: ${item.returnInfo.status}\n`;
+            });
+            if (itemsWithNoRequest.length > 0) {
+              itemsWithNoRequest.forEach((item: any) => {
+                statusText += `✅ ${item.product?.name || "Item"} — No active request\n`;
+              });
+            }
+            statusText += "\nIs there anything specific I can help with?";
+            return { text: statusText, actionType: "track" };
+          }
           return {
-            text:
-              stage === "greeting"
-                ? "I'm really sorry to hear about the quality issue! 😔 That's not the experience we want. I can initiate a return or exchange for you — which would you prefer?"
-                : "I understand how frustrating quality issues can be. I can process a return request immediately, or arrange an exchange if you'd prefer. What works best for you?",
+            text: `Let me check the status of order #${orderContext.orderId} for you. 📦 Your package with ${orderContext.order.items.length} item(s) is currently in transit. You should receive it within 2–3 business days.`,
+            actionType: "track",
+          };
+        }
+
+        // If user asks about return/refund but items already have active return
+        if (input.includes("return") || input.includes("refund")) {
+          if (itemsWithReturn.length > 0 && itemsWithNoRequest.length === 0) {
+            // All items already have returns
+            let text = "All items in this order already have a return in progress:\n\n";
+            itemsWithReturn.forEach((item: any) => {
+              text += `• ${item.product?.name || "Item"} — ${item.returnInfo.status}\n`;
+            });
+            text += "\nWould you like to know the refund timeline, or is there something else I can help with?";
+            return { text, actionType: "track" };
+          }
+          if (itemsWithReturn.length > 0 && itemsWithNoRequest.length > 0) {
+            // Some items have returns, some don't
+            let text = "Some items already have a return in progress:\n\n";
+            itemsWithReturn.forEach((item: any) => {
+              text += `• ${item.product?.name || "Item"} — ${item.returnInfo.status}\n`;
+            });
+            text += `\nYou can still initiate a return for: ${itemsWithNoRequest.map((i: any) => i.product?.name || "item").join(", ")}. Would you like to proceed?`;
+            return { text, actionType: "return" };
+          }
+          return {
+            text: "I'd be happy to help with your return! Our return policy has you covered. 💪 Just let me know if you're returning all items or specific pieces and I'll initiate the process right away.",
             actionType: "return",
           };
         }
+
+        // If user asks about exchange/size but items already have active exchange
         if (input.includes("size") || input.includes("fit") || input.includes("exchange")) {
+          if (itemsWithExchange.length > 0 && itemsWithNoRequest.length === 0) {
+            let text = "All items in this order already have an exchange in progress:\n\n";
+            itemsWithExchange.forEach((item: any) => {
+              text += `• ${item.product?.name || "Item"} — ${item.exchangeInfo.status}\n`;
+            });
+            text += "\nThe replacement will be shipped once we receive the original. Anything else I can help with?";
+            return { text, actionType: "track" };
+          }
+          if (itemsWithExchange.length > 0 && itemsWithNoRequest.length > 0) {
+            let text = "Some items already have an exchange in progress:\n\n";
+            itemsWithExchange.forEach((item: any) => {
+              text += `• ${item.product?.name || "Item"} — ${item.exchangeInfo.status}\n`;
+            });
+            text += `\nYou can still exchange: ${itemsWithNoRequest.map((i: any) => i.product?.name || "item").join(", ")}. Would you like to proceed?`;
+            return { text, actionType: "exchange" };
+          }
           return {
             text:
               stage === "greeting"
                 ? "Size issues are common — don't worry! 👍 I can help you exchange this for a different size. Which size would you prefer?"
                 : "Getting the right size is important. Let me help with the exchange process. Do you know what size you'd like to try?",
             actionType: "exchange",
+          };
+        }
+
+        if (input.includes("cancel") && (itemsWithReturn.length > 0 || itemsWithExchange.length > 0)) {
+          return {
+            text: `I understand you'd like to cancel your request. 🤔 Please note that cancellation depends on the current processing stage. Would you like me to connect you with a human agent who can assist with this?`,
+          };
+        }
+
+        if (input.includes("quality") || input.includes("damaged") || input.includes("defect")) {
+          if (itemsWithNoRequest.length === 0) {
+            return {
+              text: "All items in this order already have an active return or exchange. If you're experiencing a different issue, I'd recommend speaking with a human agent. Would you like me to connect you?",
+            };
+          }
+          return {
+            text:
+              stage === "greeting"
+                ? "I'm really sorry to hear about the quality issue! 😔 That's not the experience we want. I can initiate a return or exchange for you — which would you prefer?"
+                : "I understand how frustrating quality issues can be. I can process a return request immediately, or arrange an exchange if you'd prefer. What works best for you?",
+            actionType: "return",
           };
         }
         if (input.includes("wrong") || input.includes("incorrect")) {
@@ -148,14 +311,8 @@ export default function LiveChat({
         }
         if (input.includes("delivery") || input.includes("shipping") || input.includes("tracking")) {
           return {
-            text: `Let me check the status of order #${orderContext.orderId} for you. 📦 Your package with ${orderContext.order.items.length} item(s) is currently in transit. You should receive it within 2–3 business days.`,
+            text: `Let me check the status of order #${orderContext.orderId} for you. � Your package with ${orderContext.order.items.length} item(s) is currently in transit. You should receive it within 2–3 business days.`,
             actionType: "track",
-          };
-        }
-        if (input.includes("return") || input.includes("refund")) {
-          return {
-            text: "I'd be happy to help with your return! Our return policy has you covered. 💪 Just let me know if you're returning all items or specific pieces and I'll initiate the process right away.",
-            actionType: "return",
           };
         }
         if (input.includes("cancel")) {
@@ -408,14 +565,47 @@ export default function LiveChat({
                     message.showQuickActions &&
                     index === messages.length - 1 && (
                       <div className="flex flex-wrap gap-2 ml-9">
-                        {[
-                          { label: "Quality Issue", text: "The product quality is not good" },
-                          { label: "Wrong Size", text: "I received the wrong size" },
-                          { label: "Wrong Item", text: "I received the wrong item" },
-                          { label: "Track Delivery", text: "I want to track my delivery" },
-                          { label: "Return Order", text: "I want to return this order" },
-                          { label: "Other", text: "Other issue" },
-                        ].map(({ label, text }) => (
+                        {(() => {
+                          if (!orderContext) {
+                            return [
+                              { label: "Order Help", text: "I need help with my order" },
+                              { label: "Return/Exchange", text: "I want to return or exchange" },
+                              { label: "Payment Issue", text: "I have a payment issue" },
+                              { label: "Other", text: "Other issue" },
+                            ];
+                          }
+
+                          const itemsWithReturn = orderContext.order.items.filter((item: any) => item.returnInfo);
+                          const itemsWithExchange = orderContext.order.items.filter((item: any) => item.exchangeInfo);
+                          const itemsWithNoRequest = orderContext.order.items.filter(
+                            (item: any) => !item.returnInfo && !item.exchangeInfo,
+                          );
+
+                          const chips: { label: string; text: string }[] = [];
+
+                          // Chips for items with active requests
+                          if (itemsWithExchange.length > 0) {
+                            const names = itemsWithExchange.map((i: any) => i.product?.name || "item").join(", ");
+                            chips.push({ label: "Track Exchange", text: `What's the exchange status for ${names}?` });
+                          }
+                          if (itemsWithReturn.length > 0) {
+                            const names = itemsWithReturn.map((i: any) => i.product?.name || "item").join(", ");
+                            chips.push({ label: "Track Return", text: `What's the return status for ${names}?` });
+                            chips.push({ label: "Refund Timeline", text: "When will I get my refund?" });
+                          }
+
+                          // Chips for items without active requests (eligible for new actions)
+                          if (itemsWithNoRequest.length > 0) {
+                            chips.push({ label: "Quality Issue", text: "The product quality is not good" });
+                            chips.push({ label: "Wrong Size", text: "I received the wrong size" });
+                            chips.push({ label: "Return Item", text: "I want to return an item" });
+                          }
+
+                          // Always available
+                          chips.push({ label: "Talk to Human", text: "Connect me to a human agent" });
+
+                          return chips;
+                        })().map(({ label, text }) => (
                           <button
                             key={label}
                             onClick={() => dispatchUserMessage(text)}
