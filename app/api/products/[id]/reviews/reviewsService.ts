@@ -6,6 +6,7 @@ import {
   orderItems,
   orders,
   productReviews,
+  reviewVotes,
   users,
 } from "@/shared";
 import { and, desc, eq, sql } from "drizzle-orm";
@@ -282,8 +283,111 @@ export class ReviewRepository {
   }
 
   /**
-   * Increment helpfulCount for a review.
-   * Simple increment — one click per page load (no per-user dedup needed for MVP).
+   * Vote on a review (helpful or unhelpful).
+   * Per-user dedup: each user can only vote once per review.
+   * If user already voted the same type, it's a no-op.
+   * If user voted the opposite type, it switches the vote.
+   */
+  async voteReview(
+    reviewId: string,
+    userId: string,
+    voteType: "helpful" | "unhelpful"
+  ): Promise<{ helpfulCount: number; unhelpfulCount: number; userVote: string } | undefined> {
+    // Check if user already voted on this review
+    const [existingVote] = await db
+      .select()
+      .from(reviewVotes)
+      .where(
+        and(
+          eq(reviewVotes.reviewId, reviewId),
+          eq(reviewVotes.userId, userId)
+        )
+      )
+      .limit(1);
+
+    if (existingVote) {
+      if (existingVote.voteType === voteType) {
+        // Same vote — return current counts (no-op)
+        const [review] = await db
+          .select({ helpfulCount: productReviews.helpfulCount, unhelpfulCount: productReviews.unhelpfulCount })
+          .from(productReviews)
+          .where(eq(productReviews.id, reviewId));
+        if (!review) return undefined;
+        return { helpfulCount: review.helpfulCount ?? 0, unhelpfulCount: review.unhelpfulCount ?? 0, userVote: voteType };
+      }
+
+      // Switch vote: decrement old, increment new
+      const oldType = existingVote.voteType;
+      const decrementCol = oldType === "helpful" ? productReviews.helpfulCount : productReviews.unhelpfulCount;
+      const incrementCol = voteType === "helpful" ? productReviews.helpfulCount : productReviews.unhelpfulCount;
+
+      await db
+        .update(productReviews)
+        .set({
+          [oldType === "helpful" ? "helpfulCount" : "unhelpfulCount"]: sql`GREATEST(0, ${decrementCol} - 1)`,
+          [voteType === "helpful" ? "helpfulCount" : "unhelpfulCount"]: sql`${incrementCol} + 1`,
+        })
+        .where(eq(productReviews.id, reviewId));
+
+      // Update the vote record
+      await db
+        .update(reviewVotes)
+        .set({ voteType })
+        .where(eq(reviewVotes.id, existingVote.id));
+    } else {
+      // New vote
+      const incrementCol = voteType === "helpful" ? productReviews.helpfulCount : productReviews.unhelpfulCount;
+
+      await db
+        .update(productReviews)
+        .set({
+          [voteType === "helpful" ? "helpfulCount" : "unhelpfulCount"]: sql`${incrementCol} + 1`,
+        })
+        .where(eq(productReviews.id, reviewId));
+
+      await db.insert(reviewVotes).values({
+        reviewId,
+        userId,
+        voteType,
+      });
+    }
+
+    // Return updated counts
+    const [updated] = await db
+      .select({ helpfulCount: productReviews.helpfulCount, unhelpfulCount: productReviews.unhelpfulCount })
+      .from(productReviews)
+      .where(eq(productReviews.id, reviewId));
+
+    if (!updated) return undefined;
+    return { helpfulCount: updated.helpfulCount ?? 0, unhelpfulCount: updated.unhelpfulCount ?? 0, userVote: voteType };
+  }
+
+  /**
+   * Get the current user's votes for a list of review IDs.
+   * Used to pre-populate the UI on page load.
+   */
+  async getUserVotes(userId: string, reviewIds: string[]): Promise<Record<string, string>> {
+    if (!reviewIds.length) return {};
+
+    const votes = await db
+      .select({ reviewId: reviewVotes.reviewId, voteType: reviewVotes.voteType })
+      .from(reviewVotes)
+      .where(
+        and(
+          eq(reviewVotes.userId, userId),
+          sql`${reviewVotes.reviewId} = ANY(${reviewIds})`
+        )
+      );
+
+    const map: Record<string, string> = {};
+    for (const v of votes) {
+      map[v.reviewId] = v.voteType;
+    }
+    return map;
+  }
+
+  /**
+   * @deprecated Use voteReview instead. Kept for backward compatibility.
    */
   async markHelpful(reviewId: string): Promise<ReviewWithUser | undefined> {
     const [updated] = await db

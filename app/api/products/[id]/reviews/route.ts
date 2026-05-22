@@ -119,8 +119,8 @@ export async function POST(
 }
 
 // ─── PATCH /api/products/[id]/reviews ────────────────────────────────────────
-// Authenticated. Marks a review as helpful (increments helpfulCount).
-// Body: { reviewId: string }
+// Authenticated. Vote on a review (helpful or unhelpful).
+// Body: { reviewId: string, voteType: 'helpful' | 'unhelpful' }
 export async function PATCH(
   request: NextRequest,
   { params: _params }: { params: Promise<{ id: string }> },
@@ -132,7 +132,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { reviewId } = body;
+    const { reviewId, voteType } = body;
 
     if (!reviewId) {
       return NextResponse.json(
@@ -141,19 +141,26 @@ export async function PATCH(
       );
     }
 
-    const updated = await reviewService.markHelpful(reviewId);
-    if (!updated) {
+    if (!voteType || !["helpful", "unhelpful"].includes(voteType)) {
+      return NextResponse.json(
+        { message: "voteType must be 'helpful' or 'unhelpful'" },
+        { status: 400 },
+      );
+    }
+
+    const result = await reviewService.voteReview(reviewId, session.user.id, voteType);
+    if (!result) {
       return NextResponse.json(
         { message: "Review not found" },
         { status: 404 },
       );
     }
 
-    return NextResponse.json(updated);
+    return NextResponse.json(result);
   } catch (error) {
     console.error("PATCH /reviews error:", error);
     return NextResponse.json(
-      { message: "Failed to mark review as helpful" },
+      { message: "Failed to vote on review" },
       { status: 500 },
     );
   }

@@ -349,7 +349,7 @@ export default function MobileSidebar({
                       {newProducts.slice(0, 6).map((product) => (
                         <Link
                           key={product.id}
-                          href={`/products/${product.id}`}
+                          href={`/collections/${product.category?.name || 'all'}/${product.urlSlug || product.id}`}
                           className="group text-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 rounded-lg p-1"
                           onClick={handleMobileLinkClick}
                           role="listitem"

@@ -2,18 +2,16 @@
 
 import Breadcrumbs from "@/components/Breadcrumbs";
 import CartControls from "@/components/ProductDetails/CartControls";
-import DeliveryOptions from "@/components/ProductDetails/DeliveryOptions";
 import ProductReviews from "@/components/ProductDetails/ProductReviews";
 import SizeGuide from "@/components/ProductDetails/SizeGuide";
 import Specifications from "@/components/ProductDetails/Specifications";
 import ProductCard from "@/components/products/ProductCard";
 import { Button } from "@/components/ui/button";
 import { useProductPurchasedListener } from "@/hooks/useProductPurchasedListener";
-import { getAvailableStock, getStockStatus } from "@/lib/stock-utils";
+import { getAvailableStock } from "@/lib/stock-utils";
 import { useCartStore, useWishlistStore } from "@/lib/stores";
 import { useSocketStore } from "@/lib/stores/socketStore";
 import { ProductWithDetails } from "@/shared";
-import { toast } from "sonner";
 import {
   ArrowRight,
   ChevronLeft,
@@ -27,19 +25,19 @@ import {
   Star,
   Truck,
   X,
-  ZoomIn
+  ZoomIn,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface ProductDetailClientProps {
   product: ProductWithDetails & {
     rating?: number;
     reviewCount?: number;
     material?: string;
-    careInstructions?: string;
     weight?: number;
     dimensions?: string;
   };
@@ -176,6 +174,13 @@ export default function ProductDetailClient({
   // Keyboard navigation for images
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't handle keyboard navigation if a modal/lightbox from another component is open
+      // Check if any fixed overlay (like review lightbox) is currently visible
+      const hasOtherLightbox = document.querySelector(
+        '[data-review-lightbox="true"]',
+      );
+      if (hasOtherLightbox) return;
+
       if (e.key === "ArrowLeft") {
         handleImageChange("prev");
       } else if (e.key === "ArrowRight") {
@@ -228,6 +233,18 @@ export default function ProductDetailClient({
       return () => window.removeEventListener("keydown", handleKeyDown);
     }
   }, [isZoomed, handleImageChange]);
+
+  // Lock body scroll when lightbox is open
+  useEffect(() => {
+    if (isZoomed) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isZoomed]);
 
   const handleImageMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isZoomed) return;
@@ -538,57 +555,34 @@ export default function ProductDetailClient({
                     </Button>
                   </div>
                 </div>
+                <p className="text-[11px] text-gray-500 mt-1">
+                  MRP inclusive of all taxes
+                </p>
+                {/* Low Stock Indicator */}
+                {(() => {
+                  const stock = getAvailableStock(product, selectedVariant?.id);
+                  if (stock > 0 && stock <= 5) {
+                    return (
+                      <p className="text-xs text-orange-600 font-medium mt-1">
+                        Only {stock} left in stock — order soon
+                      </p>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
 
               {/* Description */}
               <div>
-                <h3 className="text-base font-semibold text-gray-900">
+                <h3 className="text-sm font-semibold text-gray-900">
                   Description
                 </h3>
-                <p className="text-sm text-gray-600 leading-relaxed">
+                <p className="text-xs text-gray-600 leading-relaxed">
                   {product.description ||
                     `Experience the elegance of traditional Indian craftsmanship with this beautiful ${product.name}. Perfect for special occasions and celebrations, this piece showcases the rich heritage of Indian ethnic wear.`}
                 </p>
               </div>
 
-              {/* Product Details */}
-              {(product.careInstructions ||
-                product.weight ||
-                product.dimensions) && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                    Product Details
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    {product.careInstructions && (
-                      <div>
-                        <span className="text-gray-500">Care:</span>
-                        <span className="ml-2 font-medium">
-                          {product.careInstructions}
-                        </span>
-                      </div>
-                    )}
-                    {product.weight && (
-                      <div>
-                        <span className="text-gray-500">Weight:</span>
-                        <span className="ml-2 font-medium">
-                          {product.weight}g
-                        </span>
-                      </div>
-                    )}
-                    {product.dimensions && (
-                      <div>
-                        <span className="text-gray-500">Dimensions:</span>
-                        <span className="ml-2 font-medium">
-                          {product.dimensions}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Variants */}
               {product.variants && product.variants.length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-3">
@@ -662,7 +656,7 @@ export default function ProductDetailClient({
                   <RefreshCw className="h-5 w-5 text-gray-400" />
                   <div>
                     <p className="font-medium text-gray-900">Easy Returns</p>
-                    <p className="text-gray-500">30-day return policy</p>
+                    <p className="text-gray-500">7-day return policy</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
@@ -674,18 +668,63 @@ export default function ProductDetailClient({
                 </div>
               </div>
 
-              {/* Delivery Options */}
-              <DeliveryOptions />
+              {/* Care Instructions */}
+              {product.careInstructions && (
+                <div className="border rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-gray-500" />
+                    Care Instructions
+                  </h3>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    {product.careInstructions}
+                  </p>
+                </div>
+              )}
+
+              {/* Return & Exchange Policy */}
+              <div className="border rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4 text-gray-500" />
+                  Return & Exchange Policy
+                </h3>
+                <ul className="text-xs text-gray-600 space-y-2">
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-500 mt-0.5">•</span>
+                    <span>Easy returns within 7 days of delivery</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-500 mt-0.5">•</span>
+                    <span>
+                      Items must be unworn, unwashed, and with original tags
+                      intact
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-500 mt-0.5">•</span>
+                    <span>Exchanges subject to stock availability</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-500 mt-0.5">•</span>
+                    <span>Free reverse pickup for first exchange request</span>
+                  </li>
+                </ul>
+                <Link
+                  href="/returns-exchange-policy"
+                  className="inline-flex items-center text-xs text-blue-600 hover:text-blue-700 font-medium mt-3 gap-1"
+                >
+                  View Full Policy
+                  <ArrowRight className="h-3 w-3" />
+                </Link>
+              </div>
 
               {/* Specifications */}
               <Specifications product={product} />
+              <ProductReviews
+                reviewsData={reviewsData}
+                productId={product.id}
+              />
             </div>
           </div>
-        </div>
-
-        {/* ── Customer Reviews — full width below product grid ── */}
-        <div className="mt-10">
-          <ProductReviews reviewsData={reviewsData} productId={product.id} />
         </div>
 
         {/* Related Products */}
@@ -708,11 +747,12 @@ export default function ProductDetailClient({
             </div>
             {/* Mobile horizontal scroll container */}
             <div className="sm:hidden">
-              <div
-                className="flex gap-4 overflow-x-auto scroll-smooth pb-4 -mx-4 px-4 scrollbar-hide snap-x snap-mandatory"
-              >
+              <div className="flex gap-4 overflow-x-auto scroll-smooth pb-4 -mx-4 px-4 scrollbar-hide snap-x snap-mandatory">
                 {relatedProducts.slice(0, 4).map((relatedProduct) => (
-                  <div key={relatedProduct.id} className="flex-none w-[45vw] snap-start">
+                  <div
+                    key={relatedProduct.id}
+                    className="flex-none w-[45vw] snap-start"
+                  >
                     <ProductCard
                       product={relatedProduct}
                       showNewBadge={true}
@@ -799,7 +839,7 @@ export default function ProductDetailClient({
               className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm p-2 rounded-full text-white hover:bg-white/30 transition-colors"
               aria-label="Close lightbox"
             >
-             <X className="h-6 w-6" />
+              <X className="h-6 w-6" />
             </button>
 
             {/* Navigation arrows in lightbox */}

@@ -122,6 +122,7 @@ export const products = pgTable("products", {
     .default("both"),
   isActive: boolean("is_active").notNull().default(false),
   isFeatured: boolean("is_featured").notNull().default(false),
+  careInstructions: text("care_instructions"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -555,8 +556,24 @@ export const productReviews = pgTable("product_reviews", {
   images: text("images").array(),
   isVerifiedPurchase: boolean("is_verified_purchase").default(false),
   helpfulCount: integer("helpful_count").default(0),
+  unhelpfulCount: integer("unhelpful_count").default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Review votes (per-user dedup for helpful/unhelpful)
+export const reviewVotes = pgTable("review_votes", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  reviewId: varchar("review_id")
+    .references(() => productReviews.id)
+    .notNull(),
+  userId: varchar("user_id")
+    .references(() => users.id)
+    .notNull(),
+  voteType: text("vote_type").notNull(), // 'helpful' | 'unhelpful'
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 // Coupons
