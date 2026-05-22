@@ -145,7 +145,7 @@ async function getItemStatuses(orderItemsData: any[]) {
   // Deduplicate: keep only the first (latest) entry per orderItemId
   const statusMap = new Map<string, string>();
   for (const row of latestStatuses) {
-    if (!statusMap.has(row.orderItemId)) {
+    if (!statusMap.has(row.orderItemId) && row.newStatus) {
       statusMap.set(row.orderItemId, row.newStatus);
     }
   }
