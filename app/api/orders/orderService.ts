@@ -125,23 +125,35 @@ function buildOrderItemsSelectQuery(dbQuery: any, additionalFields = {}) {
   });
 }
 
-// Extract item status lookup logic
+// Extract item status lookup logic — single batched query instead of N+1
 async function getItemStatuses(orderItemsData: any[]) {
-  return Promise.all(
-    orderItemsData.map(async (item) => {
-      const [latestStatus] = await db
-        .select({ newStatus: itemStatusHistory.newStatus })
-        .from(itemStatusHistory)
-        .where(eq(itemStatusHistory.orderItemId, item.id))
-        .orderBy(desc(itemStatusHistory.createdAt))
-        .limit(1);
+  if (!orderItemsData.length) return [];
 
-      return {
-        orderItemId: item.id,
-        currentStatus: latestStatus?.newStatus ?? item.status,
-      };
+  const itemIds = orderItemsData.map((item) => item.id);
+
+  // Use a single query with DISTINCT ON to get the latest status per item
+  const latestStatuses = await db
+    .select({
+      orderItemId: itemStatusHistory.orderItemId,
+      newStatus: itemStatusHistory.newStatus,
+      createdAt: itemStatusHistory.createdAt,
     })
-  );
+    .from(itemStatusHistory)
+    .where(inArray(itemStatusHistory.orderItemId, itemIds))
+    .orderBy(itemStatusHistory.orderItemId, desc(itemStatusHistory.createdAt));
+
+  // Deduplicate: keep only the first (latest) entry per orderItemId
+  const statusMap = new Map<string, string>();
+  for (const row of latestStatuses) {
+    if (!statusMap.has(row.orderItemId)) {
+      statusMap.set(row.orderItemId, row.newStatus);
+    }
+  }
+
+  return orderItemsData.map((item) => ({
+    orderItemId: item.id,
+    currentStatus: statusMap.get(item.id) ?? item.status,
+  }));
 }
 
 // Check exchange eligibility per order item
@@ -363,82 +375,127 @@ export class OrderRepository implements OrderStorage {
     // Calculate offset
     const offset = (page - 1) * pageSize;
 
-    // Get total count
-    const [countResult] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(orders)
-      .where(eq(orders.userId, userId));
+    // Get total count and paginated orders in parallel
+    const [countResult, orderList] = await Promise.all([
+      db.select({ count: sql<number>`count(*)` }).from(orders).where(eq(orders.userId, userId)),
+      db.select().from(orders).innerJoin(users, eq(orders.userId, users.id))
+        .where(eq(orders.userId, userId))
+        .orderBy(desc(orders.createdAt))
+        .limit(pageSize)
+        .offset(offset),
+    ]);
 
-    const total = countResult.count;
+    const total = countResult[0].count;
     const totalPages = Math.ceil(total / pageSize);
 
-    // Get paginated orders
-    const orderList = await db
+    if (!orderList.length) {
+      return { data: [], total, page, pageSize, totalPages };
+    }
+
+    const orderIds = orderList.map(o => o.orders.id);
+
+    // Fetch ALL order items for all orders in one query
+    const allItems = await db
       .select()
-      .from(orders)
-      .innerJoin(users, eq(orders.userId, users.id))
-      .where(eq(orders.userId, userId))
-      .orderBy(desc(orders.createdAt))
-      .limit(pageSize)
-      .offset(offset);
+      .from(orderItems)
+      .where(inArray(orderItems.orderId, orderIds));
 
-    const result: OrderWithItems[] = [];
+    // Get all unique product IDs across all items
+    const allProductIds = [...new Set(allItems.map(item => item.productId))];
 
-    for (const order of orderList) {
+    // Get setting once
+    const windowDaysSetting = await storage.getSetting("return_window_days");
+    const windowDays = windowDaysSetting ? parseInt(windowDaysSetting) : 7;
+
+    // Run all independent queries in parallel
+    const [productsData, itemStatuses, returnedByOrderItem, exchangeEligibilities] = await Promise.all([
+      // Fetch all products at once
+      productService.getProductsByRole({ ids: allProductIds }, "user"),
+      // Get item statuses for ALL items (single batched query)
+      getItemStatuses(allItems),
+      // Get returned quantities for all orders
+      Promise.all(orderIds.map(oid => returnService.getReturnedQuantitiesByOrderItem(oid).then(map => ({ orderId: oid, map })))),
+      // Get exchange eligibility for all orders
+      Promise.all(orderIds.map(oid => {
+        const items = allItems.filter(i => i.orderId === oid);
+        return checkExchangeEligibilityForItems(oid, items, windowDays).then(result => ({ orderId: oid, result }));
+      })),
+    ]);
+
+    // Create product map
+    const productMap = new Map(productsData.map(product => [product.id, product]));
+
+    // Create status map
+    const statusMap = new Map(itemStatuses.map(s => [s.orderItemId, s.currentStatus]));
+
+    // Create returned quantities map per order
+    const returnedMap = new Map(returnedByOrderItem.map(r => [r.orderId, r.map]));
+
+    // Create exchange eligibility map per order
+    const exchangeEligMap = new Map(exchangeEligibilities.map(e => [e.orderId, e.result]));
+
+    // Build result
+    const now = new Date();
+    const result: OrderWithItems[] = orderList.map(order => {
       const customerName = order.users.name;
+      const items = allItems.filter(i => i.orderId === order.orders.id);
+      const returnedByItem = returnedMap.get(order.orders.id) || {};
+      const exchangeEligibility = exchangeEligMap.get(order.orders.id) || [];
 
-      // Get order items first
-      const items = await db
-        .select()
-        .from(orderItems)
-        .where(eq(orderItems.orderId, order.orders.id));
+      // Compute return eligibility inline
+      const eligibilityMap = items.map((item) => {
+        const currentStatus = statusMap.get(item.id) || item.status || "";
 
-      // Get product IDs from order items
-      const productIds = items.map(item => item.productId);
+        if (currentStatus.startsWith("return_")) {
+          return { itemId: item.id, eligible: false, reason: "Return already in progress" };
+        }
+        if (currentStatus.startsWith("exchange_")) {
+          return { itemId: item.id, eligible: false, reason: "Exchange already in progress" };
+        }
+        if (currentStatus !== "delivered") {
+          return { itemId: item.id, eligible: false, reason: "Item must be delivered before return" };
+        }
+        if (!item.deliveredAt) {
+          return { itemId: item.id, eligible: false, reason: "Item delivery date missing" };
+        }
 
-      // Fetch products using getProductsByRole
-      const productsData = await productService.getProductsByRole(
-        { ids: productIds },
-        "user"
-      );
+        const deliveredAt = new Date(item.deliveredAt);
+        const eligibleUntil = new Date(deliveredAt);
+        eligibleUntil.setDate(eligibleUntil.getDate() + windowDays);
 
-      // Create product map for easy lookup
-      const productMap = new Map(
-        productsData.map(product => [product.id, product])
-      );
+        if (now > eligibleUntil) {
+          return { itemId: item.id, eligible: false, reason: "Return window has expired" };
+        }
 
-      // Get return eligibility for all items in this order
-      const eligibilityMap = await returnService.checkOrderReturnEligibility(order.orders.id);
+        const purchasedQty = Number(item.quantity || 0);
+        const returnedQty = Number(returnedByItem[String(item.id)] || 0);
+        const hasRemaining = purchasedQty > returnedQty;
 
-      // Get exchange eligibility for all items in this order
-      const windowDaysSetting = await storage.getSetting("return_window_days");
-      const windowDays = windowDaysSetting ? parseInt(windowDaysSetting) : 7;
-      const exchangeEligibilityMap = await checkExchangeEligibilityForItems(
-        order.orders.id,
-        items,
-        windowDays
-      );
+        return {
+          itemId: item.id,
+          eligible: hasRemaining,
+          reason: !hasRemaining ? "All items have already been returned or exchanged" : undefined,
+          remainingDays: hasRemaining
+            ? Math.max(0, Math.floor((eligibleUntil.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+            : 0,
+        };
+      });
 
-      // Compute currentStatus from itemStatusHistory (same as getOrderWithDetails)
-      const itemStatuses = await getItemStatuses(items);
-
-      result.push({
+      return {
         ...order.orders,
         customerName,
         items: items.map((item) => {
-          const statusObj = itemStatuses.find((s) => s.orderItemId === item.id);
-          const product = productMap.get(item.productId);
-          const exchangeElig = exchangeEligibilityMap.find(e => e.itemId === item.id);
+          const exchangeElig = exchangeEligibility.find(e => e.itemId === item.id);
           return {
             ...item,
-            currentStatus: statusObj?.currentStatus || item.status,
+            currentStatus: statusMap.get(item.id) || item.status,
             returnEligibility: eligibilityMap.find(e => e.itemId === item.id) || { itemId: item.id, eligible: false },
             exchangeEligibility: exchangeElig || { itemId: item.id, eligible: false },
-            product: createOrderHistoryProduct(product) as any,
+            product: createOrderHistoryProduct(productMap.get(item.productId)) as any,
           };
         }),
-      });
-    }
+      };
+    });
 
     return {
       data: result as OrderWithItems[],
@@ -482,32 +539,72 @@ export class OrderRepository implements OrderStorage {
     // Get product IDs from order items
     const productIds = orderItemsData.map((item: any) => item.productId);
 
-    // Fetch products using getProductsByRole
-    const productsData = await productService.getProductsByRole(
-      { ids: productIds },
-      "user"
-    );
+    // Run independent queries in parallel
+    const windowDaysSetting = await storage.getSetting("return_window_days");
+    const windowDays = windowDaysSetting ? parseInt(windowDaysSetting) : 7;
+
+    const [productsData, itemStatuses, returnedByItem, exchangeEligibilityMap] = await Promise.all([
+      // Fetch products using getProductsByRole
+      productService.getProductsByRole({ ids: productIds }, "user"),
+      // Get item statuses (batched single query)
+      getItemStatuses(orderItemsData),
+      // Get returned quantities for return eligibility (only if detailed)
+      includeDetails ? returnService.getReturnedQuantitiesByOrderItem(id) : Promise.resolve({}),
+      // Get exchange eligibility for all items in this order (only if detailed)
+      includeDetails ? checkExchangeEligibilityForItems(order.id, orderItemsData, windowDays) : Promise.resolve(undefined),
+    ]);
 
     // Create product map for easy lookup
     const productMap = new Map(
       productsData.map(product => [product.id, product])
     );
 
-    // Get return eligibility for all items in this order (only if detailed)
-    const eligibilityMap = includeDetails 
-      ? await returnService.checkOrderReturnEligibility(order.id)
-      : undefined;
+    // Compute return eligibility inline (avoids re-fetching the order via returnService)
+    let eligibilityMap: { itemId: string; eligible: boolean; reason?: string; remainingDays?: number }[] | undefined;
+    if (includeDetails) {
+      const now = new Date();
+      // We need currentStatus from itemStatuses for eligibility check
+      const statusMap = new Map(itemStatuses.map(s => [s.orderItemId, s.currentStatus]));
 
-    // Get exchange eligibility for all items in this order (only if detailed)
-    const windowDaysSetting = await storage.getSetting("return_window_days");
-    const windowDays = windowDaysSetting ? parseInt(windowDaysSetting) : 7;
-    const exchangeEligibilityMap = includeDetails
-      ? await checkExchangeEligibilityForItems(order.id, orderItemsData, windowDays)
-      : undefined;
+      eligibilityMap = orderItemsData.map((item: any) => {
+        const currentStatus = statusMap.get(item.id) || item.status || "";
 
-    // Use shared item status lookup function
-    const itemStatuses = await getItemStatuses(orderItemsData);
-    
+        if (currentStatus.startsWith("return_")) {
+          return { itemId: item.id, eligible: false, reason: "Return already in progress" };
+        }
+        if (currentStatus.startsWith("exchange_")) {
+          return { itemId: item.id, eligible: false, reason: "Exchange already in progress" };
+        }
+        if (currentStatus !== "delivered") {
+          return { itemId: item.id, eligible: false, reason: "Item must be delivered before return" };
+        }
+        if (!item.deliveredAt) {
+          return { itemId: item.id, eligible: false, reason: "Item delivery date missing" };
+        }
+
+        const deliveredAt = new Date(item.deliveredAt);
+        const eligibleUntil = new Date(deliveredAt);
+        eligibleUntil.setDate(eligibleUntil.getDate() + windowDays);
+
+        if (now > eligibleUntil) {
+          return { itemId: item.id, eligible: false, reason: "Return window has expired" };
+        }
+
+        const purchasedQty = Number(item.quantity || 0);
+        const returnedQty = Number((returnedByItem as Record<string, number>)[String(item.id)] || 0);
+        const hasRemaining = purchasedQty > returnedQty;
+
+        return {
+          itemId: item.id,
+          eligible: hasRemaining,
+          reason: !hasRemaining ? "All items in this order have already been returned or exchanged" : undefined,
+          remainingDays: hasRemaining
+            ? Math.max(0, Math.floor((eligibleUntil.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+            : 0,
+        };
+      });
+    }
+
     // Get payment data (only if detailed)
     const paymentData = includeDetails && order.razorpayPaymentId 
       ? await paymentInfo({ razorpayPaymentId: order.razorpayPaymentId }) 

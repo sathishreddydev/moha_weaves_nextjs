@@ -108,13 +108,14 @@ export default function OrderHistory() {
   });
 
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [totalPages, setTotalPages] = useState(0);
 
   const fetchOrders = useCallback(async (page: number, pageSize: number) => {
     try {
-      setLoading(true);
+      setIsFetching(true);
       setError(null);
       const response = await fetch(`/api/orders?page=${page}&pageSize=${pageSize}`);
       if (!response.ok) throw new Error("Failed to fetch orders");
@@ -124,7 +125,8 @@ export default function OrderHistory() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch orders");
     } finally {
-      setLoading(false);
+      setIsFetching(false);
+      setInitialLoading(false);
     }
   }, []);
 
@@ -167,7 +169,7 @@ export default function OrderHistory() {
     return pages;
   };
 
-  if (loading) return <OrderSkeleton />;
+  if (initialLoading) return <OrderSkeleton />;
 
   if (error) {
     return (
@@ -201,7 +203,7 @@ export default function OrderHistory() {
         </div>
       ) : (
         <>
-          <div className="space-y-4">
+          <div className={`space-y-4 transition-opacity duration-200 ${isFetching ? "opacity-50 pointer-events-none" : ""}`}>
             {orders.map((order) => {
               const overallStatus = deriveOrderStatus(order.items);
               const overallCfg = getStatusConfig(overallStatus);

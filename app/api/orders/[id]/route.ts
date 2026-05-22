@@ -26,29 +26,54 @@ export async function GET(
       return NextResponse.json({ message: "Order not found" }, { status: 404 });
     }
 
-    // ── Enrich each item with its active return request + refund ──────────────
-    // Fetch all return requests for this order in one query
-    const orderReturnRequests = await db
-      .select()
-      .from(returnRequests)
-      .where(eq(returnRequests.orderId, id));
+    const orderItemIds = order.items.map((item: any) => item.id);
 
-    // Fetch all return items for those requests
+    // ── Run all enrichment queries in parallel ───────────────────────────────
+    const [orderReturnRequests, orderExchanges, userReviewsFiltered] = await Promise.all([
+      // Return requests for this order
+      db.select().from(returnRequests).where(eq(returnRequests.orderId, id)),
+      // Exchange requests for this order
+      db.select().from(onlineExchanges).where(eq(onlineExchanges.orderId, id)),
+      // User reviews for these order items
+      orderItemIds.length
+        ? db
+            .select({
+              id: productReviews.id,
+              productId: productReviews.productId,
+              orderItemId: productReviews.orderItemId,
+              rating: productReviews.rating,
+              title: productReviews.title,
+              comment: productReviews.comment,
+              images: productReviews.images,
+              isVerifiedPurchase: productReviews.isVerifiedPurchase,
+              helpfulCount: productReviews.helpfulCount,
+              createdAt: productReviews.createdAt,
+            })
+            .from(productReviews)
+            .where(
+              and(
+                eq(productReviews.userId, user.id),
+                inArray(productReviews.orderItemId, orderItemIds)
+              )
+            )
+        : Promise.resolve([]),
+    ]);
+
+    // ── Fetch return items + refunds (depends on returnRequests result) ──────
     const returnRequestIds = orderReturnRequests.map((r) => r.id);
-    const allReturnItems = returnRequestIds.length
-      ? await db
-          .select()
-          .from(returnItems)
-          .where(inArray(returnItems.returnRequestId, returnRequestIds))
-      : [];
+    const exchangeIds = orderExchanges.map((e) => e.id);
 
-    // Fetch refunds for those return requests
-    const allRefunds = returnRequestIds.length
-      ? await db
-          .select()
-          .from(refunds)
-          .where(inArray(refunds.returnRequestId, returnRequestIds))
-      : [];
+    const [allReturnItems, allRefunds, allExchangeItems] = await Promise.all([
+      returnRequestIds.length
+        ? db.select().from(returnItems).where(inArray(returnItems.returnRequestId, returnRequestIds))
+        : Promise.resolve([]),
+      returnRequestIds.length
+        ? db.select().from(refunds).where(inArray(refunds.returnRequestId, returnRequestIds))
+        : Promise.resolve([]),
+      exchangeIds.length
+        ? db.select().from(onlineExchangeItems).where(inArray(onlineExchangeItems.exchangeId, exchangeIds))
+        : Promise.resolve([]),
+    ]);
 
     // Build a map: orderItemId → { returnRequest, refund }
     const itemReturnMap: Record<
@@ -65,20 +90,6 @@ export async function GET(
       itemReturnMap[ri.orderItemId] = { returnRequest: req, refund };
     }
 
-    // ── Enrich each item with its active exchange request ─────────────────────
-    const orderExchanges = await db
-      .select()
-      .from(onlineExchanges)
-      .where(eq(onlineExchanges.orderId, id));
-
-    const exchangeIds = orderExchanges.map((e) => e.id);
-    const allExchangeItems = exchangeIds.length
-      ? await db
-          .select()
-          .from(onlineExchangeItems)
-          .where(inArray(onlineExchangeItems.exchangeId, exchangeIds))
-      : [];
-
     // Build a map: orderItemId → { exchange, exchangeItem }
     const itemExchangeMap: Record<
       string,
@@ -91,34 +102,6 @@ export async function GET(
       if (exc.status === "exchange_cancelled") continue;
       itemExchangeMap[ei.orderItemId] = { exchange: exc, exchangeItem: ei };
     }
-
-    // ── Enrich each item with its review (if submitted by this user) ─────────
-    const orderItemIds = order.items.map((item: any) => item.id);
-
-    // Fetch all reviews for these order items that belong to this user.
-    // Scoped by orderItemId so the same product in two orders shows the right review per item.
-    const userReviewsFiltered = orderItemIds.length
-      ? await db
-          .select({
-            id: productReviews.id,
-            productId: productReviews.productId,
-            orderItemId: productReviews.orderItemId,
-            rating: productReviews.rating,
-            title: productReviews.title,
-            comment: productReviews.comment,
-            images: productReviews.images,
-            isVerifiedPurchase: productReviews.isVerifiedPurchase,
-            helpfulCount: productReviews.helpfulCount,
-            createdAt: productReviews.createdAt,
-          })
-          .from(productReviews)
-          .where(
-            and(
-              eq(productReviews.userId, user.id),
-              inArray(productReviews.orderItemId, orderItemIds)
-            )
-          )
-      : [];
 
     // Build map: orderItemId → review
     const reviewMap: Record<string, (typeof userReviewsFiltered)[0]> = {};

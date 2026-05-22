@@ -1,5 +1,6 @@
 "use client";
 
+import ProfileSidebar from "@/components/user/ProfileSidebar";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -14,9 +15,6 @@ export default function MyLayout({ children }: { children: React.ReactNode }) {
     }
   }, [status, router]);
 
-  // Show a neutral skeleton while the session is resolving so the layout
-  // stays mounted and child pages don't unmount/remount (which caused the
-  // "full page reload" feel when navigating between order history and detail).
   if (status === "loading") {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -32,11 +30,23 @@ export default function MyLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Not authenticated — redirect is already triggered in the effect above;
-  // render nothing while the navigation happens.
   if (!session) {
     return null;
   }
 
-  return <>{children}</>;
+  return (
+    <div className="max-w-7xl mx-auto">
+      <div className="lg:grid lg:grid-cols-4 lg:gap-8">
+        {/* Sidebar — desktop only, rendered once for all /my/* pages */}
+        <div className="hidden lg:block lg:col-span-1">
+          <ProfileSidebar />
+        </div>
+
+        {/* Page content */}
+        <div className="lg:col-span-3">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
 }

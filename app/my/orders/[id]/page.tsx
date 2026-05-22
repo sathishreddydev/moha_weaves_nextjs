@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import LiveChat from "@/components/user/LiveChat";
 import { OrderItem } from "@/components/user/OrderItem";
-import ProfileSidebar from "@/components/user/ProfileSidebar";
+
 import ShippingAddress from "@/components/user/shippingAddress";
 import {
   useOrderItemStatusListenerDetail,
@@ -254,95 +254,68 @@ export default function OrderDetailsPage() {
   // ── Return view ────────────────────────────────────────────────────────────
   if (orderView === "return") {
     return (
-      <div className="max-w-7xl mx-auto">
-        <div className="lg:grid lg:grid-cols-4 lg:gap-8">
-          <div className="hidden lg:block lg:col-span-1">
-            <ProfileSidebar />
-          </div>
-          <div className="lg:col-span-3">
-            <MultiReturnView
-              order={order}
-              preSelectedItemId={preSelectedReturnItemId}
-              onBack={() => {
-                setOrderView("detail");
-                setPreSelectedReturnItemId(null);
-              }}
-              onSuccess={() => {
-                setOrderView("detail");
-                setPreSelectedReturnItemId(null);
-                fetchOrderDetails();
-                toast.success("Return request submitted");
-              }}
-            />
-          </div>
-        </div>
-      </div>
+      <MultiReturnView
+        order={order}
+        preSelectedItemId={preSelectedReturnItemId}
+        onBack={() => {
+          setOrderView("detail");
+          setPreSelectedReturnItemId(null);
+        }}
+        onSuccess={() => {
+          setOrderView("detail");
+          setPreSelectedReturnItemId(null);
+          fetchOrderDetails();
+          toast.success("Return request submitted");
+        }}
+      />
     );
   }
 
   // ── Return-item view ───────────────────────────────────────────────────────
   if (orderView === "return-item" && preSelectedReturnItemId) {
     return (
-      <div className="max-w-7xl mx-auto">
-        <div className="lg:grid lg:grid-cols-4 lg:gap-8">
-          <div className="hidden lg:block lg:col-span-1">
-            <ProfileSidebar />
-          </div>
-          <div className="lg:col-span-3">
-            <ReturnForm
-              order={order}
-              orderItemId={preSelectedReturnItemId}
-              onClose={() => {
-                setOrderView("detail");
-                setPreSelectedReturnItemId(null);
-              }}
-              onSuccess={() => {
-                setOrderView("detail");
-                setPreSelectedReturnItemId(null);
-                fetchOrderDetails();
-                toast.success("Return request submitted");
-              }}
-            />
-          </div>
-        </div>
-      </div>
+      <ReturnForm
+        order={order}
+        orderItemId={preSelectedReturnItemId}
+        onClose={() => {
+          setOrderView("detail");
+          setPreSelectedReturnItemId(null);
+        }}
+        onSuccess={() => {
+          setOrderView("detail");
+          setPreSelectedReturnItemId(null);
+          fetchOrderDetails();
+          toast.success("Return request submitted");
+        }}
+      />
     );
   }
 
   // ── Exchange view ──────────────────────────────────────────────────────────
   if (orderView === "exchange" && exchangeItemId) {
     return (
-      <div className="max-w-7xl mx-auto">
-        <div className="lg:grid lg:grid-cols-4 lg:gap-8">
-          <div className="hidden lg:block lg:col-span-1">
-            <ProfileSidebar />
-          </div>
-          <div className="lg:col-span-3">
-            <ExchangeForm
-              order={order}
-              orderItemId={exchangeItemId}
-              onClose={() => {
-                setOrderView("detail");
-                setExchangeItemId(null);
-              }}
-              onSuccess={() => {
-                setOrderView("detail");
-                setExchangeItemId(null);
-                fetchOrderDetails();
-                toast.success("Exchange request submitted");
-              }}
-              showBackButton
-            />
-          </div>
-        </div>
-      </div>
+      <ExchangeForm
+        order={order}
+        orderItemId={exchangeItemId}
+        onClose={() => {
+          setOrderView("detail");
+          setExchangeItemId(null);
+        }}
+        onSuccess={() => {
+          setOrderView("detail");
+          setExchangeItemId(null);
+          fetchOrderDetails();
+          toast.success("Exchange request submitted");
+        }}
+        showBackButton
+      />
     );
   }
 
   // ── Detail view ────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-7xl mx-auto">
-      {/* Invoice error banner — inside the same container */}
+    <div>
+      {/* Invoice error banner */}
       {invoiceError && (
         <div className="px-4 sm:px-0 pt-4">
           <div className="flex items-center justify-between gap-3 bg-red-50 border border-red-200 text-red-700 text-xs px-4 py-2 rounded-lg">
@@ -359,31 +332,21 @@ export default function OrderDetailsPage() {
         </div>
       )}
 
-      <div className="lg:grid lg:grid-cols-4 lg:gap-8">
-        {/* Sidebar — desktop only */}
-        <div className="hidden lg:block lg:col-span-1">
-          <ProfileSidebar />
-        </div>
-
-        {/* Main content — single render for both mobile and desktop */}
-        <div className="lg:col-span-3">
-          <OrderDetailsContent
-            order={order}
-            onDownloadInvoice={downloadInvoice}
-            invoiceLoading={invoiceLoading}
-            onHelpClick={() => setHelpChatOpen(true)}
-            onReturnClick={handleReturnClick}
-            reviewedItemIds={reviewedItemIds}
-            onReviewSubmitted={(orderItemId, reviewInfo) => {
-              setReviewedItemIds((prev) => {
-                const next = new Set(prev);
-                next.add(orderItemId);
-                return next;
-              });
-            }}
-          />
-        </div>
-      </div>
+      <OrderDetailsContent
+        order={order}
+        onDownloadInvoice={downloadInvoice}
+        invoiceLoading={invoiceLoading}
+        onHelpClick={() => setHelpChatOpen(true)}
+        onReturnClick={handleReturnClick}
+        reviewedItemIds={reviewedItemIds}
+        onReviewSubmitted={(orderItemId, reviewInfo) => {
+          setReviewedItemIds((prev) => {
+            const next = new Set(prev);
+            next.add(orderItemId);
+            return next;
+          });
+        }}
+      />
 
       {/* Contextual Help Chat */}
       {orderId && (

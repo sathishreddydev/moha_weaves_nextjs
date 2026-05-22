@@ -42,7 +42,9 @@ export default function ProfileSidebar({ activeSection, onItemClick }: ProfileSi
   };
 
   const isActive = (href: string) => {
-    return pathname === href;
+    // Exact match for /my/details, /my/addresses, etc.
+    // startsWith match so child routes (e.g. /my/orders/123) highlight the parent tab
+    return pathname === href || pathname.startsWith(href + "/");
   };
 
   return (

@@ -89,7 +89,7 @@ export class ReturnStorage implements IReturnStorage {
         "return_cancelled",
     ] as const;
 
-    private async getReturnedQuantitiesByOrderItem(
+    async getReturnedQuantitiesByOrderItem(
         orderId: string
     ): Promise<Record<string, number>> {
         const rows = await db
