@@ -71,7 +71,6 @@
   }
 }
 
-
 @layer base {
   :root {
     /* Layout offset variables — updated dynamically by Header/OffersBanner via ResizeObserver */
@@ -132,6 +131,14 @@
 }
 
 @layer components {
+  * {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  *::-webkit-scrollbar {
+    display: none;
+  }
   /* Buttons */
   .btn {
     @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors
@@ -211,7 +218,6 @@
     -webkit-line-clamp: 2;
   }
 }
-
 
 .scrollbar-none {
   -ms-overflow-style: none;
