@@ -222,7 +222,7 @@ export default function OrderHistory() {
                   <div className="p-3 border-b border-gray-200 bg-gray-50">
                     <div className="flex flex-wrap justify-between items-center gap-4">
                       <div className="flex gap-6 flex-wrap">
-                        <div>
+                        <div className="hidden sm:block">
                           <p className="text-xs uppercase tracking-wider text-gray-500 font-bold mb-1">Order Placed</p>
                           <p className="text-xs font-semibold">
                             {formatDate(order.createdAt, "en-IN", { day: "numeric", month: "short", year: "numeric" })}
@@ -243,7 +243,7 @@ export default function OrderHistory() {
                           <p className="text-xs uppercase tracking-wider text-gray-500 font-bold">Shipping to:</p>
                           <ShippingAddress address={order.shippingAddress} />
                         </div>
-                        <div>
+                        <div className='hidden sm:block'>
                           <p className="text-xs uppercase tracking-wider text-gray-500 font-bold mb-1">Status</p>
                           <div className={`flex items-center gap-1 ${overallCfg.className}`}>
                             <OverallIcon className="w-3 h-3" />

@@ -93,7 +93,7 @@ export default function SearchComponent({
         setSearchHistory(history);
         // Show recent searches on initial load if no search query
         if (history.length > 0 && !searchParams?.get("search")) {
-          setSuggestions(getSearchHistorySlice(5));
+          setSuggestions(history.slice(0, 5));
           setShowSuggestions(true);
         }
       }
@@ -194,7 +194,10 @@ export default function SearchComponent({
   // Handle clearing input
   const handleClearInput = () => {
     setSearchQuery("");
+    setSuggestions([]);
+    setSearchResults([]);
     setShowSuggestions(false);
+    setShowNoResults(false);
   };
 
   // Handle deleting search history item
@@ -213,12 +216,15 @@ export default function SearchComponent({
 
   // Handle product click in search results
   const handleProductClick = (product: any) => {
+    setShowSuggestions(false);
+    setActiveMegaMenu?.(null);
     const productUrl = getProductUrl(product);
     router.push(productUrl);
   };
   // Handle history selection
   const handleHistorySelection = (query: string) => {
     setSearchQuery(query);
+    setShowSuggestions(false);
     debouncedSearch(query);
   };
   // Handle search submission
@@ -238,15 +244,8 @@ export default function SearchComponent({
       } catch (error) {
       }
 
-      // Create new URLSearchParams
-      const params = new URLSearchParams(searchParams?.toString());
-      params.set("search", searchQuery.trim());
-
-      // Navigate to collections page with search query
-      router.push(`/collections?${params.toString()}`);
-    } else {
-      // Navigate to collections page without search
-      router.push("/collections");
+      // Navigate to collections page with only the search param
+      router.push(`/collections?search=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
 

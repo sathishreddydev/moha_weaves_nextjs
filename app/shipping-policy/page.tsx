@@ -10,13 +10,13 @@ import {
 export default function ShippingPolicyPage() {
   return (
     <div>
-      <main className="max-w-5xl mx-auto">
+      <main className="max-w-5xl mx-auto space-y-12">
         {/* Simple Header */}
-        <header className="mb-8 md:mb-12 border-b border-slate-100 pb-6 md:pb-8">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-2">
+        <header className="border-b border-slate-100 pb-8">
+          <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
             Shipping Policy
           </h1>
-          <p className="text-slate-500 text-sm leading-relaxed max-w-xl">
+          <p className="text-slate-500 text-xs leading-relaxed max-w-xl">
             Our commitment to delivering your orders safely and transparently across India.
           </p>
         </header>

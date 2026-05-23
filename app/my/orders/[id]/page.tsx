@@ -629,8 +629,8 @@ function OrderDetailsContent({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <span className="text-[10px] font-bold text-blue-600 uppercase leading-none">
+                <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                  <span className="text-[10px] font-bold text-gray-600 uppercase leading-none">
                     {order.paymentDetails.method?.slice(0, 2) || "PA"}
                   </span>
                 </div>

@@ -1,78 +1,42 @@
-"use client";
 import {
   ArrowRight,
-  CheckCircle2,
+  Mail,
   MapPin,
   MessageCircle,
   Phone,
   Truck,
 } from "lucide-react";
-import { useState } from "react";
 
 export default function ContactPage() {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    subject: "",
-    message: "",
-  });
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = (e: any) => {
-    e.preventDefault();
-    setSubmitted(true);
-  };
-
-  if (submitted) {
-    return (
-      <div className="flex items-center justify-center p-6 text-center">
-        <div className="max-w-md">
-          <CheckCircle2 className="w-12 h-12 text-slate-900 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-slate-900 mb-2">
-            Message Received
-          </h1>
-          <p className="text-slate-500 text-sm mb-8 leading-relaxed">
-            Thank you for reaching out. Our support team will respond to your
-            inquiry via email within 24 hours.
-          </p>
-          <button
-            onClick={() => setSubmitted(false)}
-            className="text-sm font-bold uppercase tracking-widest border-b border-slate-900 pb-1 hover:text-slate-500 hover:border-slate-500 transition-all"
-          >
-            Go Back
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div>
       <main className="max-w-5xl mx-auto space-y-12">
-        <header className="border-b border-slate-100 pb-8 max-w-3xl">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-2">
-            Contact Support
+        <header className="border-b border-slate-100 pb-8">
+          <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
+            Contact Us
           </h1>
-          <p className="text-slate-500 text-sm leading-relaxed">
-            Choose your preferred method of contact. We're here to help you
-            Monday through Saturday.
+          <p className="text-slate-500 text-xs leading-relaxed">
+            We&apos;re here to help you Monday through Saturday, 10:00 — 18:30 Hrs.
           </p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-y-12 gap-x-12 max-w-5xl border-b border-slate-100 pb-8">
+        {/* Contact Methods */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-y-12 gap-x-12 border-b border-slate-100 pb-8">
           {/* WhatsApp */}
           <div className="group">
             <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-900 mb-3 flex items-center gap-2">
               <MessageCircle className="w-4 h-4 text-slate-400" /> WhatsApp
             </h2>
-            <p className="text-sm text-slate-500 mb-4 leading-relaxed">
+            <p className="text-xs text-slate-500 mb-4 leading-relaxed">
               Chat with our support team — no bots, just helpful humans.
             </p>
             <a
-              href="#"
-              className="inline-flex items-center gap-2 text-sm font-bold text-slate-900 hover:gap-3 transition-all"
+              href="https://wa.me/917498476544"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-xs font-bold text-slate-900 hover:gap-3 transition-all"
             >
-              Let's chat <ArrowRight className="w-4 h-4" />
+              Let&apos;s chat <ArrowRight className="w-3.5 h-3.5" />
             </a>
           </div>
 
@@ -81,123 +45,72 @@ export default function ContactPage() {
             <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-900 mb-3 flex items-center gap-2">
               <Phone className="w-4 h-4 text-slate-400" /> Call Us
             </h2>
-            <p className="text-sm text-slate-500 mb-1 leading-relaxed">
+            <p className="text-xs text-slate-500 mb-1 leading-relaxed">
               Mon — Sat | 10:00 — 18:30 Hrs
             </p>
-            <p className="text-sm font-bold text-slate-900 mb-4">
+            <p className="text-xs font-bold text-slate-900 mb-4">
               +91 74984 76544
             </p>
             <a
               href="tel:+917498476544"
-              className="inline-flex items-center gap-2 text-sm font-bold text-slate-900 hover:gap-3 transition-all"
+              className="inline-flex items-center gap-2 text-xs font-bold text-slate-900 hover:gap-3 transition-all"
             >
-              Call Now <ArrowRight className="w-4 h-4" />
+              Call Now <ArrowRight className="w-3.5 h-3.5" />
             </a>
           </div>
 
-          {/* Track Order */}
+          {/* Email */}
           <div>
             <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-900 mb-3 flex items-center gap-2">
-              <Truck className="w-4 h-4 text-slate-400" /> Track Order
+              <Mail className="w-4 h-4 text-slate-400" /> Email
             </h2>
-            <p className="text-sm text-slate-500 mb-4 leading-relaxed">
-              Track your order seamlessly, every step of the way.
+            <p className="text-xs text-slate-500 mb-1 leading-relaxed">
+              We respond within 24 hours.
+            </p>
+            <p className="text-xs font-bold text-slate-900 mb-4">
+              care@mohaweaves.com
             </p>
             <a
-              href="#"
-              className="inline-flex items-center gap-2 text-sm font-bold text-slate-900 hover:gap-3 transition-all"
+              href="mailto:care@mohaweaves.com"
+              className="inline-flex items-center gap-2 text-xs font-bold text-slate-900 hover:gap-3 transition-all"
             >
-              Track <ArrowRight className="w-4 h-4" />
+              Send Email <ArrowRight className="w-3.5 h-3.5" />
             </a>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
-          <div className="lg:col-span-4">
-            <h2 className="text-sm font-bold uppercase tracking-widest text-slate-900 mb-8">
-              Our Location
+        {/* Track Order + Location */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 border-b border-slate-100 pb-8">
+          {/* Track Order */}
+          <div>
+            <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-900 mb-3 flex items-center gap-2">
+              <Truck className="w-4 h-4 text-slate-400" /> Track Your Order
             </h2>
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400 mb-3 flex items-center gap-2">
-                  <MapPin className="w-3 h-3" /> Registered Office
-                </h3>
-                <p className="text-sm text-slate-600 leading-relaxed font-light">
-                  Moha Weaves Atelier, <br />
-                  Indiranagar, 2nd Stage, <br />
-                  Bangalore, Karnataka — 560038
-                </p>
-              </div>
-              <div className="pt-4">
-                <p className="text-xs text-slate-400 leading-relaxed italic">
-                  Note: Visits are by appointment only to ensure we can give you
-                  our full attention.
-                </p>
-              </div>
-            </div>
+            <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+              Log into your account to track your order in real-time. Once
+              dispatched, you&apos;ll receive a tracking link via email and SMS.
+            </p>
+            <a
+              href="/my/orders"
+              className="inline-flex items-center gap-2 text-xs font-bold text-slate-900 hover:gap-3 transition-all"
+            >
+              View Orders <ArrowRight className="w-3.5 h-3.5" />
+            </a>
           </div>
-          <div className="lg:col-span-8">
-            <h2 className="text-sm font-bold uppercase tracking-widest text-slate-900 mb-8">
-              Get in Touch
+
+          {/* Location */}
+          <div>
+            <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-900 mb-3 flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-slate-400" /> Our Location
             </h2>
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    className="w-full border-b border-slate-200 py-2 focus:border-slate-900 outline-none transition-colors text-sm"
-                    placeholder="Your name"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
-                    Email Address *
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    className="w-full border-b border-slate-200 py-2 focus:border-slate-900 outline-none transition-colors text-sm"
-                    placeholder="email@example.com"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
-                  Subject *
-                </label>
-                <select className="w-full border-b border-slate-200 py-2 focus:border-slate-900 outline-none transition-colors text-sm bg-transparent appearance-none">
-                  <option>Order Inquiry</option>
-                  <option>Returns & Exchanges</option>
-                  <option>Wholesale</option>
-                  <option>Other</option>
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
-                  Message *
-                </label>
-                <textarea
-                  required
-                  rows={4}
-                  className="w-full border-b border-slate-200 py-2 focus:border-slate-900 outline-none transition-colors text-sm resize-none"
-                  placeholder="How can we help?"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full md:w-auto px-12 py-4 bg-slate-900 text-white text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-slate-800 transition-colors"
-              >
-                Send Message
-              </button>
-            </form>
+            <p className="text-xs text-slate-600 leading-relaxed mb-2">
+              Moha Weaves Atelier, <br />
+              Indiranagar, 2nd Stage, <br />
+              Bangalore, Karnataka — 560038
+            </p>
+            <p className="text-[10px] text-slate-400 leading-relaxed italic">
+              Visits are by appointment only.
+            </p>
           </div>
         </div>
       </main>

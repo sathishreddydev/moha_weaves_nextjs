@@ -27,7 +27,10 @@ import {
   X,
   ZoomIn,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
+
+const ReactPlayer = dynamic(() => import("react-player"), { ssr: false });
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -115,7 +118,8 @@ export default function ProductDetailClient({
   const isVideo =
     currentImage?.includes(".mp4") ||
     currentImage?.includes(".webm") ||
-    currentImage?.includes(".mov");
+    currentImage?.includes(".mov") ||
+    currentImage?.includes("/video/upload/");
 
   const handleWishlistToggle = async () => {
     try {
@@ -315,7 +319,8 @@ export default function ProductDetailClient({
                     const isVideoThumb =
                       item?.includes(".mp4") ||
                       item?.includes(".webm") ||
-                      item?.includes(".mov");
+                      item?.includes(".mov") ||
+                      item?.includes("/video/upload/");
                     return (
                       <button
                         key={index}
@@ -336,7 +341,8 @@ export default function ProductDetailClient({
                               src={item}
                               className="w-full h-full object-cover"
                               muted
-                              onLoadStart={() => setIsImageLoading(false)}
+                              playsInline
+                              preload="metadata"
                             />
                             <div className="absolute inset-0 flex items-center justify-center bg-black/30">
                               <Play className="h-6 w-6 text-white fill-current" />
@@ -360,28 +366,32 @@ export default function ProductDetailClient({
               {/* Main Image */}
               <div className="order-1 lg:order-2 lg:flex-1">
                 <div
-                  className="relative aspect-square bg-white rounded-lg overflow-hidden cursor-zoom-in group"
-                  onMouseMove={handleImageMouseMove}
-                  onClick={handleImageClick}
-                  onTouchStart={onTouchStart}
-                  onTouchMove={onTouchMove}
-                  onTouchEnd={onTouchEnd}
+                  className={`relative aspect-square bg-white rounded-lg overflow-hidden group ${isVideo ? '' : 'cursor-zoom-in'}`}
+                  onMouseMove={isVideo ? undefined : handleImageMouseMove}
+                  onClick={isVideo ? undefined : handleImageClick}
+                  onTouchStart={isVideo ? undefined : onTouchStart}
+                  onTouchMove={isVideo ? undefined : onTouchMove}
+                  onTouchEnd={isVideo ? undefined : onTouchEnd}
                   role="button"
-                  aria-label="Click to zoom image"
+                  aria-label={isVideo ? "Product video" : "Click to zoom image"}
                   tabIndex={0}
                 >
                   {isImageLoading && !isVideo && (
                     <div className="absolute inset-0 bg-gray-200 animate-pulse" />
                   )}
                   {isVideo ? (
-                    <video
+                    <ReactPlayer
+                      key={currentImage}
                       src={currentImage}
-                      className="w-full h-full object-cover"
-                      controls
+                      width="100%"
+                      height="100%"
+                      playing
                       playsInline
                       muted
                       loop
-                      onLoadStart={() => setIsImageLoading(false)}
+                      controls
+                      style={{ position: 'absolute', top: 0, left: 0 }}
+                      onReady={() => setIsImageLoading(false)}
                     />
                   ) : (
                     <Image

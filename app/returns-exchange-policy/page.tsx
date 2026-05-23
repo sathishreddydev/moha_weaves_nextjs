@@ -12,14 +12,14 @@ export default function ReturnsPolicyPage() {
     <div>
       <main className="max-w-5xl mx-auto space-y-12">
         {/* Minimalist Centered Header */}
-        <header className="border-b border-slate-100 pb-8 max-w-3xl">
+        <header className="border-b border-slate-100 pb-8">
           {/* <h2 className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400 mb-4">
             Service Policy
           </h2> */}
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-6">
+          <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
             Returns & Exchanges
           </h1>
-          <p className="text-slate-500 text-sm leading-relaxed">
+          <p className="text-slate-500 text-xs leading-relaxed">
             Every Moha Weaves creation is a labor of love. If your piece isn't
             perfect for you, we offer a streamlined return and exchange process
             to ensure your satisfaction.

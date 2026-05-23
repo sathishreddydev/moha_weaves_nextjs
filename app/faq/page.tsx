@@ -191,17 +191,17 @@ export default function FAQsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white font-sans text-slate-800 antialiased">
+    <div>
       <main className="max-w-5xl mx-auto space-y-12">
         {/* Header */}
-        <header className="border-b border-slate-100 pb-8 max-w-3xl">
+        <header className="border-b border-slate-100 pb-8">
           <h2 className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400 mb-2">
             Support Center
           </h2>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-4">
+          <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
             Frequently Asked Questions
           </h1>
-          <p className="text-slate-500 text-sm leading-relaxed">
+          <p className="text-slate-500 text-xs leading-relaxed">
             A comprehensive guide to Moha Weaves services. From order tracking
             to artisanal care, find everything you need to know below.
           </p>

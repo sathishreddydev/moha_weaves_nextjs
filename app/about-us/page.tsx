@@ -13,30 +13,32 @@ export const metadata: Metadata = {
 export default function AboutUsPage() {
   return (
     <div>
-      <header className="mb-8 md:mb-12 border-b border-slate-100 pb-6 md:pb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-2">
-          About Moha Weaves
-        </h1>
-        <p className="text-slate-500 text-sm leading-relaxed max-w-xl">
-          Celebrating India's textile heritage through handcrafted sarees that
-          blend tradition with contemporary style.
-        </p>
-      </header>
-      {/* Our Story Section */}
-      <section className="p-4">
-        <div className="max-w-4xl mx-auto">
+      <main className="max-w-5xl mx-auto space-y-12">
+        {/* Header */}
+        <header className="border-b border-slate-100 pb-8">
+          <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
+            About Moha Weaves
+          </h1>
+          <p className="text-slate-500 text-xs leading-relaxed max-w-xl">
+            Celebrating India&apos;s textile heritage through handcrafted sarees that
+            blend tradition with contemporary style.
+          </p>
+        </header>
+
+        {/* Our Story Section */}
+        <section>
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight text-slate-900 mb-2">
+              <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-900 mb-2">
                 Our Story
               </h2>
-              <p className="text-sm text-gray-700 leading-relaxed mb-4">
+              <p className="text-xs text-gray-700 leading-relaxed mb-4">
                 Founded in 2020, Moha Weaves was born from a passion for
-                preserving India's centuries-old textile traditions. We work
+                preserving India&apos;s centuries-old textile traditions. We work
                 directly with skilled artisans across India to bring authentic
                 handcrafted sarees to contemporary fashion enthusiasts.
               </p>
-              <p className="text-sm text-gray-700 leading-relaxed">
+              <p className="text-xs text-gray-700 leading-relaxed">
                 Our name represents the love and devotion that goes into every
                 thread, symbolizing our commitment to honoring heritage while
                 embracing modern sensibilities.
@@ -53,17 +55,15 @@ export default function AboutUsPage() {
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Mission Section */}
-      <section className="p-4 bg-gray-50">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl font-bold tracking-tight text-slate-900 mb-2">
+        {/* Mission Section */}
+        <section>
+          <div className="text-center mb-8">
+            <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-900 mb-2">
               Our Mission
             </h2>
-            <p className="text-sm text-gray-700 max-w-2xl mx-auto">
+            <p className="text-xs text-gray-700 max-w-2xl mx-auto">
               Preserving traditional craftsmanship while supporting artisan
               communities
             </p>
@@ -74,7 +74,7 @@ export default function AboutUsPage() {
               <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mx-auto">
                 <BookOpen className="w-6 h-6 text-gray-700" />
               </div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-1">
+              <h3 className="text-xs font-semibold text-gray-900 mb-1">
                 Preserve Heritage
               </h3>
               <p className="text-gray-600 text-xs">
@@ -85,9 +85,9 @@ export default function AboutUsPage() {
 
             <div className="text-center p-6 bg-white rounded-lg border">
               <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mx-auto">
-               <Globe className="w-6 h-6 text-gray-700" />
+                <Globe className="w-6 h-6 text-gray-700" />
               </div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-1">
+              <h3 className="text-xs font-semibold text-gray-900 mb-1">
                 Sustainable Fashion
               </h3>
               <p className="text-gray-600 text-xs">
@@ -99,7 +99,7 @@ export default function AboutUsPage() {
               <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mx-auto">
                 <Users className="w-6 h-6 text-gray-700" />
               </div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-1">
+              <h3 className="text-xs font-semibold text-gray-900 mb-1">
                 Empower Artisans
               </h3>
               <p className="text-gray-600 text-xs">
@@ -107,42 +107,38 @@ export default function AboutUsPage() {
               </p>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Stats Section */}
-      <section className="py-12 px-4">
-        <div className="max-w-4xl mx-auto">
+        {/* Stats Section */}
+        <section className="border-b border-slate-100 pb-8">
           <div className="grid md:grid-cols-4 gap-6 text-center">
             <div>
-              <div className="text-3xl font-bold text-gray-900 mb-1">200+</div>
-              <div className="text-gray-600">Artisan Families</div>
+              <div className="text-lg font-bold text-gray-900 mb-1">200+</div>
+              <div className="text-xs text-gray-600">Artisan Families</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-gray-900 mb-1">15+</div>
-              <div className="text-gray-600">Weaving Traditions</div>
+              <div className="text-lg font-bold text-gray-900 mb-1">15+</div>
+              <div className="text-xs text-gray-600">Weaving Traditions</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-gray-900 mb-1">
+              <div className="text-lg font-bold text-gray-900 mb-1">
                 10,000+
               </div>
-              <div className="text-gray-600">Happy Customers</div>
+              <div className="text-xs text-gray-600">Happy Customers</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-gray-900 mb-1">25+</div>
-              <div className="text-gray-600">States Served</div>
+              <div className="text-lg font-bold text-gray-900 mb-1">25+</div>
+              <div className="text-xs text-gray-600">States Served</div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Contact CTA */}
-      <section className="p-4 bg-gray-50">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900 mb-2">
+        {/* Contact CTA */}
+        <section className="text-center">
+          <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-900 mb-2">
             Join Our Journey
           </h2>
-          <p className="text-sm text-gray-700 mb-8 max-w-2xl mx-auto">
+          <p className="text-xs text-gray-700 mb-8 max-w-2xl mx-auto">
             Explore our collection of handcrafted sarees and support traditional
             craftsmanship.
           </p>
@@ -154,8 +150,8 @@ export default function AboutUsPage() {
               <Link href="/contact">Contact Us</Link>
             </Button>
           </div>
-        </div>
-      </section>
+        </section>
+      </main>
     </div>
   );
 }
