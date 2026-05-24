@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { formatPrice } from "@/lib/formatters";
 import { useState } from "react";
-import { ArrowRight, ChevronDown, Truck, X } from "lucide-react";
+import { ArrowRight, ChevronUp, Minus, Plus, Truck } from "lucide-react";
+import Image from "next/image";
 import { getProductUrl } from "@/lib/utils/productUrl";
 import { CartItemStockStatus } from "@/lib/stores/cartStore";
 import { getAvailableStock } from "@/lib/stock-utils";
@@ -53,9 +54,13 @@ export default function MobileCartView({
     updating: wishlistUpdating,
   } = useWishlistStore();
 
-  const subtotal = calculateTotal();
-  const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 50;
-  const total = subtotal + shipping;
+  const discountedTotal = calculateTotal();
+
+  // Subtotal = sum of original (MRP) prices × quantity
+  const subtotal = items.reduce((sum: number, item: any) => {
+    const orig = parseFloat(item.product.price || "0");
+    return sum + orig * item.quantity;
+  }, 0);
 
   const totalSavings = items.reduce((sum: number, item: any) => {
     const orig = parseFloat(item.product.price || "0");
@@ -63,32 +68,15 @@ export default function MobileCartView({
     return sum + (orig - effective) * item.quantity;
   }, 0);
 
+  const shipping = discountedTotal >= FREE_SHIPPING_THRESHOLD ? 0 : 50;
+  const total = discountedTotal + shipping;
+
   const checkoutDisabled = hasStockIssues;
 
   return (
     <div className="lg:hidden">
-      {/* Header */}
-      <div className="mb-4 p-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Cart ({items.length})
-          </h2>
-          {items.length > 0 && (
-            <Button
-              onClick={clearCart}
-              disabled={updating === "all"}
-              variant="outline"
-              size="sm"
-              className="active:scale-95 transition-transform"
-            >
-              {updating === "all" ? "Clearing..." : "Clear"}
-            </Button>
-          )}
-        </div>
-      </div>
-
       {/* Cart Items */}
-      <div className="space-y-4 mb-20">
+      <div className="divide-y divide-gray-100 mb-44">
         {items.map((item) => {
           const orig = parseFloat(item.product.price || "0");
           const effectivePrice = getEffectivePrice(item.product);
@@ -107,141 +95,134 @@ export default function MobileCartView({
           return (
             <div
               key={item.id}
-              className={`bg-white rounded-lg shadow p-4 relative ${
-                isOutOfStock ? "opacity-70 border border-red-200" : ""
-              }`}
+              className={`px-4 py-5 ${isOutOfStock ? "opacity-60" : ""}`}
             >
-              {/* Remove Button - Top Right */}
-              <Button
-                variant="link"
-                size="icon"
-                onClick={() => removeFromCart(item.id)}
-                disabled={updating === item.id}
-                className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
-                aria-label="Remove item"
-              >
-                <X className="w-4 h-4 text-gray-500 hover:text-red-600" />
-              </Button>
-
-              <div className="flex space-x-4">
+              <div className="flex gap-4">
                 {/* Product Image */}
-                <div className="flex-shrink-0 w-20 h-20 bg-gray-100 rounded-lg overflow-hidden relative">
-                  {firstImage ? (
-                    <img
-                      src={firstImage}
-                      alt={item.product.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                      <span className="text-xs text-gray-500">No image</span>
+                <div className="flex-shrink-0 relative">
+                  <Link href={getProductUrl(item.product)} className="block">
+                    <div className="w-16 h-20 bg-gray-50 rounded overflow-hidden relative">
+                      {firstImage ? (
+                        <Image
+                          src={firstImage}
+                          alt={item.product.name}
+                          fill
+                          sizes="64px"
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400">
+                          <span className="text-[10px]">No image</span>
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {/* Out of Stock overlay on image */}
+                  </Link>
                   {isOutOfStock && (
-                    <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
-                      <span className="text-[10px] font-semibold text-red-600 bg-white/90 px-1 py-0.5 rounded text-center leading-tight">
-                        Out of Stock
+                    <div className="absolute inset-0 bg-white/70 rounded flex items-center justify-center">
+                      <span className="text-[9px] font-semibold text-red-600 bg-white px-1.5 py-0.5 rounded">
+                        Sold out
                       </span>
                     </div>
                   )}
                 </div>
 
                 {/* Product Details */}
-                <div className="flex-1 min-w-0 pr-8">
-                  <h3 className="font-medium text-gray-900 mb-1">
-                    <Link
-                      href={getProductUrl(item.product)}
-                      className="hover:text-blue-600"
-                    >
-                      {item.product.name}
-                    </Link>
-                  </h3>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1 min-w-0 pr-2">
+                      <h3 className="text-sm font-medium text-gray-900 leading-snug truncate">
+                        <Link
+                          href={getProductUrl(item.product)}
+                          className="hover:underline"
+                        >
+                          {item.product.name}
+                        </Link>
+                      </h3>
+                      {variantInfo && (
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {variantInfo.size}
+                        </p>
+                      )}
+                    </div>
+                    <span className="text-sm font-medium text-gray-900 whitespace-nowrap">
+                      {formatPrice(effectivePrice * item.quantity)}
+                    </span>
+                  </div>
 
-                  <div className="space-y-1 mb-2">
-                    {variantInfo && (
-                      <p className="text-xs text-gray-600">
-                        Size: {variantInfo.size}
-                      </p>
-                    )}
-                    {item.product.category && (
-                      <p className="text-xs text-gray-600">
-                        {item.product.category.name}
-                      </p>
+                  {/* Price */}
+                  <div className="mt-1">
+                    {hasDiscount ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-gray-900">
+                          {formatPrice(effectivePrice)}
+                        </span>
+                        <span className="text-xs text-gray-400 line-through">
+                          {formatPrice(orig)}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-500">
+                        {formatPrice(effectivePrice)} each
+                      </span>
                     )}
                   </div>
 
                   {/* Stock badges */}
-                  <div className="flex flex-wrap gap-1 mb-2">
-                    {isOutOfStock && (
-                      <Badge className="text-xs bg-red-100 text-red-700 border-red-300 hover:bg-red-100">
-                        Out of Stock
-                      </Badge>
-                    )}
-                    {isLimitedStock && !isOutOfStock && (
-                      <Badge className="text-xs bg-amber-100 text-amber-700 border-amber-300 hover:bg-amber-100">
-                        Only {effectiveAvailableStock} left
-                      </Badge>
-                    )}
-                  </div>
+                  {isOutOfStock && (
+                    <Badge className="mt-1.5 text-[10px] bg-red-50 text-red-600 border-red-200 hover:bg-red-50">
+                      Out of stock
+                    </Badge>
+                  )}
+                  {isLimitedStock && !isOutOfStock && (
+                    <Badge className="mt-1.5 text-[10px] bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-50">
+                      Only {effectiveAvailableStock} left
+                    </Badge>
+                  )}
 
-                  <div className="flex items-center space-x-1">
-                    {hasDiscount ? (
-                      <>
-                        <span className="font-medium text-red-600">
-                          {formatPrice(effectivePrice)}
-                        </span>
-                        <span className="text-xs text-gray-500 line-through">
-                          {formatPrice(orig)}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="font-medium text-gray-900">
-                        {formatPrice(effectivePrice)}
+                  {/* Quantity + Remove */}
+                  <div className="flex items-center justify-between mt-3">
+                    <div className="flex items-center border border-gray-300 rounded">
+                      <button
+                        onClick={() =>
+                          updateQuantity(item.id, item.quantity - 1)
+                        }
+                        disabled={
+                          updating === item.id ||
+                          item.quantity <= 1 ||
+                          isOutOfStock
+                        }
+                        className="w-8 h-8 flex items-center justify-center text-gray-600 disabled:opacity-30 active:bg-gray-100"
+                        aria-label="Decrease quantity"
+                      >
+                        <Minus className="w-3 h-3" />
+                      </button>
+                      <span className="w-8 text-center text-sm font-medium text-gray-900 border-x border-gray-300 leading-8">
+                        {item.quantity}
                       </span>
-                    )}
-                  </div>
-                </div>
-              </div>
+                      <button
+                        onClick={() =>
+                          updateQuantity(item.id, item.quantity + 1)
+                        }
+                        disabled={
+                          updating === item.id ||
+                          isOutOfStock ||
+                          item.quantity >= effectiveAvailableStock
+                        }
+                        className="w-8 h-8 flex items-center justify-center text-gray-600 disabled:opacity-30 active:bg-gray-100"
+                        aria-label="Increase quantity"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
 
-              {/* Quantity and Total Controls */}
-              <div className="mt-4 pt-4 border-t flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-600">Qty:</span>
-                  <div className="flex items-center space-x-1">
-                    <Button
-                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                      disabled={
-                        updating === item.id ||
-                        item.quantity <= 1 ||
-                        isOutOfStock
-                      }
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 active:scale-95 transition-transform"
+                    <button
+                      onClick={() => removeFromCart(item.id)}
+                      disabled={updating === item.id}
+                      className="text-xs text-gray-500 underline underline-offset-2 hover:text-gray-900 disabled:opacity-50"
                     >
-                      -
-                    </Button>
-                    <span className="w-8 text-center text-sm font-medium">
-                      {item.quantity}
-                    </span>
-                    <Button
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      disabled={
-                        updating === item.id ||
-                        isOutOfStock ||
-                        item.quantity >= effectiveAvailableStock
-                      }
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 active:scale-95 transition-transform"
-                    >
-                      +
-                    </Button>
+                      Remove
+                    </button>
                   </div>
-                </div>
-                <div className="font-medium text-gray-900">
-                  {formatPrice(effectivePrice * item.quantity)}
                 </div>
               </div>
             </div>
@@ -249,106 +230,102 @@ export default function MobileCartView({
         })}
       </div>
 
-      {/* Mobile Order Summary - Fixed Bottom */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg lg:hidden z-40">
-        <div className="p-4">
-          {/* Toggle Summary */}
+      {/* Fixed Bottom Checkout Bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] lg:hidden z-40">
+        <div className="px-4 py-4">
+          {/* Expandable Summary */}
           <button
             onClick={() => setShowSummary(!showSummary)}
-            className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-lg mb-3 touch-manipulation active:scale-[0.98] transition-transform"
+            className="w-full flex items-center justify-between mb-3"
           >
-            <span className="font-medium text-gray-900">Order Summary</span>
-            <div className="flex items-center space-x-2">
-              {!showSummary && (
-                <span className="font-semibold text-lg">
-                  {formatPrice(total)}
-                </span>
-              )}
-              <ChevronDown
-                className={`w-5 h-5 text-gray-600 transform transition-transform ${
-                  showSummary ? "rotate-180" : ""
+            <span className="text-sm text-gray-600 flex items-center gap-1">
+              Order Summary
+              <ChevronUp
+                className={`w-4 h-4 transition-transform ${
+                  showSummary ? "" : "rotate-180"
                 }`}
               />
-            </div>
+            </span>
+            {!showSummary && (
+              <span className="text-base font-semibold text-gray-900">
+                {formatPrice(total)}
+              </span>
+            )}
           </button>
 
-          {/* Expanded Summary */}
           {showSummary && (
-            <div className="bg-gray-50 rounded-lg p-3 mb-3 space-y-2">
-              {totalSavings > 0 && (
-                <Badge className="mb-1 bg-green-100 text-green-700 border-green-200 hover:bg-green-100 font-medium">
-                  You save {formatPrice(totalSavings)}
-                </Badge>
-              )}
+            <div className="space-y-2 mb-4 pb-3 border-b border-gray-100">
               <div className="flex justify-between text-sm text-gray-600">
                 <span>Subtotal</span>
-                <span className="font-medium text-gray-900">
+                <span className="text-gray-900 font-medium">
                   {formatPrice(subtotal)}
                 </span>
               </div>
               {totalSavings > 0 && (
                 <div className="flex justify-between text-sm text-green-600">
-                  <span>Item savings</span>
-                  <span>-{formatPrice(totalSavings)}</span>
+                  <span>Discount</span>
+                  <span className="font-medium">
+                    -{formatPrice(totalSavings)}
+                  </span>
                 </div>
               )}
               <div className="flex justify-between text-sm text-gray-600">
                 <span className="flex items-center gap-1">
-                  <Truck className="w-3.5 h-3.5" />
+                  <Truck className="w-3 h-3" />
                   Shipping
                 </span>
                 <span
                   className={
                     shipping === 0
-                      ? "font-medium text-green-600"
-                      : "font-medium text-gray-900"
+                      ? "text-green-600 font-medium"
+                      : "text-gray-900 font-medium"
                   }
                 >
-                  {shipping === 0 ? "FREE" : formatPrice(shipping)}
+                  {shipping === 0 ? "Free" : formatPrice(shipping)}
                 </span>
               </div>
               {shipping > 0 && (
-                <p className="text-xs text-green-600">
-                  Add {formatPrice(FREE_SHIPPING_THRESHOLD - subtotal)} more for
-                  free shipping
+                <p className="text-xs text-gray-400">
+                  Free shipping on orders over{" "}
+                  {formatPrice(FREE_SHIPPING_THRESHOLD)}
                 </p>
               )}
-              <div className="border-t pt-2 mt-2">
-                <div className="flex justify-between font-semibold">
-                  <span>Total</span>
-                  <span>{formatPrice(total)}</span>
-                </div>
+              <div className="flex justify-between pt-2 border-t border-gray-100">
+                <span className="text-sm font-semibold text-gray-900">
+                  Total
+                </span>
+                <span className="text-base font-semibold text-gray-900">
+                  {formatPrice(total)}
+                </span>
               </div>
+              <p className="text-[11px] text-gray-400">
+                Tax included. Shipping calculated at checkout.
+              </p>
             </div>
           )}
 
           {/* Stock issue warning */}
           {checkoutDisabled && (
             <p className="text-xs text-red-600 mb-2 text-center">
-              Some items are unavailable. Please review your cart.
+              Some items are unavailable. Please update your cart.
             </p>
           )}
 
           {/* Checkout Button */}
           {isGuest ? (
-            <Button
-              asChild
-              className="w-full h-12 active:scale-95 transition-transform"
-              size="lg"
-            >
-              <Link href="/login?redirect=/checkout">Sign In to Checkout</Link>
+            <Button asChild className="w-full h-12 text-sm font-medium">
+              <Link href="/login?redirect=/checkout">Sign in to Checkout</Link>
             </Button>
           ) : (
             <Button
               asChild={!checkoutDisabled}
               disabled={checkoutDisabled}
-              className="w-full h-12 active:scale-95 transition-transform"
-              size="lg"
+              className="w-full h-12 text-sm font-medium"
             >
               {checkoutDisabled ? (
-                <span>Proceed to Checkout</span>
+                <span>Checkout</span>
               ) : (
-                <Link href="/checkout">Proceed to Checkout</Link>
+                <Link href="/checkout">Checkout</Link>
               )}
             </Button>
           )}
@@ -357,14 +334,14 @@ export default function MobileCartView({
 
       {/* Related Products */}
       {relatedProducts.length > 0 && (
-        <div className="mt-10 mb-4 px-4">
-          <div className="flex items-center justify-between mb-4">
+        <div className="mt-10 mb-4 px-4 border-t border-gray-200 pt-8">
+          <div className="flex items-center justify-between mb-5">
             <h2 className="font-serif tracking-wide text-lg">
               You May Also Like
             </h2>
             <Link
               href={`/collections/${categoryName}`}
-              className="inline-flex items-center text-[10px] font-bold uppercase tracking-[0.2em] border-b border-black pb-1 transition-all"
+              className="inline-flex items-center text-[10px] font-bold uppercase tracking-[0.2em] border-b border-black pb-1 transition-all hover:opacity-70"
             >
               <span>View All</span>
               <ArrowRight className="ml-1 h-3 w-3" />

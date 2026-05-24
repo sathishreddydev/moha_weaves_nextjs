@@ -2,20 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatPrice } from "@/lib/formatters";
-import { Tag, Search } from "lucide-react";
-import { toast } from "sonner";
+import { Tag, ChevronRight } from "lucide-react";
 import AllCouponsModal from "./AllCouponsModal";
 import {
   Coupon,
   getCouponDisplay,
   getCouponIcon,
-  getCouponColor,
   isExpiringSoon,
   getCouponStatus,
-  getCouponStatusBadge,
   getDiscountValue,
 } from "./couponUtils";
 
@@ -55,7 +50,7 @@ export default function AvailableCoupons({
       setAvailableCoupons(sortedAvailable);
       setUsedCoupons(sortedUsed);
     } catch (error) {
-      // Coupon fetch failure is non-critical — silently ignore so checkout is unblocked
+      // Non-critical — silently ignore so checkout is unblocked
     } finally {
       setLoading(false);
     }
@@ -63,19 +58,16 @@ export default function AvailableCoupons({
 
   const sortCouponsByBest = (couponList: Coupon[]): Coupon[] => {
     return couponList.sort((a, b) => {
-      // Priority 1: Expiring soon (within 3 days)
       const aExpiringSoon = isExpiringSoon(a.validUntil);
       const bExpiringSoon = isExpiringSoon(b.validUntil);
       if (aExpiringSoon && !bExpiringSoon) return -1;
       if (!aExpiringSoon && bExpiringSoon) return 1;
 
-      // Priority 2: Higher discount value
       const aDiscountValue = getDiscountValue(a, orderAmount);
       const bDiscountValue = getDiscountValue(b, orderAmount);
       if (bDiscountValue > aDiscountValue) return 1;
       if (aDiscountValue > bDiscountValue) return -1;
 
-      // Priority 3: Newer coupons
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
   };
@@ -84,18 +76,16 @@ export default function AvailableCoupons({
     onCouponSelect(couponCode);
   };
 
-  
   if (loading) {
     return (
       <div className="space-y-2">
         {[1, 2].map((i) => (
-          <div key={i} className="animate-pulse h-16 bg-muted rounded-lg" />
+          <div key={i} className="animate-pulse h-14 bg-gray-100 rounded-lg" />
         ))}
       </div>
     );
   }
 
-  // No coupons at all — hide the section entirely
   if (availableCoupons.length === 0) {
     return null;
   }
@@ -104,97 +94,75 @@ export default function AvailableCoupons({
   const bestCoupon = availableCoupons[0];
   const hasMoreCoupons = allCoupons.length > 1;
 
-  // Get coupon status for best coupon
   const bestCouponStatus = getCouponStatus(bestCoupon, usedCoupons, orderAmount);
   const isBestCouponDisabled = bestCouponStatus !== "available";
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Tag className="h-5 w-5" />
-            Best Coupon Available
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-            <div className="flex items-start justify-between">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge className={getCouponColor(bestCoupon.type)}>
-                    {getCouponIcon(bestCoupon.type)}
-                    <span className="ml-1">{getCouponDisplay(bestCoupon)}</span>
-                  </Badge>
-                  {isExpiringSoon(bestCoupon.validUntil) && (
-                    <Badge variant="destructive" className="text-xs">
-                      Expires Soon
-                    </Badge>
-                  )}
-                  <Badge variant="secondary" className="text-xs">
-                    🏆 Best Deal
-                  </Badge>
-                </div>
-
-                <h4 className="font-medium text-gray-900 mb-1">
-                  {bestCoupon.name}
-                </h4>
-
-                {bestCoupon.description && (
-                  <p className="text-sm text-gray-600 mb-2">
-                    {bestCoupon.description}
-                  </p>
-                )}
-
-                <div className="flex items-center gap-4 text-xs text-gray-500">
-                  <span className="flex items-center gap-1">
-                    <Tag className="h-3 w-3" />
-                    {bestCoupon.code}
+      <div className="space-y-3">
+        {/* Best coupon card */}
+        <div className="border border-gray-200 rounded-xl p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                <Badge
+                  variant="secondary"
+                  className="bg-gray-100 text-gray-800 border-0 text-xs font-medium"
+                >
+                  {getCouponIcon(bestCoupon.type)}
+                  <span className="ml-1">{getCouponDisplay(bestCoupon)}</span>
+                </Badge>
+                {isExpiringSoon(bestCoupon.validUntil) && (
+                  <span className="text-xs text-gray-500 font-medium">
+                    Expires soon
                   </span>
-                  {bestCoupon.minOrderAmount && (
-                    <span>Min order: ₹{bestCoupon.minOrderAmount}</span>
-                  )}
-                  {bestCoupon.usageLimit && (
-                    <span>
-                      {bestCoupon.usageLimit - bestCoupon.usedCount} left
-                    </span>
-                  )}
-                </div>
+                )}
               </div>
 
-              <Button
-                size="sm"
-                onClick={() =>
-                  !isBestCouponDisabled && handleApplyCoupon(bestCoupon.code)
-                }
-                disabled={isBestCouponDisabled}
-                className={`ml-3 flex-shrink-0 ${
-                  isBestCouponDisabled
-                    ? "bg-gray-100 text-gray-500 hover:bg-gray-100 cursor-not-allowed"
-                    : ""
-                }`}
-              >
-                {isBestCouponDisabled ? "Unavailable" : "Apply"}
-              </Button>
+              {bestCoupon.description && (
+                <p className="text-sm text-gray-600 mb-1.5 line-clamp-1">
+                  {bestCoupon.description}
+                </p>
+              )}
+
+              <div className="flex items-center gap-3 text-xs text-gray-400">
+                <span className="font-mono">{bestCoupon.code}</span>
+                {bestCoupon.minOrderAmount && (
+                  <span>Min ₹{bestCoupon.minOrderAmount}</span>
+                )}
+              </div>
             </div>
+
+            <Button
+              size="sm"
+              variant={isBestCouponDisabled ? "secondary" : "default"}
+              onClick={() =>
+                !isBestCouponDisabled && handleApplyCoupon(bestCoupon.code)
+              }
+              disabled={isBestCouponDisabled}
+              className="flex-shrink-0"
+            >
+              {isBestCouponDisabled ? "Unavailable" : "Apply"}
+            </Button>
           </div>
+        </div>
 
-          {hasMoreCoupons && (
-            <div className="mt-4">
-              <Button
-                variant="outline"
-                onClick={() => setShowAllModal(true)}
-                className="w-full"
-              >
-                <Search className="h-4 w-4 mr-2" />
-                See All Coupons ({allCoupons.length})
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        {/* See all coupons */}
+        {hasMoreCoupons && (
+          <button
+            type="button"
+            onClick={() => setShowAllModal(true)}
+            className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <span className="flex items-center gap-2">
+              <Tag className="h-3.5 w-3.5" />
+              View all {allCoupons.length} coupons
+            </span>
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        )}
+      </div>
 
-      {/* All Coupons Modal */}
       <AllCouponsModal
         isOpen={showAllModal}
         onClose={() => setShowAllModal(false)}

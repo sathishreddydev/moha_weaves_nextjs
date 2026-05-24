@@ -3,39 +3,20 @@
 import { useAuth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { formatPrice } from "@/lib/formatters";
 import { calculatePricing } from "@/lib/pricing-utils";
 import { useAddressStore, useCartStore } from "@/lib/stores";
-import { CartItemWithProduct, UserAddress } from "@/shared/types";
-import {
-  AlertTriangle,
-  ArrowLeft,
-  CheckCircle2,
-  CheckCircle,
-  ImageIcon,
-  Loader2,
-  MapPin,
-  Package,
-  ShoppingBag,
-  Tag,
-  Truck,
-} from "lucide-react";
+import { UserAddress } from "@/shared/types";
+import { CheckCircle2, Loader2, Package, Tag } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { toast } from "sonner";
-import AddressSelector, { AddressListView } from "./AddressSelector";
-import AddressForm, { type AddressFormData } from "../user/AddressForm";
-import RazorpayPayment from "./RazorpayPayment";
-import CouponInput from "./CouponInput";
+import { type AddressFormData } from "../user/AddressForm";
 import { useCartProductPurchasedListener } from "@/hooks/useProductPurchasedListener";
-import { Textarea } from "../ui/textarea";
+import DesktopCheckoutView from "./DesktopCheckoutView";
+import MobileCheckoutView from "./MobileCheckoutView";
 
-// ─── View state ───────────────────────────────────────────────────────────────
-// "checkout"       → normal checkout view (selected address card + order summary)
-// "address-select" → address list (pick / change delivery address)
-// "address-form"   → add or edit an address
+// ─── Types ────────────────────────────────────────────────────────────────────
 type CheckoutView = "checkout" | "address-select" | "address-form";
 
 interface AppliedCoupon {
@@ -49,8 +30,13 @@ interface AppliedCoupon {
 export default function CheckoutPage() {
   const { user, status } = useAuth();
   const router = useRouter();
-  const { items, calculateTotal, clearCart, fetchCart, hasStockIssues, validateCartStock } =
-    useCartStore();
+  const {
+    items,
+    clearCart,
+    fetchCart,
+    hasStockIssues,
+    validateCartStock,
+  } = useCartStore();
   const {
     addresses,
     loading: addressesLoading,
@@ -71,13 +57,11 @@ export default function CheckoutPage() {
   const [checkoutView, setCheckoutView] = useState<CheckoutView>("checkout");
   const [editingAddress, setEditingAddress] = useState<UserAddress | null>(null);
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
-  const [notes, setNotes] = useState("");
+  const [notes] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
-  // Track whether address was loaded at least once so we don't block pay prematurely
   const addressLoadedRef = useRef(false);
 
   // ── Pricing ──────────────────────────────────────────────────────────────
-  const subtotal = calculateTotal();
   const couponForPricing = appliedCoupon
     ? {
         type: appliedCoupon.type as "percentage" | "fixed" | "free_shipping",
@@ -87,17 +71,12 @@ export default function CheckoutPage() {
     : null;
   const pricing = calculatePricing(items, couponForPricing);
   const shipping = pricing.shipping;
+  const subtotal = pricing.originalSubtotal;
+  const saleDiscount = pricing.saleDiscount;
   const couponDiscount = appliedCoupon?.discountAmount || 0;
-  const total = subtotal + shipping - couponDiscount;
-
-  const totalSavings = items.reduce((sum, item) => {
-    const orig = parseFloat(item.product.price || "0");
-    const disc =
-      typeof item.product.discountedPrice === "number"
-        ? item.product.discountedPrice
-        : orig;
-    return sum + (orig - disc) * item.quantity;
-  }, 0);
+  const total = pricing.subtotal + shipping - couponDiscount;
+  const totalSavings = saleDiscount;
+  const freeShippingGap = pricing.subtotal < 999 ? 999 - pricing.subtotal : 0;
 
   // ── Auth redirect ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -135,7 +114,6 @@ export default function CheckoutPage() {
   useCartProductPurchasedListener(items, fetchCart);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
-
   const handleAddressSubmit = async (data: AddressFormData) => {
     try {
       if (editingAddress) {
@@ -146,7 +124,6 @@ export default function CheckoutPage() {
         toast.success("Address added");
       }
       setEditingAddress(null);
-      // After saving, go back to the address list so user can confirm selection
       setCheckoutView("address-select");
     } catch {
       toast.error("Failed to save address");
@@ -154,7 +131,6 @@ export default function CheckoutPage() {
   };
 
   const handleDeleteAddress = async (addressId: string) => {
-    // Use toast confirmation instead of window.confirm (accessible + works on all mobile browsers)
     toast("Delete this address?", {
       action: {
         label: "Delete",
@@ -174,13 +150,20 @@ export default function CheckoutPage() {
 
   const handleSelectAddress = (id: string) => {
     setSelectedAddressId(id);
-    // On mobile, selecting an address returns to checkout automatically
     setCheckoutView("checkout");
+  };
+
+  const handleSetDefault = async (id: string) => {
+    try {
+      await setDefaultAddress(id);
+      toast.success("Default address updated");
+    } catch {
+      toast.error("Failed to update default");
+    }
   };
 
   const handlePaymentSuccess = useCallback(
     (newOrderId: string) => {
-      // Snapshot the order details before clearing cart
       setOrderTotal(total);
       setOrderItemCount(items.length);
       clearCart();
@@ -194,7 +177,7 @@ export default function CheckoutPage() {
   if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
       </div>
     );
   }
@@ -203,78 +186,88 @@ export default function CheckoutPage() {
   if (orderPlaced && orderId) {
     return (
       <div className="flex flex-col items-center px-4 pt-16 pb-16 min-h-[60vh]">
-        <Card className="w-full max-w-md text-center shadow-md">
-          <CardContent className="pt-10 pb-8 space-y-5">
-            {/* Success icon */}
-            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-              <CheckCircle2 className="h-8 w-8 text-green-600" />
-            </div>
+        <div className="w-full max-w-md text-center space-y-6">
+          <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+            <CheckCircle2 className="h-8 w-8 text-gray-900" />
+          </div>
 
-            {/* Heading */}
-            <div>
-              <h1 className="text-xl font-bold text-foreground mb-1">Order Placed!</h1>
-              <p className="text-sm text-muted-foreground">
-                Thank you for your purchase. Your order ID is:
-              </p>
-              <Badge variant="secondary" className="mt-2 text-sm px-3 py-1 font-mono">
-                {orderId}
-              </Badge>
-            </div>
+          <div>
+            <h1 className="text-lg font-semibold text-gray-900 mb-2">
+              Thank you for your order!
+            </h1>
+            <p className="text-sm text-gray-500">
+              Your order has been confirmed. Order ID:
+            </p>
+            <Badge
+              variant="secondary"
+              className="mt-2 text-sm px-3 py-1 font-mono"
+            >
+              {orderId}
+            </Badge>
+          </div>
 
-            {/* Order summary snapshot */}
-            <div className="bg-muted/40 rounded-xl px-4 py-3 space-y-1.5 text-left">
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-1.5 text-muted-foreground">
-                  <Package className="h-3.5 w-3.5" />
-                  Items
-                </span>
-                <span className="font-medium">{orderItemCount}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-1.5 text-muted-foreground">
-                  <Tag className="h-3.5 w-3.5" />
-                  Total paid
-                </span>
-                <span className="font-semibold">{formatPrice(orderTotal)}</span>
-              </div>
+          <div className="bg-gray-50 rounded-lg px-5 py-4 space-y-2 text-left">
+            <div className="flex items-center justify-between text-sm">
+              <span className="flex items-center gap-2 text-gray-500">
+                <Package className="h-4 w-4" />
+                Items
+              </span>
+              <span className="font-medium text-gray-900">
+                {orderItemCount}
+              </span>
             </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="flex items-center gap-2 text-gray-500">
+                <Tag className="h-4 w-4" />
+                Total paid
+              </span>
+              <span className="font-semibold text-gray-900">
+                {formatPrice(orderTotal)}
+              </span>
+            </div>
+          </div>
 
-            {/* What happens next */}
-            <div className="text-left space-y-1.5">
-              <p className="text-xs font-semibold text-foreground">What happens next?</p>
-              <ul className="text-xs text-muted-foreground space-y-1 list-none">
-                <li className="flex items-start gap-1.5">
-                  <span className="text-green-500 font-bold mt-0.5">✓</span>
-                  Order confirmed — we're preparing your items
-                </li>
-                <li className="flex items-start gap-1.5">
-                  <span className="text-muted-foreground font-bold mt-0.5">→</span>
-                  You'll get a shipping notification once dispatched
-                </li>
-                <li className="flex items-start gap-1.5">
-                  <span className="text-muted-foreground font-bold mt-0.5">→</span>
-                  Estimated delivery: 3–7 business days
-                </li>
-              </ul>
-            </div>
+          <div className="text-left space-y-2 bg-gray-50 rounded-lg px-5 py-4">
+            <p className="text-xs font-semibold text-gray-900 uppercase tracking-wider">
+              What happens next
+            </p>
+            <ul className="text-sm text-gray-600 space-y-1.5">
+              <li className="flex items-start gap-2">
+                <span className="text-gray-900 mt-0.5">✓</span>
+                Order confirmed — we&apos;re preparing your items
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-gray-400 mt-0.5">→</span>
+                You&apos;ll get a shipping notification once dispatched
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-gray-400 mt-0.5">→</span>
+                Estimated delivery: 3–7 business days
+              </li>
+            </ul>
+          </div>
 
-            {/* CTA buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-              <Button onClick={() => router.push("/my/orders")}>
-                View My Orders
-              </Button>
-              <Button variant="outline" onClick={() => router.push("/")}>
-                Continue Shopping
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+          <div className="flex flex-col gap-3 pt-2">
+            <Button
+              onClick={() => router.push("/my/orders")}
+              className="w-full h-12"
+            >
+              View My Orders
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => router.push("/")}
+              className="w-full h-12"
+            >
+              Continue Shopping
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
 
   // ── Derived state ─────────────────────────────────────────────────────────
-  // Block pay while addresses haven't loaded yet (prevents premature "no address" state)
   const addressStillLoading = addressesLoading && !addressLoadedRef.current;
   const payDisabled =
     addressStillLoading ||
@@ -282,11 +275,10 @@ export default function CheckoutPage() {
     items.length === 0 ||
     hasStockIssues;
 
-  // Human-readable reason why pay is disabled (shown near the button on mobile)
   const payBlockedReason = (() => {
     if (hasStockIssues) return "Resolve stock issues in your cart to proceed";
     if (addressStillLoading) return "Loading your addresses…";
-    if (!selectedAddressId) return "Please select a delivery address to continue";
+    if (!selectedAddressId) return "Please select a delivery address";
     return null;
   })();
 
@@ -301,471 +293,49 @@ export default function CheckoutPage() {
     disabled: payDisabled,
   };
 
-  // ── Price summary ─────────────────────────────────────────────────────────
-  const priceSummary = (
-    <div className="space-y-2 text-sm">
-      <div className="flex justify-between text-muted-foreground">
-        <span>Subtotal</span>
-        <span className="text-foreground font-medium">{formatPrice(subtotal)}</span>
-      </div>
-      {totalSavings > 0 && (
-        <div className="flex justify-between text-green-600">
-          <span>Item savings</span>
-          <span>-{formatPrice(totalSavings)}</span>
-        </div>
-      )}
-      <div className="flex justify-between text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <Truck className="h-3.5 w-3.5" />
-          Shipping
-        </span>
-        <span
-          className={
-            shipping === 0 ? "text-green-600 font-medium" : "text-foreground font-medium"
-          }
-        >
-          {shipping === 0 ? "FREE" : formatPrice(shipping)}
-        </span>
-      </div>
-      {couponDiscount > 0 && (
-        <div className="flex justify-between text-green-600">
-          <span className="flex items-center gap-1">
-            <Tag className="h-3.5 w-3.5" />
-            Coupon
-          </span>
-          <span>-{formatPrice(couponDiscount)}</span>
-        </div>
-      )}
-      {shipping > 0 && (
-        <p className="text-xs text-green-600">
-          Add {formatPrice(999 - subtotal)} more for free shipping
-        </p>
-      )}
-      <Separator className="my-1" />
-      <div className="flex justify-between font-bold text-base text-foreground">
-        <span>Total</span>
-        <span>{formatPrice(total)}</span>
-      </div>
-    </div>
-  );
+  // ── Shared props for both views ───────────────────────────────────────────
+  const sharedProps = {
+    items,
+    addresses,
+    addressesLoading,
+    addressesError,
+    selectedAddressId,
+    checkoutView,
+    editingAddress,
+    updating,
+    hasStockIssues,
+    subtotal,
+    totalSavings,
+    shipping,
+    couponDiscount,
+    total,
+    freeShippingGap,
+    appliedCoupon,
+    payBlockedReason,
+    razorpayProps,
+    onSetCheckoutView: setCheckoutView,
+    onSelectAddress: handleSelectAddress,
+    onEditAddress: (addr: UserAddress) => setEditingAddress(addr),
+    onDeleteAddress: handleDeleteAddress,
+    onSetDefault: handleSetDefault,
+    onAddressSubmit: handleAddressSubmit,
+    onSetEditingAddress: setEditingAddress,
+    onCouponApplied: setAppliedCoupon,
+    onCouponRemoved: () => setAppliedCoupon(null),
+  };
 
-  // ── Address section content (shared between mobile takeover + desktop left col) ──
-  const addressSectionContent = (() => {
-    // Address form (add / edit)
-    if (checkoutView === "address-form") {
-      return (
-        <AddressForm
-          isOpen
-          onClose={() => {
-            setEditingAddress(null);
-            setCheckoutView("address-select");
-          }}
-          onSubmit={handleAddressSubmit}
-          editingAddress={editingAddress}
-          isLoading={updating !== null}
-        />
-      );
-    }
-
-    // Address list (change / select)
-    if (checkoutView === "address-select") {
-      return (
-        <div className="space-y-4">
-          {/* Back header */}
-          <button
-            type="button"
-            onClick={() => setCheckoutView("checkout")}
-            className="flex items-center gap-3 group"
-            aria-label="Back to checkout"
-          >
-            <ArrowLeft className="w-5 h-5 text-gray-500 group-hover:text-gray-800 transition-colors" />
-            <h2 className="text-xl font-semibold text-gray-900">
-              Select Delivery Address
-            </h2>
-          </button>
-
-          {addressesError && (
-            <div className="px-3 py-2 bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg">
-              {addressesError}
-            </div>
-          )}
-
-          <AddressListView
-            addresses={addresses}
-            selectedAddressId={selectedAddressId}
-            onSelectAddress={handleSelectAddress}
-            onAddNew={() => {
-              setEditingAddress(null);
-              setCheckoutView("address-form");
-            }}
-            onEditAddress={(addr) => {
-              setEditingAddress(addr);
-              setCheckoutView("address-form");
-            }}
-            onDeleteAddress={handleDeleteAddress}
-            onSetDefault={async (id) => {
-              try {
-                await setDefaultAddress(id);
-                toast.success("Default address updated");
-              } catch {
-                toast.error("Failed to update default");
-              }
-            }}
-            updatingId={updating || undefined}
-          />
-        </div>
-      );
-    }
-
-    // Default: selected address card
-    return (
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-muted-foreground" />
-          <h2 className="text-base font-semibold text-foreground">Delivery Address</h2>
-        </div>
-
-        {addressesError && (
-          <div className="px-3 py-2 bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg">
-            {addressesError}
-          </div>
-        )}
-
-        {addressesLoading ? (
-          <div className="flex items-center gap-2 py-8 text-muted-foreground text-sm">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading addresses…
-          </div>
-        ) : (
-          <AddressSelector
-            addresses={addresses}
-            selectedAddressId={selectedAddressId}
-            onSelectAddress={handleSelectAddress}
-            onChangeRequest={() => setCheckoutView("address-select")}
-            onAddNew={() => {
-              setEditingAddress(null);
-              setCheckoutView("address-form");
-            }}
-            onEditAddress={(addr) => {
-              setEditingAddress(addr);
-              setCheckoutView("address-form");
-            }}
-            onDeleteAddress={handleDeleteAddress}
-            onSetDefault={async (id) => {
-              try {
-                await setDefaultAddress(id);
-                toast.success("Default address updated");
-              } catch {
-                toast.error("Failed to update default");
-              }
-            }}
-            updatingId={updating || undefined}
-          />
-        )}
-
-        {!selectedAddressId && !addressesLoading && addresses.length > 0 && (
-          <p className="text-xs text-destructive">Please select a delivery address</p>
-        )}
-      </div>
-    );
-  })();
-
-  // ── Mobile full-screen takeover (address-select or address-form) ──────────
-  const isMobileAddressView =
-    checkoutView === "address-select" || checkoutView === "address-form";
-
-  // ── Main render ───────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="max-w-6xl mx-auto">
-      {/* ── Mobile full-screen address takeover ── */}
-      {isMobileAddressView && (
-        <div className="lg:hidden min-h-screen pb-8">
-          {/* Stock banner */}
-          {hasStockIssues && (
-            <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
-              Some items have stock issues. Resolve them in your cart first.
-            </div>
-          )}
-          {addressSectionContent}
-        </div>
-      )}
-
-      {/* ── Normal checkout layout (mobile: hidden when in address view) ── */}
-      <div className={isMobileAddressView ? "hidden lg:block" : ""}>
-        {/* Back to cart */}
-        <div className="mb-6">
-          <button
-            onClick={() => router.push("/cart")}
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-3 group"
-          >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-            Back to Cart
-          </button>
-        </div>
-
-        {/* Stock issue banner */}
-        {hasStockIssues && (
-          <div className="mb-6 px-4 py-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
-            Some items in your cart are out of stock or have insufficient quantity.
-            Please go back to your cart and remove or update them before proceeding.
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-          {/* ── LEFT: Address section ── */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* Desktop: inline view swap */}
-            <div className="hidden lg:block">
-              {addressSectionContent}
-            </div>
-
-            {/* Mobile: only show the selected-address card (list/form are in takeover above) */}
-            <div className="lg:hidden">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <h2 className="text-base font-semibold text-foreground">Delivery Address</h2>
-                </div>
-
-                {addressesError && (
-                  <div className="px-3 py-2 bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg">
-                    {addressesError}
-                  </div>
-                )}
-
-                {addressesLoading ? (
-                  <div className="flex items-center gap-2 py-8 text-muted-foreground text-sm">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Loading addresses…
-                  </div>
-                ) : (
-                  <AddressSelector
-                    addresses={addresses}
-                    selectedAddressId={selectedAddressId}
-                    onSelectAddress={handleSelectAddress}
-                    onChangeRequest={() => setCheckoutView("address-select")}
-                    onAddNew={() => {
-                      setEditingAddress(null);
-                      setCheckoutView("address-form");
-                    }}
-                    onEditAddress={(addr) => {
-                      setEditingAddress(addr);
-                      setCheckoutView("address-form");
-                    }}
-                    onDeleteAddress={handleDeleteAddress}
-                    onSetDefault={async (id) => {
-                      try {
-                        await setDefaultAddress(id);
-                        toast.success("Default address updated");
-                      } catch {
-                        toast.error("Failed to update default");
-                      }
-                    }}
-                    updatingId={updating || undefined}
-                  />
-                )}
-
-                {!selectedAddressId && !addressesLoading && addresses.length > 0 && (
-                  <p className="text-xs text-destructive">Please select a delivery address</p>
-                )}
-              </div>
-            </div>
-
-            {/* Mobile: order items + coupon + notes */}
-            <div className="lg:hidden space-y-4">
-              <Separator />
-
-              {/* Items */}
-              <div>
-                <h2 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-3">
-                  <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-                  Order Items ({items.length})
-                </h2>
-                <div className="space-y-3">
-                  {items.map((item) => {
-                    const img = item.product.images?.[0] || item.product.imageUrl;
-                    const variant = item.product.variants?.find(
-                      (v: any) => v.id === item.variantId,
-                    );
-                    const linePrice =
-                      (typeof item.product.discountedPrice === "number"
-                        ? item.product.discountedPrice
-                        : parseFloat(item.product.price || "0")) * item.quantity;
-                    return (
-                      <div key={item.id} className="flex gap-3">
-                        <div className="w-14 h-14 bg-muted rounded-lg overflow-hidden flex-shrink-0">
-                          {img ? (
-                            <img
-                              src={img}
-                              alt={item.product.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <ImageIcon className="h-5 w-5 text-muted-foreground" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground line-clamp-1">
-                            {item.product.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {variant ? `${variant.size} · ` : ""}Qty {item.quantity}
-                          </p>
-                        </div>
-                        <span className="text-sm font-semibold text-foreground tabular-nums">
-                          {formatPrice(linePrice)}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Coupon */}
-              <CouponInput
-                orderAmount={subtotal}
-                onCouponApplied={setAppliedCoupon}
-                onCouponRemoved={() => setAppliedCoupon(null)}
-                appliedCoupon={appliedCoupon}
-              />
-
-              {/* Notes */}
-              <div>
-                <label className="text-sm font-medium text-foreground block mb-1.5">
-                  Order Notes{" "}
-                  <span className="text-muted-foreground font-normal">(optional)</span>
-                </label>
-                <Textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Any special instructions for your order…"
-                  rows={2}
-                  inputMode="text"
-                />
-              </div>
-
-              {/* Price summary */}
-              {priceSummary}
-            </div>
-
-            {/* Mobile spacer for fixed pay bar */}
-            <div className="h-24 lg:hidden" />
-          </div>
-
-          {/* ── RIGHT: Order summary (desktop sticky) ── */}
-          <div className="hidden lg:block lg:col-span-2">
-            <div className="sticky space-y-5" style={{ top: "calc(var(--banner-height, 0px) + var(--header-height, 74px) + 1.5rem)" }}>
-              <div>
-                <h2 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-3">
-                  <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-                  Order Summary
-                </h2>
-                <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
-                  {items.map((item: CartItemWithProduct) => {
-                    const img = item.product.images?.[0] || item.product.imageUrl;
-                    const variant = item.product.variants?.find(
-                      (v) => v.id === item.variantId,
-                    );
-                    const linePrice =
-                      (typeof item.product.discountedPrice === "number"
-                        ? item.product.discountedPrice
-                        : parseFloat(item.product.price || "0")) * item.quantity;
-                    return (
-                      <div key={item.id} className="flex gap-3">
-                        <div className="w-14 h-14 bg-muted rounded-lg overflow-hidden flex-shrink-0">
-                          {img ? (
-                            <img
-                              src={img}
-                              alt={item.product.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <ImageIcon className="h-5 w-5 text-muted-foreground" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground line-clamp-1">
-                            {item.product.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {variant ? `${variant.size} · ` : ""}Qty {item.quantity}
-                          </p>
-                        </div>
-                        <span className="text-sm font-semibold text-foreground tabular-nums">
-                          {formatPrice(linePrice)}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <Separator />
-
-              <CouponInput
-                orderAmount={subtotal}
-                onCouponApplied={setAppliedCoupon}
-                onCouponRemoved={() => setAppliedCoupon(null)}
-                appliedCoupon={appliedCoupon}
-              />
-
-              <Separator />
-
-              <div>
-                <label className="text-sm font-medium text-foreground block mb-1.5">
-                  Order Notes{" "}
-                  <span className="text-muted-foreground font-normal">(optional)</span>
-                </label>
-                <Textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Any special instructions for your order…"
-                  rows={2}
-                  className="resize-none"
-                />
-              </div>
-
-              <Separator />
-
-              {priceSummary}
-
-              <RazorpayPayment {...razorpayProps} />
-
-              {payBlockedReason && (
-                <p className="text-xs text-red-600 text-center -mt-2 flex items-center justify-center gap-1">
-                  <AlertTriangle className="h-3 w-3 flex-shrink-0" />
-                  {payBlockedReason}
-                </p>
-              )}
-
-              <p className="text-xs text-muted-foreground text-center">
-                By placing this order you agree to our{" "}
-                <span className="underline cursor-pointer">Terms</span> &{" "}
-                <span className="underline cursor-pointer">Privacy Policy</span>
-              </p>
-            </div>
-          </div>
-        </div>
+      {/* Desktop */}
+      <div className="hidden lg:block">
+        <DesktopCheckoutView {...sharedProps} onGoToCart={() => router.push("/cart")} />
       </div>
 
-      {/* ── Mobile fixed pay bar — hidden during address views ── */}
-      {!isMobileAddressView && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-t shadow-xl">
-          <div className="px-4 pt-3 pb-5 space-y-2 max-w-lg mx-auto">
-            {payBlockedReason && (
-              <p className="text-xs text-red-600 text-center flex items-center justify-center gap-1">
-                <AlertTriangle className="h-3 w-3 flex-shrink-0" />
-                {payBlockedReason}
-              </p>
-            )}
-            <RazorpayPayment {...razorpayProps} />
-          </div>
-        </div>
-      )}
+      {/* Mobile */}
+      <div className="lg:hidden">
+        <MobileCheckoutView {...sharedProps} />
+      </div>
     </div>
   );
 }

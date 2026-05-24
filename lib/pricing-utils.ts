@@ -3,6 +3,8 @@ import { getAvailableStock } from "./stock-utils";
 
 export interface PricingCalculation {
   subtotal: number;
+  originalSubtotal: number;
+  saleDiscount: number;
   shipping: number;
   discountAmount: number;
   totalAmount: number;
@@ -94,6 +96,8 @@ export function calculatePricing(
 
   return {
     subtotal,
+    originalSubtotal,
+    saleDiscount: originalSubtotal - subtotal,
     shipping,
     discountAmount,
     totalAmount,

@@ -80,12 +80,12 @@ export function AddressRow({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
           <span className="text-xs font-semibold text-gray-900">{address.name}</span>
-          <span className="flex items-center gap-0.5 text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full capitalize">
+          <span className="flex items-center gap-0.5 text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full capitalize">
             <AddressTypeIcon type={address.addressType} />
             {address.addressType || "home"}
           </span>
           {address.isDefault && (
-            <span className="text-[10px] text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full font-medium">
+            <span className="text-xs text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full font-medium">
               Default
             </span>
           )}
@@ -203,7 +203,7 @@ export default function AddressSelector({
               {selectedAddress?.name ?? "Select an address"}
             </span>
             {selectedAddress && (
-              <span className="flex items-center gap-0.5 text-[10px] text-gray-500 bg-white border border-gray-200 px-1.5 py-0.5 rounded-full capitalize">
+              <span className="flex items-center gap-0.5 text-xs text-gray-500 bg-white border border-gray-200 px-1.5 py-0.5 rounded-full capitalize">
                 <AddressTypeIcon type={selectedAddress.addressType} />
                 {selectedAddress.addressType || "home"}
               </span>

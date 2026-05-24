@@ -1,8 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Trash2, Tag, CheckCircle } from "lucide-react";
+import { Trash2, Check } from "lucide-react";
 import { toast } from "sonner";
 import AvailableCoupons from "./AvailableCoupons";
 
@@ -70,35 +69,33 @@ export default function CouponInput({
 
   if (appliedCoupon) {
     return (
-      <Card className="border-green-200 bg-green-50">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <div>
-                <p className="font-medium text-green-900">
-                  Coupon Applied: {appliedCoupon.code.toUpperCase()}
-                </p>
-                <p className="text-sm text-green-700">
-                  {appliedCoupon.type === "percentage"
-                    ? `${appliedCoupon.value}% off`
-                    : appliedCoupon.type === "fixed"
-                      ? `₹${appliedCoupon.value} off`
-                      : "Free shipping"}
-                </p>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleRemoveCoupon}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+      <div className="flex items-center justify-between border border-gray-200 rounded-xl px-4 py-3">
+        <div className="flex items-center gap-3">
+          <div className="w-6 h-6 rounded-full bg-gray-900 flex items-center justify-center">
+            <Check className="h-3.5 w-3.5 text-white" />
           </div>
-        </CardContent>
-      </Card>
+          <div>
+            <p className="text-sm font-medium text-gray-900">
+              {appliedCoupon.code.toUpperCase()}
+            </p>
+            <p className="text-xs text-gray-500">
+              {appliedCoupon.type === "percentage"
+                ? `${appliedCoupon.value}% off`
+                : appliedCoupon.type === "fixed"
+                  ? `₹${appliedCoupon.value} off`
+                  : "Free shipping"}
+            </p>
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleRemoveCoupon}
+          className="text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
     );
   }
 

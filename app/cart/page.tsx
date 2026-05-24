@@ -113,6 +113,10 @@ export default function CartPage() {
   return (
     <div>
       <div className="max-w-7xl mx-auto">
+        <h1 className="text-xl font-light text-gray-900 uppercase tracking-[0.1em] mb-8">
+          Your Cart
+        </h1>
+
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded mb-6">
             {error}

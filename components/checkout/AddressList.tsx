@@ -93,7 +93,7 @@ export default function AddressList({
                       {address.name}
                     </h4>
                     {address.isDefault && (
-                      <span className="bg-green-100 text-green-700 text-[10px] font-medium px-2 py-0.5 rounded-full">
+                      <span className="bg-green-100 text-green-700 text-xs font-medium px-2 py-0.5 rounded-full">
                         Default
                       </span>
                     )}

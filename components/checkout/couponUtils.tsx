@@ -1,6 +1,5 @@
-import React from "react";
 import { Badge } from "@/components/ui/badge";
-import { Tag, Calendar, Percent, DollarSign, Truck } from "lucide-react";
+import { Tag, Percent, DollarSign, Truck } from "lucide-react";
 
 export interface Coupon {
   id: string;
@@ -19,7 +18,6 @@ export interface Coupon {
   createdAt: string;
 }
 
-// Shared utility functions for coupon display and status
 export const getCouponDisplay = (coupon: Coupon) => {
   switch (coupon.type) {
     case "percentage":
@@ -36,27 +34,18 @@ export const getCouponDisplay = (coupon: Coupon) => {
 export const getCouponIcon = (type: string) => {
   switch (type) {
     case "percentage":
-      return <Percent className="h-4 w-4" />;
+      return <Percent className="h-3.5 w-3.5" />;
     case "fixed":
-      return <DollarSign className="h-4 w-4" />;
+      return <DollarSign className="h-3.5 w-3.5" />;
     case "free_shipping":
-      return <Truck className="h-4 w-4" />;
+      return <Truck className="h-3.5 w-3.5" />;
     default:
-      return <Tag className="h-4 w-4" />;
+      return <Tag className="h-3.5 w-3.5" />;
   }
 };
 
-export const getCouponColor = (type: string) => {
-  switch (type) {
-    case "percentage":
-      return "bg-blue-100 text-blue-800";
-    case "fixed":
-      return "bg-green-100 text-green-800";
-    case "free_shipping":
-      return "bg-purple-100 text-purple-800";
-    default:
-      return "bg-gray-100 text-gray-800";
-  }
+export const getCouponColor = (_type: string) => {
+  return "bg-gray-100 text-gray-800 border border-gray-200";
 };
 
 export const isExpiringSoon = (validUntil: string) => {
@@ -67,13 +56,14 @@ export const isExpiringSoon = (validUntil: string) => {
   return diffDays <= 3;
 };
 
-export const getCouponStatus = (coupon: Coupon, usedCoupons: Coupon[], orderAmount: number) => {
-  // Check if usage limit reached globally
+export const getCouponStatus = (
+  coupon: Coupon,
+  usedCoupons: Coupon[],
+  orderAmount: number,
+) => {
   if (coupon.usageLimit && (coupon.usedCount || 0) >= coupon.usageLimit)
     return "exhausted";
 
-  // Check if per-user limit reached — usedCoupons contains one entry per usage,
-  // so count how many times this specific coupon appears in the used list.
   if (coupon.perUserLimit) {
     const userUsageCount = usedCoupons.filter(
       (used) => used.id === coupon.id,
@@ -81,11 +71,9 @@ export const getCouponStatus = (coupon: Coupon, usedCoupons: Coupon[], orderAmou
     if (userUsageCount >= coupon.perUserLimit) return "limit_reached";
   }
 
-  // Check if coupon has been used at all (and no per-user limit set means single use)
   const isUsed = usedCoupons.some((used) => used.id === coupon.id);
   if (isUsed && !coupon.perUserLimit) return "used";
 
-  // Check minimum order amount
   if (coupon.minOrderAmount && orderAmount < Number(coupon.minOrderAmount))
     return "min_order";
 
@@ -96,34 +84,25 @@ export const getCouponStatusBadge = (status: string) => {
   switch (status) {
     case "used":
       return (
-        <Badge
-          variant="secondary"
-          className="text-xs bg-gray-100 text-gray-600"
-        >
+        <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-500">
           Already Used
         </Badge>
       );
     case "exhausted":
       return (
-        <Badge variant="destructive" className="text-xs">
+        <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-500">
           Fully Claimed
         </Badge>
       );
     case "limit_reached":
       return (
-        <Badge
-          variant="secondary"
-          className="text-xs bg-orange-100 text-orange-600"
-        >
+        <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-500">
           Limit Reached
         </Badge>
       );
     case "min_order":
       return (
-        <Badge
-          variant="secondary"
-          className="text-xs bg-blue-100 text-blue-600"
-        >
+        <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-500">
           Min Order Required
         </Badge>
       );
@@ -132,7 +111,10 @@ export const getCouponStatusBadge = (status: string) => {
   }
 };
 
-export const getDiscountValue = (coupon: Coupon, currentOrderAmount: number): number => {
+export const getDiscountValue = (
+  coupon: Coupon,
+  currentOrderAmount: number,
+): number => {
   const FREE_SHIPPING_THRESHOLD = 999;
   const SHIPPING_COST = 50;
 
@@ -142,11 +124,9 @@ export const getDiscountValue = (coupon: Coupon, currentOrderAmount: number): nu
   } else if (coupon.type === "fixed") {
     discount = Number(coupon.value);
   } else if (coupon.type === "free_shipping") {
-    // Shipping is only charged when subtotal < threshold
     discount = currentOrderAmount < FREE_SHIPPING_THRESHOLD ? SHIPPING_COST : 0;
   }
 
-  // Apply maxDiscount cap
   if (coupon.maxDiscount && parseFloat(coupon.maxDiscount) > 0) {
     discount = Math.min(discount, parseFloat(coupon.maxDiscount));
   }
