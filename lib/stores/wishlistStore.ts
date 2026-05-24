@@ -37,29 +37,95 @@ export const useWishlistStore = create<WishlistStore>((set, get) => ({
       const response = await fetch('/api/wishlist')
       const data = await response.json()
       
-      if (data.success && data.data) {
+      if (data.success && data.data && !data.isGuest) {
         set({ 
           items: data.data.wishlist || [],
           count: data.data.count || 0,
           loading: false 
         })
-      } else if (data.isGuest) {
-        // Handle guest user - use localStorage
-        const guestWishlist = guestStorage.wishlist.get()
-        set({ 
-          items: guestWishlist as any, // Type assertion for compatibility
-          count: guestStorage.wishlist.getCount(),
-          loading: false 
-        })
       } else {
+        // Guest user — load from localStorage and enrich items missing product data
+        const guestWishlist = guestStorage.wishlist.get()
+        
+        // Enrich items that are plain strings or missing product data
+        const enrichedItems: any[] = [];
+        let needsUpdate = false;
+        
+        for (const item of guestWishlist) {
+          const productId = typeof item === 'string' ? item : item.productId;
+          const hasProductData = typeof item !== 'string' && item.product?.images;
+          
+          if (hasProductData) {
+            enrichedItems.push(item);
+          } else {
+            // Fetch product details
+            try {
+              const productResponse = await fetch(`/api/products/${productId}`);
+              const productData = await productResponse.json();
+              
+              if (productData.success && productData.data) {
+                const p = productData.data;
+                enrichedItems.push({
+                  productId,
+                  addedAt: typeof item !== 'string' ? item.addedAt : new Date().toISOString(),
+                  product: {
+                    id: p.id,
+                    name: p.name,
+                    description: p.description,
+                    price: p.price,
+                    discountedPrice: p.discountedPrice,
+                    activeSale: p.activeSale || null,
+                    variants: p.variants || [],
+                    categoryId: p.categoryId,
+                    subcategoryId: p.subcategoryId,
+                    colorId: p.colorId,
+                    fabricId: p.fabricId,
+                    imageUrl: p.imageUrl,
+                    images: p.images || [],
+                    videoUrl: p.videoUrl,
+                    sku: p.sku,
+                    totalStock: p.totalStock,
+                    onlineStock: p.onlineStock,
+                    distributionChannel: p.distributionChannel,
+                    isActive: p.isActive,
+                    isFeatured: p.isFeatured,
+                    createdAt: p.createdAt,
+                    updatedAt: p.updatedAt,
+                    category: p.category,
+                    subcategory: p.subcategory,
+                    color: p.color,
+                    fabric: p.fabric,
+                  }
+                });
+                needsUpdate = true;
+              } else {
+                // Product not found — skip it
+                needsUpdate = true;
+              }
+            } catch {
+              // Keep the item as-is if fetch fails
+              enrichedItems.push(typeof item === 'string' ? { productId: item, addedAt: new Date().toISOString() } : item);
+            }
+          }
+        }
+        
+        // Save enriched data back to localStorage
+        if (needsUpdate) {
+          guestStorage.wishlist.set(enrichedItems);
+        }
+        
         set({ 
-          error: data.error || 'Failed to fetch wishlist',
+          items: enrichedItems as any,
+          count: enrichedItems.length,
           loading: false 
         })
       }
     } catch (error) {
+      // Fallback to guest storage on network error
+      const guestWishlist = guestStorage.wishlist.get()
       set({ 
-        error: 'An error occurred while fetching your wishlist',
+        items: guestWishlist as any,
+        count: guestStorage.wishlist.getCount(),
         loading: false 
       })
     }
@@ -95,40 +161,43 @@ export const useWishlistStore = create<WishlistStore>((set, get) => ({
           const productData = await productResponse.json();
           
           if (productData.success && productData.data) {
+            const p = productData.data;
             guestStorage.wishlist.add(productId)
             
-            // Update the stored item with product details
+            // Update the stored item with product details (including variants)
             const guestWishlist = guestStorage.wishlist.get();
             const updatedWishlist = guestWishlist.map((item: any) => {
               if (item === productId) {
                 return {
-                  productId: item,
+                  productId: productId,
                   addedAt: new Date().toISOString(),
                   product: {
-                    id: productData.data.id,
-                    name: productData.data.name,
-                    description: productData.data.description,
-                    price: productData.data.price,
-                    categoryId: productData.data.categoryId,
-                    subcategoryId: productData.data.subcategoryId,
-                    colorId: productData.data.colorId,
-                    fabricId: productData.data.fabricId,
-                    imageUrl: productData.data.imageUrl,
-                    images: productData.data.images || [],
-                    videoUrl: productData.data.videoUrl,
-                    sku: productData.data.sku,
-                    totalStock: productData.data.totalStock,
-                    onlineStock: productData.data.onlineStock,
-                    distributionChannel: productData.data.distributionChannel,
-                    isActive: productData.data.isActive,
-                    isFeatured: productData.data.isFeatured,
-                    createdAt: productData.data.createdAt,
-                    updatedAt: productData.data.updatedAt,
-                    // Related data
-                    category: productData.data.category,
-                    subcategory: productData.data.subcategory,
-                    color: productData.data.color,
-                    fabric: productData.data.fabric,
+                    id: p.id,
+                    name: p.name,
+                    description: p.description,
+                    price: p.price,
+                    discountedPrice: p.discountedPrice,
+                    activeSale: p.activeSale || null,
+                    variants: p.variants || [],
+                    categoryId: p.categoryId,
+                    subcategoryId: p.subcategoryId,
+                    colorId: p.colorId,
+                    fabricId: p.fabricId,
+                    imageUrl: p.imageUrl,
+                    images: p.images || [],
+                    videoUrl: p.videoUrl,
+                    sku: p.sku,
+                    totalStock: p.totalStock,
+                    onlineStock: p.onlineStock,
+                    distributionChannel: p.distributionChannel,
+                    isActive: p.isActive,
+                    isFeatured: p.isFeatured,
+                    createdAt: p.createdAt,
+                    updatedAt: p.updatedAt,
+                    category: p.category,
+                    subcategory: p.subcategory,
+                    color: p.color,
+                    fabric: p.fabric,
                   }
                 };
               }
@@ -243,6 +312,78 @@ export const useWishlistStore = create<WishlistStore>((set, get) => ({
       if (cartData.success) {
         // Then remove from wishlist
         await get().removeFromWishlist(productId)
+      } else if (cartResponse.status === 401 || cartData.isGuest) {
+        // Guest user — add to guest cart (same as cartStore.addToCart guest flow)
+        try {
+          const productResponse = await fetch(`/api/products/${productId}`);
+          const productData = await productResponse.json();
+          
+          if (productData.success && productData.data) {
+            const p = productData.data;
+            const variant = variantId ? p.variants?.find((v: any) => v.id === variantId) : null;
+            const stock = variant ? (variant.onlineStock || 0) : (p.variants?.length 
+              ? p.variants.reduce((sum: number, v: any) => sum + (v.onlineStock || 0), 0)
+              : p.onlineStock || 0);
+            
+            const existingCart = guestStorage.cart.get();
+            const existingItem = existingCart.find(
+              (item) => item.productId === productId && item.variantId === (variantId || undefined)
+            );
+            const currentQty = existingItem?.quantity || 0;
+            
+            if (currentQty + 1 > stock) {
+              set({ error: `Only ${stock} items available in stock.`, updating: null })
+              return
+            }
+            
+            guestStorage.cart.add({
+              productId,
+              quantity: 1,
+              variantId: variantId || undefined,
+              product: {
+                id: p.id,
+                name: p.name,
+                description: p.description,
+                price: p.price,
+                discountedPrice: p.discountedPrice,
+                activeSale: p.activeSale || null,
+                variants: p.variants || [],
+                categoryId: p.categoryId,
+                subcategoryId: p.subcategoryId,
+                colorId: p.colorId,
+                fabricId: p.fabricId,
+                imageUrl: p.imageUrl,
+                images: p.images || [],
+                videoUrl: p.videoUrl,
+                sku: p.sku,
+                totalStock: p.totalStock,
+                onlineStock: p.onlineStock,
+                distributionChannel: p.distributionChannel,
+                isActive: p.isActive,
+                isFeatured: p.isFeatured,
+                createdAt: p.createdAt,
+                updatedAt: p.updatedAt,
+                category: p.category,
+                subcategory: p.subcategory,
+                color: p.color,
+                fabric: p.fabric,
+              }
+            });
+          } else {
+            guestStorage.cart.add({ productId, quantity: 1, variantId: variantId || undefined });
+          }
+        } catch (productError) {
+          guestStorage.cart.add({ productId, quantity: 1, variantId: variantId || undefined });
+        }
+        
+        // Remove from guest wishlist
+        guestStorage.wishlist.remove(productId);
+        const guestWishlist = guestStorage.wishlist.get();
+        set({ 
+          items: guestWishlist as any,
+          count: guestStorage.wishlist.getCount(),
+          updating: null 
+        })
       } else {
         set({ 
           error: cartData.error || 'Failed to add to cart',

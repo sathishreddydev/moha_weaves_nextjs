@@ -71,6 +71,21 @@ export interface GuestWishlistItem {
     name: string;
     description?: string;
     price: string;
+    discountedPrice?: number;
+    activeSale?: {
+      id: string;
+      name: string;
+      offerType: string;
+      discountValue: string;
+      maxDiscount?: string;
+    } | null;
+    variants?: Array<{
+      id: string;
+      size?: string;
+      price?: string;
+      onlineStock: number;
+      isActive?: boolean;
+    }>;
     categoryId?: string;
     subcategoryId?: string;
     colorId?: string;
