@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { cart, CartItemWithProduct, InsertCartItem } from "@/shared";
-import { and, eq, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { productService } from "../products/productService";
 import { getAvailableStock } from "@/lib/stock-utils";
 
@@ -15,7 +15,8 @@ export class CartRepository {
     const rows = await db
       .select()
       .from(cart)
-      .where(eq(cart.userId, userId));
+      .where(eq(cart.userId, userId))
+      .orderBy(asc(cart.createdAt));
 
     const cartItems: CartItemWithProduct[] = (await Promise.all(
       rows.map(async (row) => {

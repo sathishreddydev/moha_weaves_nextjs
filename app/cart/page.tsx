@@ -81,6 +81,14 @@ export default function CartPage() {
     }
   }, [isGuest, items.length, syncGuestCart]);
 
+  // Fetch cart once when auth status resolves (handles login redirect to cart)
+  useEffect(() => {
+    if (status !== "loading") {
+      fetchCart();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
+
   // Validate stock whenever items change (add, remove, quantity update, fetch)
   useEffect(() => {
     validateCartStock();
