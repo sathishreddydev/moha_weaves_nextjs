@@ -147,13 +147,13 @@ export default function CartControls({
       <div className="space-y-3">
         <Button
           onClick={handleLoginRedirect}
-          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-12 sm:h-auto text-base sm:text-sm active:scale-95 transition-transform"
+          className="flex-1 text-white h-12 sm:h-auto text-base sm:text-sm active:scale-95 transition-transform"
           size="lg"
         >
           <User className="h-5 w-5 mr-2" />
           Login to Add to Cart
         </Button>
-        <p className="text-sm text-gray-500 text-center">
+        <p className="text-xs text-gray-500 text-center">
           Please login to add items to your cart and checkout
         </p>
       </div>

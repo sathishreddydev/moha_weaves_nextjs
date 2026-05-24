@@ -280,7 +280,11 @@ export default function ProductDetailClient({
   };
 
   const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
+    if (!touchStart || !touchEnd) {
+      // No swipe movement detected — this was a tap, trigger zoom
+      handleImageClick();
+      return;
+    }
 
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > minSwipeDistance;
@@ -367,14 +371,14 @@ export default function ProductDetailClient({
               {/* Main Image */}
               <div className="order-1 lg:order-2 lg:flex-1">
                 <div
-                  className={`relative aspect-square bg-white rounded-lg overflow-hidden group ${isVideo ? '' : 'cursor-zoom-in'}`}
+                  className={`relative aspect-square bg-white rounded-lg overflow-hidden group ${isVideo ? 'cursor-pointer' : 'cursor-zoom-in'}`}
                   onMouseMove={isVideo ? undefined : handleImageMouseMove}
-                  onClick={isVideo ? undefined : handleImageClick}
+                  onClick={handleImageClick}
                   onTouchStart={isVideo ? undefined : onTouchStart}
                   onTouchMove={isVideo ? undefined : onTouchMove}
                   onTouchEnd={isVideo ? undefined : onTouchEnd}
                   role="button"
-                  aria-label={isVideo ? "Product video" : "Click to zoom image"}
+                  aria-label={isVideo ? "Click to expand video" : "Click to zoom image"}
                   tabIndex={0}
                 >
                   {isImageLoading && !isVideo && (
@@ -385,7 +389,6 @@ export default function ProductDetailClient({
                       key={currentImage}
                       src={currentImage}
                       className="w-full h-full object-contain"
-                      controls
                       autoPlay
                       playsInline
                       muted
@@ -830,20 +833,35 @@ export default function ProductDetailClient({
       </div>
 
       {/* Image Lightbox Modal */}
-      {isZoomed && !isVideo && (
+      {isZoomed && (
         <div
           className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
           onClick={handleLightboxClose}
         >
           <div className="relative max-w-4xl max-h-full w-full h-full flex items-center justify-center">
-            <Image
-              src={currentImage ?? ""}
-              alt={`${product.name} - Zoomed view`}
-              fill
-              className="object-contain"
-              sizes="100vw"
-              priority
-            />
+            {isVideo ? (
+              <video
+                key={currentImage}
+                src={currentImage}
+                className="max-w-full max-h-full object-contain"
+                autoPlay
+                playsInline
+                muted
+                loop
+                controlsList="nodownload"
+                disablePictureInPicture
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <Image
+                src={currentImage ?? ""}
+                alt={`${product.name} - Zoomed view`}
+                fill
+                className="object-contain"
+                sizes="100vw"
+                priority
+              />
+            )}
 
             {/* Close button */}
             <button

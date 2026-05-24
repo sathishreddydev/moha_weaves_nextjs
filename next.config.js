@@ -45,6 +45,9 @@ const nextConfig = {
 
               "font-src 'self'",
 
+              // Video/audio from Cloudinary
+              "media-src 'self' https://res.cloudinary.com",
+
               // API calls
               "connect-src 'self' https://api.razorpay.com https://*.razorpay.com http://103.127.146.58:5000 ws://103.127.146.58:5000 ws://localhost:3000 http://localhost:3000 ws://localhost:5000 ws: wss:",
 

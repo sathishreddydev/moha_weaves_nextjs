@@ -72,6 +72,9 @@ export default async function middleware(request: NextRequest) {
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: https: blob:",
       
+      // Video/audio from Cloudinary
+      "media-src 'self' https://res.cloudinary.com",
+      
       // API connections
       "connect-src 'self' https://api.stripe.com https://api.razorpay.com https://*.razorpay.com http://103.127.146.58:5000 ws://103.127.146.58:5000 ws://localhost:3000 http://localhost:3000 ws://localhost:5000 ws: wss:",
       
