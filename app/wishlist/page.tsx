@@ -177,7 +177,7 @@ export default function WishlistPage() {
             const hasVariantError = variantErrors[item.productId];
 
             return (
-              <div key={item.id} className="flex flex-col gap-1 md:gap-2">
+              <div key={item.id || item.productId} className="flex flex-col gap-1 md:gap-2">
                 {/* Image container — same as ProductCard */}
                 <div
                   className={`relative aspect-[3/4] overflow-hidden bg-stone-100 rounded-sm ${

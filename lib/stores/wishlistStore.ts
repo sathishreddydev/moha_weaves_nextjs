@@ -167,10 +167,11 @@ export const useWishlistStore = create<WishlistStore>((set, get) => ({
             // Update the stored item with product details (including variants)
             const guestWishlist = guestStorage.wishlist.get();
             const updatedWishlist = guestWishlist.map((item: any) => {
-              if (item === productId) {
+              const itemProductId = typeof item === 'string' ? item : item.productId;
+              if (itemProductId === productId) {
                 return {
                   productId: productId,
-                  addedAt: new Date().toISOString(),
+                  addedAt: typeof item !== 'string' && item.addedAt ? item.addedAt : new Date().toISOString(),
                   product: {
                     id: p.id,
                     name: p.name,
@@ -276,10 +277,10 @@ export const useWishlistStore = create<WishlistStore>((set, get) => ({
 
   isInWishlist: (productId: string) => {
     const { items } = get()
-    // Check both store items and guest storage
-    const inStore = items.some(item => item.productId === productId)
-    const inGuestStorage = guestStorage.wishlist.has(productId)
-    return inStore || inGuestStorage
+    // Only check the store items (which are populated by fetchWishlist for both
+    // authenticated and guest users). Avoid reading localStorage directly here
+    // as it causes SSR hydration mismatches.
+    return items.some(item => item.productId === productId)
   },
 
   setUpdating: (productId: string | null) => {

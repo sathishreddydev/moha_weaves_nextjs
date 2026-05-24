@@ -42,10 +42,18 @@ export default function Header() {
       if (authChanged || cartCount === 0) fetchCart();
       if (authChanged || wishlistCount === 0) fetchWishlist();
     } else {
-      // Guest user — load cart count from localStorage
+      // Guest user — load cart/wishlist from localStorage
       if (authChanged || cartCount === 0) fetchCart();
+      if (authChanged) fetchWishlist();
     }
-  }, [authLoading, isAuthenticated, cartCount, wishlistCount, fetchCart, fetchWishlist]);
+  }, [
+    authLoading,
+    isAuthenticated,
+    cartCount,
+    wishlistCount,
+    fetchCart,
+    fetchWishlist,
+  ]);
 
   // Expose --header-height CSS variable so LayoutWrapper and sticky elements
   // can always reference the real measured height instead of hardcoded values.
@@ -140,6 +148,17 @@ export default function Header() {
               </>
             ) : (
               <>
+                <button
+                  onClick={() => router.push("/wishlist")}
+                  className="relative touch-manipulation active:scale-95 transition-transform"
+                >
+                  <Heart className="w-6 h-6 lg:w-5 lg:h-5" />
+                  {wishlistCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] rounded-full h-3 w-3 flex items-center justify-center">
+                      {wishlistCount > 9 ? "9+" : wishlistCount}
+                    </span>
+                  )}
+                </button>
                 <button
                   onClick={() => router.push("/cart")}
                   className="relative touch-manipulation active:scale-95 transition-transform"

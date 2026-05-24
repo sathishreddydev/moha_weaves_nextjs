@@ -4,6 +4,7 @@ import { useSession, signIn, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 import { User } from '@/shared';
+import { useCartStore, useWishlistStore } from '@/lib/stores';
 
 export function useAuth() {
   const { data: session, status } = useSession();
@@ -41,13 +42,27 @@ export function useAuth() {
 
       // Merge guest wishlist after successful login
       if (guestWishlist) {
-        await fetch('/api/wishlist/merge', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ guestWishlistItems: JSON.parse(guestWishlist) })
-        });
+        // Normalize guest wishlist items to plain product ID strings
+        const parsedWishlist = JSON.parse(guestWishlist);
+        const productIds = parsedWishlist.map((item: any) =>
+          typeof item === 'string' ? item : item.productId
+        ).filter(Boolean);
+
+        if (productIds.length > 0) {
+          await fetch('/api/wishlist/merge', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ guestWishlistItems: productIds })
+          });
+        }
         localStorage.removeItem('mohaweavs_guest_wishlist');
       }
+
+      // Re-fetch stores immediately after merge so counts are accurate
+      await Promise.all([
+        useCartStore.getState().fetchCart(),
+        useWishlistStore.getState().fetchWishlist(),
+      ]);
 
       router.refresh();
       return { success: true };
