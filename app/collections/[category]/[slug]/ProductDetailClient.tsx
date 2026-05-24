@@ -27,13 +27,10 @@ import {
   X,
   ZoomIn,
 } from "lucide-react";
-import dynamic from "next/dynamic";
 import Image from "next/image";
-
-const ReactPlayer = dynamic(() => import("react-player"), { ssr: false });
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 interface ProductDetailClientProps {
@@ -104,15 +101,19 @@ export default function ProductDetailClient({
     product.discountedPrice &&
     Number(product?.discountedPrice ?? 0) < Number(product.price);
 
-  const images =
-    (product?.images?.length ?? 0) > 0
-      ? product.images || []
-      : [product.imageUrl || "/placeholder-product.jpg"];
+  const images = useMemo(
+    () =>
+      (product?.images?.length ?? 0) > 0
+        ? product.images || []
+        : [product.imageUrl || "/placeholder-product.jpg"],
+    [product?.images, product.imageUrl],
+  );
 
   // Add video to gallery if available
-  const galleryItems = product.videoUrl
-    ? [...images, product.videoUrl]
-    : images;
+  const galleryItems = useMemo(
+    () => (product.videoUrl ? [...images, product.videoUrl] : images),
+    [images, product.videoUrl],
+  );
 
   const currentImage = galleryItems?.[selectedImageIndex];
   const isVideo =
@@ -380,18 +381,19 @@ export default function ProductDetailClient({
                     <div className="absolute inset-0 bg-gray-200 animate-pulse" />
                   )}
                   {isVideo ? (
-                    <ReactPlayer
+                    <video
                       key={currentImage}
                       src={currentImage}
-                      width="100%"
-                      height="100%"
-                      playing
+                      className="w-full h-full object-contain"
+                      controls
+                      autoPlay
                       playsInline
                       muted
                       loop
-                      controls
-                      style={{ position: 'absolute', top: 0, left: 0 }}
-                      onReady={() => setIsImageLoading(false)}
+                      controlsList="nodownload"
+                      disablePictureInPicture
+                      onLoadedData={() => setIsImageLoading(false)}
+                      style={{ touchAction: 'manipulation' }}
                     />
                   ) : (
                     <Image
