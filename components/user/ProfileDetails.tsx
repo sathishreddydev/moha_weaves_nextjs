@@ -1,6 +1,6 @@
 "use client";
 
-import { signOut, useAuth } from "@/auth";
+import { useAuth } from "@/auth";
 import {
   ArrowLeft,
   ChevronRight,
@@ -37,7 +37,7 @@ const MinimalItem = ({
   </div>
 );
 export default function ProfileDetails() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const router = useRouter();
 
   const handleBack = () => {
@@ -99,7 +99,7 @@ export default function ProfileDetails() {
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => signOut({ callbackUrl: "/" })}
+                onClick={() => logout()}
               >
                 <LogOut className="w-5 h-5" />
                 Log Out

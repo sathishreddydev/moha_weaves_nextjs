@@ -48,28 +48,16 @@ const getAuthHeaders = () => {
   };
   
   if (token) {
-    // Basic validation: check if token looks like a JWT (3 parts separated by dots)
     const parts = token.split('.');
     if (parts.length === 3) {
       headers['Authorization'] = `Bearer ${token}`;
     } else {
-      // Remove invalid token
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
     }
   }
   
   return headers;
-};
-
-// Helper function to handle auth errors
-const handleAuthError = (error: any) => {
-  if (error?.error === 'Unauthorized' || error?.message?.includes('invalid signature')) {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    // Redirect to login page
-    window.location.href = '/login';
-  }
 };
 
 export const useCartStore = create<CartStore>((set, get) => ({
@@ -87,37 +75,35 @@ export const useCartStore = create<CartStore>((set, get) => ({
       
       const headers = getAuthHeaders();
       
-      // For now, always try API first - it will handle guest users appropriately
       const response = await fetch('/api/cart', { headers })
       const data = await response.json()
       
-      if (data.success && data.data) {
+      if (data.success && data.data && !data.isGuest) {
         set({ 
           items: data.data.cart || [],
           count: data.data.count || 0,
           loading: false 
         })
+      } else if (data.isGuest || response.status === 401) {
+        // Guest user — load from localStorage
+        const guestCart = guestStorage.cart.get()
+        set({ 
+          items: guestCart as any,
+          count: guestStorage.cart.getCount(),
+          loading: false 
+        })
       } else {
-        // If API fails for guest users, try localStorage
-        if (data.isGuest) {
-          const guestCart = guestStorage.cart.get()
-          set({ 
-            items: guestCart as any, // Type assertion for compatibility
-            count: guestStorage.cart.getCount(),
-            loading: false 
-          })
-        } else {
-          handleAuthError(data);
-          set({ 
-            error: data.error || 'Failed to fetch cart',
-            loading: false 
-          })
-        }
+        set({ 
+          error: data.error || 'Failed to fetch cart',
+          loading: false 
+        })
       }
     } catch (error) {
-      handleAuthError(error);
+      // On network error, fall back to guest cart
+      const guestCart = guestStorage.cart.get()
       set({ 
-        error: 'An error occurred while fetching your cart',
+        items: guestCart as any,
+        count: guestStorage.cart.getCount(),
         loading: false 
       })
     }
@@ -140,10 +126,6 @@ export const useCartStore = create<CartStore>((set, get) => ({
         loading: false 
       })
       
-      // Show sync notifications if there were changes
-      if (result.updated > 0 || result.removed > 0) {
-      }
-      
     } catch (error) {
       set({ 
         error: 'Failed to sync cart',
@@ -157,96 +139,119 @@ export const useCartStore = create<CartStore>((set, get) => ({
       set({ updating: productId })
       
       const headers = getAuthHeaders();
+      const hasToken = !!headers['Authorization'];
       
-      // Try API first
-      const response = await fetch('/api/cart', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          productId,
-          quantity,
-          variantId
+      // If user has a token, try the authenticated API
+      if (hasToken) {
+        const response = await fetch('/api/cart', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ productId, quantity, variantId })
         })
-      })
-      const data = await response.json()
+        const data = await response.json()
+        
+        if (data.success && data.data) {
+          set({ 
+            items: data.data.cart || [],
+            count: data.data.count || 0,
+            updating: null 
+          })
+          get().validateCartStock()
+          return
+        }
+        
+        // If 401, fall through to guest handling
+        if (response.status !== 401) {
+          set({ 
+            error: data.error || 'Failed to add to cart',
+            updating: null 
+          })
+          return
+        }
+      }
       
-      if (data.success && data.data) {
-        set({ 
-          items: data.data.cart || [],
-          count: data.data.count || 0,
-          updating: null 
-        })
-        get().validateCartStock()
-      } else if (data.isGuest) {
-        // Handle guest user - fetch product details first
-        try {
-          // Fetch product details for guest cart
-          const productResponse = await fetch(`/api/products/${productId}`);
-          const productData = await productResponse.json();
+      // Guest user — add to localStorage with product details
+      try {
+        const productResponse = await fetch(`/api/products/${productId}`);
+        const productData = await productResponse.json();
+        
+        if (productData.success && productData.data) {
+          const p = productData.data;
+          // Validate stock before adding
+          const variant = variantId ? p.variants?.find((v: any) => v.id === variantId) : null;
+          const stock = variant ? (variant.onlineStock || 0) : (p.variants?.length 
+            ? p.variants.reduce((sum: number, v: any) => sum + (v.onlineStock || 0), 0)
+            : p.onlineStock || 0);
           
-          if (productData.success && productData.data) {
-            guestStorage.cart.add({
-              productId,
-              quantity,
-              variantId: variantId || undefined,
-              product: {
-                id: productData.data.id,
-                name: productData.data.name,
-                description: productData.data.description,
-                price: productData.data.price,
-                categoryId: productData.data.categoryId,
-                subcategoryId: productData.data.subcategoryId,
-                colorId: productData.data.colorId,
-                fabricId: productData.data.fabricId,
-                imageUrl: productData.data.imageUrl,
-                images: productData.data.images || [],
-                videoUrl: productData.data.videoUrl,
-                sku: productData.data.sku,
-                totalStock: productData.data.totalStock,
-                onlineStock: productData.data.onlineStock,
-                distributionChannel: productData.data.distributionChannel,
-                isActive: productData.data.isActive,
-                isFeatured: productData.data.isFeatured,
-                createdAt: productData.data.createdAt,
-                updatedAt: productData.data.updatedAt,
-                // Related data
-                category: productData.data.category,
-                subcategory: productData.data.subcategory,
-                color: productData.data.color,
-                fabric: productData.data.fabric,
-              }
+          const existingCart = guestStorage.cart.get();
+          const existingItem = existingCart.find(
+            (item) => item.productId === productId && item.variantId === (variantId || undefined)
+          );
+          const currentQty = existingItem?.quantity || 0;
+          
+          if (currentQty + quantity > stock) {
+            set({ 
+              error: `Only ${stock} items available in stock.`,
+              updating: null 
             })
-          } else {
-            // Fallback without product details
-            guestStorage.cart.add({
-              productId,
-              quantity,
-              variantId: variantId || undefined
-            })
+            return
           }
-        } catch (productError) {
-          // Fallback without product details
+          
+          guestStorage.cart.add({
+            productId,
+            quantity,
+            variantId: variantId || undefined,
+            product: {
+              id: p.id,
+              name: p.name,
+              description: p.description,
+              price: p.price,
+              discountedPrice: p.discountedPrice,
+              activeSale: p.activeSale || null,
+              variants: p.variants || [],
+              categoryId: p.categoryId,
+              subcategoryId: p.subcategoryId,
+              colorId: p.colorId,
+              fabricId: p.fabricId,
+              imageUrl: p.imageUrl,
+              images: p.images || [],
+              videoUrl: p.videoUrl,
+              sku: p.sku,
+              totalStock: p.totalStock,
+              onlineStock: p.onlineStock,
+              distributionChannel: p.distributionChannel,
+              isActive: p.isActive,
+              isFeatured: p.isFeatured,
+              createdAt: p.createdAt,
+              updatedAt: p.updatedAt,
+              category: p.category,
+              subcategory: p.subcategory,
+              color: p.color,
+              fabric: p.fabric,
+            }
+          })
+        } else {
           guestStorage.cart.add({
             productId,
             quantity,
             variantId: variantId || undefined
           })
         }
-        
-        const guestCart = guestStorage.cart.get()
-        set({ 
-          items: guestCart as any,
-          count: guestStorage.cart.getCount(),
-          updating: null 
-        })
-        get().validateCartStock()
-      } else {
-        handleAuthError(data);
-        set({ 
-          error: data.error || 'Failed to add to cart',
-          updating: null 
+      } catch (productError) {
+        guestStorage.cart.add({
+          productId,
+          quantity,
+          variantId: variantId || undefined
         })
       }
+      
+      const guestCart = guestStorage.cart.get()
+      set({ 
+        items: guestCart as any,
+        count: guestStorage.cart.getCount(),
+        updating: null 
+      })
+      get().validateCartStock()
     } catch (error) {
       set({ 
         error: 'An error occurred while adding to cart',
@@ -262,43 +267,44 @@ export const useCartStore = create<CartStore>((set, get) => ({
       set({ updating: itemId })
       
       const headers = getAuthHeaders();
+      const hasToken = !!headers['Authorization'];
       
-      // Try API first
-      const response = await fetch('/api/cart', {
-        method: 'PUT',
-        headers,
-        body: JSON.stringify({
-          id: itemId,
-          quantity
+      if (hasToken) {
+        const response = await fetch('/api/cart', {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify({ id: itemId, quantity })
         })
-      })
-      const data = await response.json()
-      
-      if (data.success && data.data) {
-        set({ 
-          items: data.data.cart || [],
-          count: data.data.count || 0,
-          updating: null 
-        })
-        get().validateCartStock()
-      } else if (data.isGuest) {
-        // Handle guest user - use localStorage
-        guestStorage.cart.update(itemId, quantity)
+        const data = await response.json()
         
-        const guestCart = guestStorage.cart.get()
-        set({ 
-          items: guestCart as any,
-          count: guestStorage.cart.getCount(),
-          updating: null 
-        })
-        get().validateCartStock()
-      } else {
-        handleAuthError(data);
-        set({ 
-          error: data.error || 'Failed to update quantity',
-          updating: null 
-        })
+        if (data.success && data.data) {
+          set({ 
+            items: data.data.cart || [],
+            count: data.data.count || 0,
+            updating: null 
+          })
+          get().validateCartStock()
+          return
+        }
+        
+        if (response.status !== 401) {
+          set({ 
+            error: data.error || 'Failed to update quantity',
+            updating: null 
+          })
+          return
+        }
       }
+      
+      // Guest user — update localStorage
+      guestStorage.cart.update(itemId, quantity)
+      const guestCart = guestStorage.cart.get()
+      set({ 
+        items: guestCart as any,
+        count: guestStorage.cart.getCount(),
+        updating: null 
+      })
+      get().validateCartStock()
     } catch (error) {
       set({ 
         error: 'An error occurred while updating quantity',
@@ -312,50 +318,53 @@ export const useCartStore = create<CartStore>((set, get) => ({
       set({ updating: itemId })
       
       const headers = getAuthHeaders();
+      const hasToken = !!headers['Authorization'];
       
-      // Try API first
-      const response = await fetch(`/api/cart?id=${itemId}`, {
-        method: 'DELETE',
-        headers
-      })
-      const data = await response.json()
-      
-      if (data.success) {
-        // Remove stale stock status entry for this item
-        const { stockStatus } = get()
-        const newStockStatus = { ...stockStatus }
-        delete newStockStatus[itemId]
-        const hasStockIssues = Object.values(newStockStatus).some((s) => s.outOfStock || s.limitedStock)
-        set({ 
-          items: data.data.cart || [],
-          count: data.data.count || 0,
-          stockStatus: newStockStatus,
-          hasStockIssues,
-          updating: null 
+      if (hasToken) {
+        const response = await fetch(`/api/cart?id=${itemId}`, {
+          method: 'DELETE',
+          headers
         })
-      } else if (data.isGuest) {
-        // Handle guest user - use localStorage
-        guestStorage.cart.remove(itemId)
+        const data = await response.json()
         
-        const guestCart = guestStorage.cart.get()
-        const { stockStatus } = get()
-        const newStockStatus = { ...stockStatus }
-        delete newStockStatus[itemId]
-        const hasStockIssues = Object.values(newStockStatus).some((s) => s.outOfStock || s.limitedStock)
-        set({ 
-          items: guestCart as any,
-          count: guestStorage.cart.getCount(),
-          stockStatus: newStockStatus,
-          hasStockIssues,
-          updating: null 
-        })
-      } else {
-        handleAuthError(data);
-        set({ 
-          error: data.error || 'Failed to remove from cart',
-          updating: null 
-        })
+        if (data.success) {
+          const { stockStatus } = get()
+          const newStockStatus = { ...stockStatus }
+          delete newStockStatus[itemId]
+          const hasStockIssues = Object.values(newStockStatus).some((s) => s.outOfStock || s.limitedStock)
+          set({ 
+            items: data.data.cart || [],
+            count: data.data.count || 0,
+            stockStatus: newStockStatus,
+            hasStockIssues,
+            updating: null 
+          })
+          return
+        }
+        
+        if (response.status !== 401) {
+          set({ 
+            error: data.error || 'Failed to remove from cart',
+            updating: null 
+          })
+          return
+        }
       }
+      
+      // Guest user — remove from localStorage
+      guestStorage.cart.remove(itemId)
+      const guestCart = guestStorage.cart.get()
+      const { stockStatus } = get()
+      const newStockStatus = { ...stockStatus }
+      delete newStockStatus[itemId]
+      const hasStockIssues = Object.values(newStockStatus).some((s) => s.outOfStock || s.limitedStock)
+      set({ 
+        items: guestCart as any,
+        count: guestStorage.cart.getCount(),
+        stockStatus: newStockStatus,
+        hasStockIssues,
+        updating: null 
+      })
     } catch (error) {
       set({ 
         error: 'An error occurred while removing from cart',
@@ -369,40 +378,44 @@ export const useCartStore = create<CartStore>((set, get) => ({
       set({ updating: 'all' })
       
       const headers = getAuthHeaders();
+      const hasToken = !!headers['Authorization'];
       
-      // Try API first
-      const response = await fetch('/api/cart?clear=true', {
-        method: 'DELETE',
-        headers
-      })
-      const data = await response.json()
-      
-      if (data.success) {
-        set({ 
-          items: [],
-          count: 0,
-          stockStatus: {},
-          hasStockIssues: false,
-          updating: null 
+      if (hasToken) {
+        const response = await fetch('/api/cart?clear=true', {
+          method: 'DELETE',
+          headers
         })
-      } else if (data.isGuest) {
-        // Handle guest user - use localStorage
-        guestStorage.cart.clear()
+        const data = await response.json()
         
-        set({ 
-          items: [],
-          count: 0,
-          stockStatus: {},
-          hasStockIssues: false,
-          updating: null 
-        })
-      } else {
-        handleAuthError(data);
-        set({ 
-          error: data.error || 'Failed to clear cart',
-          updating: null 
-        })
+        if (data.success) {
+          set({ 
+            items: [],
+            count: 0,
+            stockStatus: {},
+            hasStockIssues: false,
+            updating: null 
+          })
+          return
+        }
+        
+        if (response.status !== 401) {
+          set({ 
+            error: data.error || 'Failed to clear cart',
+            updating: null 
+          })
+          return
+        }
       }
+      
+      // Guest user — clear localStorage
+      guestStorage.cart.clear()
+      set({ 
+        items: [],
+        count: 0,
+        stockStatus: {},
+        hasStockIssues: false,
+        updating: null 
+      })
     } catch (error) {
       set({ 
         error: 'An error occurred while clearing cart',

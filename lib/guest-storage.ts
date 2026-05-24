@@ -12,6 +12,21 @@ export interface GuestCartItem {
     name: string;
     description?: string;
     price: string;
+    discountedPrice?: number;
+    activeSale?: {
+      id: string;
+      name: string;
+      offerType: string;
+      discountValue: string;
+      maxDiscount?: string;
+    } | null;
+    variants?: Array<{
+      id: string;
+      size?: string;
+      price?: string;
+      onlineStock: number;
+      isActive?: boolean;
+    }>;
     categoryId?: string;
     subcategoryId?: string;
     colorId?: string;
@@ -121,8 +136,13 @@ export const guestStorage = {
       );
       
       if (existingItem) {
-        existingItem.quantity += item.quantity;
+        // Cap quantity at 10 per item as a safety limit
+        existingItem.quantity = Math.min(existingItem.quantity + item.quantity, 10);
       } else {
+        // Cap total cart items at 20
+        if (cart.length >= 20) {
+          return;
+        }
         cart.push({
           ...item,
           id: `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,

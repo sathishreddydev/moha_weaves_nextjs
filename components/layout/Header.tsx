@@ -13,7 +13,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Search from "../navigation/Search";
 
 export default function Header() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeMegaMenu, setActiveMegaMenu] = useState(null);
@@ -28,12 +28,24 @@ export default function Header() {
   const { count: cartCount, fetchCart } = useCartStore();
   const { count: wishlistCount, fetchWishlist } = useWishlistStore();
 
+  // Track previous auth state to detect login/logout transitions
+  const prevAuthRef = useRef(isAuthenticated);
+
   useEffect(() => {
+    if (authLoading) return; // Wait for auth status to resolve
+
+    const authChanged = prevAuthRef.current !== isAuthenticated;
+    prevAuthRef.current = isAuthenticated;
+
     if (isAuthenticated) {
-      if (cartCount === 0) fetchCart();
-      if (wishlistCount === 0) fetchWishlist();
+      // Always fetch on auth change (login), or if count is 0 (initial load)
+      if (authChanged || cartCount === 0) fetchCart();
+      if (authChanged || wishlistCount === 0) fetchWishlist();
+    } else {
+      // Guest user — load cart count from localStorage
+      if (authChanged || cartCount === 0) fetchCart();
     }
-  }, [isAuthenticated, cartCount, wishlistCount, fetchCart, fetchWishlist]);
+  }, [authLoading, isAuthenticated, cartCount, wishlistCount, fetchCart, fetchWishlist]);
 
   // Expose --header-height CSS variable so LayoutWrapper and sticky elements
   // can always reference the real measured height instead of hardcoded values.
@@ -127,12 +139,26 @@ export default function Header() {
                 </button>
               </>
             ) : (
-              <button
-                onClick={() => router.push("/login")}
-                className="touch-manipulation active:scale-95 transition-transform"
-              >
-                <UserIcon className="w-6 h-6 lg:w-5 lg:h-5" />
-              </button>
+              <>
+                <button
+                  onClick={() => router.push("/cart")}
+                  className="relative touch-manipulation active:scale-95 transition-transform"
+                >
+                  <ShoppingBag className="w-6 h-6 lg:w-5 lg:h-5" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] rounded-full h-3 w-3 flex items-center justify-center">
+                      {cartCount > 9 ? "9+" : cartCount}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => router.push("/login")}
+                  className="touch-manipulation active:scale-95 transition-transform"
+                >
+                  <UserIcon className="w-6 h-6 lg:w-5 lg:h-5" />
+                </button>
+              </>
             )}
           </div>
         </div>

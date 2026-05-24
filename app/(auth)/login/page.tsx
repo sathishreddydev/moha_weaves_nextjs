@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
 import { useAuth } from '@/auth';
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -31,7 +30,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, login } = useAuth();
   const [serverError, setServerError] = useState("");
 
   // Support both 'returnUrl' and 'redirect' param names for compatibility
@@ -56,18 +55,12 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     setServerError("");
 
-    const result = await signIn("credentials", {
-      redirect: false,
-      email: data.email,
-      password: data.password,
-    });
+    const result = await login(data.email, data.password);
 
-    if (result?.error) {
-      setServerError("Invalid email or password");
-    } else if (result?.ok) {
-      router.push(returnUrl);
+    if (!result.success) {
+      setServerError(result.error || "Invalid email or password");
     } else {
-      setServerError("Something went wrong. Please try again.");
+      router.push(returnUrl);
     }
   };
 

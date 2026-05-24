@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { useAuth } from "@/auth";
 import { User, MapPin, Package, LogOut, HelpCircle } from "lucide-react";
 
 interface ProfileSidebarProps {
@@ -12,6 +12,7 @@ interface ProfileSidebarProps {
 export default function ProfileSidebar({ activeSection, onItemClick }: ProfileSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { logout } = useAuth();
 
   const menuItems = [
     {
@@ -73,7 +74,7 @@ export default function ProfileSidebar({ activeSection, onItemClick }: ProfileSi
 
         <div className="border-t pt-2 mt-2">
           <button
-            onClick={() => signOut({ callbackUrl: "/" })}
+            onClick={() => logout()}
             className="w-full flex items-center space-x-3 px-4 py-4  rounded-lg text-left text-red-600 hover:bg-red-50 transition-colors touch-manipulation active:scale-[0.98]"
           >
             <LogOut className="w-6 h-6 flex-shrink-0" />

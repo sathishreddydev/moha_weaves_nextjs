@@ -1,10 +1,10 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Plus, Minus, ShoppingBag, User } from "lucide-react";
+import { ShoppingCart, Plus, Minus, ShoppingBag } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useCartStore } from "@/lib/stores";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/auth";
 import { CartItemWithProduct } from "@/shared";
 import { getAvailableStock } from "@/lib/stock-utils";
@@ -21,7 +21,6 @@ export default function CartControls({
   selectedVariant,
 }: CartControlsProps) {
   const router = useRouter();
-  const pathname = usePathname();
   const { isAuthenticated, isLoading } = useAuth();
   const { addToCart, removeFromCart, updateQuantity, updating, items } =
     useCartStore();
@@ -31,7 +30,6 @@ export default function CartControls({
   const currentPrice = Number(product.discountedPrice || product.price);
   const availableStock = getAvailableStock(product, selectedVariant?.id);
 
-  // Check if user is logged in using NextAuth
   const isLoggedIn = isAuthenticated;
 
   // Sync cart state with actual cart items
@@ -51,28 +49,23 @@ export default function CartControls({
     }
   }, [items, product.id, selectedVariant?.id]);
 
-  const handleLoginRedirect = () => {
-    // Use Next.js pathname instead of window.location
-    const returnUrl = encodeURIComponent(pathname);
-    router.push(`/login?returnUrl=${returnUrl}`);
-  };
-
   const handleAddToCart = async () => {
-    if (!isLoggedIn) {
-      handleLoginRedirect();
+    if (availableStock <= 0) {
+      toast.error("This item is out of stock.");
       return;
     }
 
     try {
       await addToCart(product.id, 1, selectedVariant?.id || null);
+      toast.success("Added to cart");
     } catch (error) {
       toast.error("Failed to add item to cart. Please try again.");
     }
   };
 
   const handleIncreaseQuantity = async () => {
-    if (!isLoggedIn) {
-      handleLoginRedirect();
+    if (cartQuantity >= availableStock) {
+      toast.error(`Only ${availableStock} items available in stock.`);
       return;
     }
 
@@ -84,11 +77,6 @@ export default function CartControls({
   };
 
   const handleDecreaseQuantity = async () => {
-    if (!isLoggedIn) {
-      handleLoginRedirect();
-      return;
-    }
-
     if (cartQuantity <= 1) {
       // Remove from cart completely
       try {
@@ -121,10 +109,6 @@ export default function CartControls({
   };
 
   const handleCheckout = () => {
-    if (!isLoggedIn) {
-      handleLoginRedirect();
-      return;
-    }
     router.push("/cart");
   };
 
@@ -139,24 +123,6 @@ export default function CartControls({
         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-600 mr-2"></div>
         Loading...
       </Button>
-    );
-  }
-  // If user is not logged in, show login prompt
-  if (!isLoggedIn) {
-    return (
-      <div className="space-y-3">
-        <Button
-          onClick={handleLoginRedirect}
-          className="flex-1 text-white h-12 sm:h-auto text-base sm:text-sm active:scale-95 transition-transform"
-          size="lg"
-        >
-          <User className="h-5 w-5 mr-2" />
-          Login to Add to Cart
-        </Button>
-        <p className="text-xs text-gray-500 text-center">
-          Please login to add items to your cart and checkout
-        </p>
-      </div>
     );
   }
 
@@ -181,7 +147,7 @@ export default function CartControls({
               variant="ghost"
               size="icon"
               onClick={handleIncreaseQuantity}
-              disabled={updating === product.id}
+              disabled={updating === product.id || cartQuantity >= availableStock}
               className="h-10 w-10 rounded-none active:scale-95 transition-transform"
             >
               <Plus className="h-4 w-4" />
@@ -193,7 +159,7 @@ export default function CartControls({
             className="w-full active:scale-95 transition-transform"
           >
             <ShoppingCart className="h-4 w-4 mr-2" />
-            Checkout
+            {isLoggedIn ? "Checkout" : "View Cart"}
             {cartQuantity > 1 && ` (${cartQuantity})`}
             {cartQuantity > 0 &&
               ` - ₹${(cartQuantity * currentPrice).toLocaleString()}`}
