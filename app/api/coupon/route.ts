@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { couponsService } from "./couponsService";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth/server";
+import { cartServices } from "../cart/cartService";
+import { getEffectivePrice } from "@/lib/pricing-utils";
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,13 +16,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { code, orderAmount } = await req.json();
+    const { code, orderAmount: clientOrderAmount } = await req.json();
 
     if (!code) {
       return NextResponse.json(
         { message: "Coupon code is required" },
         { status: 400 }
       );
+    }
+
+    // Compute order amount server-side from the user's actual cart
+    let orderAmount = clientOrderAmount;
+    try {
+      const cartData = await cartServices.getCartItems(session.user.id);
+      if (cartData.cart.length > 0) {
+        orderAmount = cartData.cart.reduce((sum: number, item: any) => {
+          const price = getEffectivePrice(item.product);
+          return sum + price * item.quantity;
+        }, 0);
+      }
+    } catch {
+      // Fall back to client-provided amount if cart fetch fails
     }
 
     // Find coupon by code

@@ -13,6 +13,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { type AddressFormData } from "../user/AddressForm";
 import { useCartProductPurchasedListener } from "@/hooks/useProductPurchasedListener";
+import { useSocketStore } from "@/lib/stores/socketStore";
 import DesktopCheckoutView from "./DesktopCheckoutView";
 import MobileCheckoutView from "./MobileCheckoutView";
 
@@ -32,6 +33,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const {
     items,
+    loading: cartLoading,
     clearCart,
     fetchCart,
     hasStockIssues,
@@ -73,8 +75,8 @@ export default function CheckoutPage() {
   const shipping = pricing.shipping;
   const subtotal = pricing.originalSubtotal;
   const saleDiscount = pricing.saleDiscount;
-  const couponDiscount = appliedCoupon?.discountAmount || 0;
-  const total = pricing.subtotal + shipping - couponDiscount;
+  const couponDiscount = pricing.discountAmount;
+  const total = pricing.totalAmount;
   const totalSavings = saleDiscount;
   const freeShippingGap = pricing.subtotal < 999 ? 999 - pricing.subtotal : 0;
 
@@ -85,10 +87,10 @@ export default function CheckoutPage() {
 
   // ── Empty cart redirect ───────────────────────────────────────────────────
   useEffect(() => {
-    if (status === "authenticated" && !orderPlaced && items.length === 0) {
+    if (status === "authenticated" && !cartLoading && !orderPlaced && items.length === 0) {
       router.push("/cart");
     }
-  }, [status, items.length, orderPlaced, router]);
+  }, [status, cartLoading, items.length, orderPlaced, router]);
 
   // ── Fetch addresses ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -112,6 +114,19 @@ export default function CheckoutPage() {
   }, [items, validateCartStock]);
 
   useCartProductPurchasedListener(items, fetchCart);
+
+  // Re-fetch cart when offers or coupons change (prices may have updated)
+  const { socket } = useSocketStore();
+  useEffect(() => {
+    if (!socket) return;
+    const handleOfferChange = () => fetchCart();
+    socket.on("offer_event", handleOfferChange);
+    socket.on("coupon_event", handleOfferChange);
+    return () => {
+      socket.off("offer_event", handleOfferChange);
+      socket.off("coupon_event", handleOfferChange);
+    };
+  }, [socket, fetchCart]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleAddressSubmit = async (data: AddressFormData) => {

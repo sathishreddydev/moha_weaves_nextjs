@@ -61,7 +61,8 @@ export default function CollectionsClient({
     if (!socket) return;
     const handleProductEvent = () => router.refresh();
     socket.on("product_event", handleProductEvent);
-    return () => { socket.off("product_event", handleProductEvent); };
+    socket.on("offer_event", handleProductEvent);
+    return () => { socket.off("product_event", handleProductEvent); socket.off("offer_event", handleProductEvent); };
   }, [socket]);
 
   // ── State ──────────────────────────────────────────────────────────────────
@@ -230,7 +231,7 @@ export default function CollectionsClient({
     ...(currentFilters.featured ? [{ label: "Featured", onRemove: () => handleToggleFilter("featured", false) }] : []),
     ...(currentFilters.onSale ? [{ label: "On Sale", onRemove: () => handleToggleFilter("onSale", false) }] : []),
   ];
-
+console.log(displayedProducts)
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col lg:flex-row gap-8">

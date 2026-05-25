@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tag, ChevronRight } from "lucide-react";
 import AllCouponsModal from "./AllCouponsModal";
+import { useSocketStore } from "@/lib/stores/socketStore";
 import {
   Coupon,
   getCouponDisplay,
@@ -27,12 +28,9 @@ export default function AvailableCoupons({
   const [usedCoupons, setUsedCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAllModal, setShowAllModal] = useState(false);
+  const { socket } = useSocketStore();
 
-  useEffect(() => {
-    fetchAvailableCoupons();
-  }, [orderAmount]);
-
-  const fetchAvailableCoupons = async () => {
+  const fetchAvailableCoupons = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(
@@ -54,7 +52,21 @@ export default function AvailableCoupons({
     } finally {
       setLoading(false);
     }
-  };
+  }, [orderAmount]);
+
+  useEffect(() => {
+    fetchAvailableCoupons();
+  }, [fetchAvailableCoupons]);
+
+  // Re-fetch coupons when admin creates/updates/deletes coupons
+  useEffect(() => {
+    if (!socket) return;
+    const handler = () => fetchAvailableCoupons();
+    socket.on("coupon_event", handler);
+    return () => {
+      socket.off("coupon_event", handler);
+    };
+  }, [socket, fetchAvailableCoupons]);
 
   const sortCouponsByBest = (couponList: Coupon[]): Coupon[] => {
     return couponList.sort((a, b) => {

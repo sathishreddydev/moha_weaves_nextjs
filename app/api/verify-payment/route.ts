@@ -9,10 +9,17 @@ import { orders } from "@/shared";
 import { eq } from "drizzle-orm";
 import { calculatePricing, getEffectivePrice } from "@/lib/pricing-utils";
 import { couponsService } from "../coupon/couponsService";
+import { publishRealtimeEvent } from "@/realtime/publisher";
 
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json(
+        { message: "Unauthorized" },
+        { status: 401 },
+      );
+    }
     const user = session.user;
     const {
       razorpayOrderId,
@@ -182,6 +189,11 @@ export async function POST(req: NextRequest) {
 
     // ── 9. Clear cart after successful order creation ─────────────────────────
     await cartServices.clearCart(user.id);
+
+    // ── 10. Notify admin/inventory of new order in real-time ──────────────────
+    await publishRealtimeEvent("order_event", {
+      target: { role: "admin" },
+    });
 
     return NextResponse.json({
       orderId: order.id,

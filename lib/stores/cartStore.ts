@@ -376,7 +376,12 @@ export const useCartStore = create<CartStore>((set, get) => ({
   calculateTotal: () => {
     const { items } = get()
     return items.reduce((total, item) => {
-      const price = getEffectivePrice(item.product);
+      const product = item.product as any;
+      const variant = item.variantId
+        ? product.variants?.find((v: any) => v.id === item.variantId)
+        : null;
+      const variantPrice = variant?.price ? parseFloat(variant.price) : null;
+      const price = variantPrice ?? getEffectivePrice(product);
       return total + (price * item.quantity);
     }, 0);
   },

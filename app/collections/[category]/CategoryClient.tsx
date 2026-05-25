@@ -55,7 +55,8 @@ export default function CategoryClient({
     if (!socket) return;
     const handleProductEvent = () => router.refresh();
     socket.on("product_event", handleProductEvent);
-    return () => { socket.off("product_event", handleProductEvent); };
+    socket.on("offer_event", handleProductEvent);
+    return () => { socket.off("product_event", handleProductEvent); socket.off("offer_event", handleProductEvent); };
   }, [socket, router]);
 
   // ── State ──────────────────────────────────────────────────────────────────

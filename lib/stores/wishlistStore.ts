@@ -311,6 +311,9 @@ export const useWishlistStore = create<WishlistStore>((set, get) => ({
       const cartData = await cartResponse.json()
       
       if (cartData.success) {
+        // Sync cart store so header count updates immediately
+        const { useCartStore } = await import('./cartStore')
+        useCartStore.getState().fetchCart()
         // Then remove from wishlist
         await get().removeFromWishlist(productId)
       } else if (cartResponse.status === 401 || cartData.isGuest) {
@@ -377,8 +380,10 @@ export const useWishlistStore = create<WishlistStore>((set, get) => ({
           guestStorage.cart.add({ productId, quantity: 1, variantId: variantId || undefined });
         }
         
-        // Remove from guest wishlist
+        // Remove from guest wishlist and sync cart store
         guestStorage.wishlist.remove(productId);
+        const { useCartStore } = await import('./cartStore')
+        useCartStore.getState().fetchCart()
         const guestWishlist = guestStorage.wishlist.get();
         set({ 
           items: guestWishlist as any,

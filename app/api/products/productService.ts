@@ -415,15 +415,31 @@ export class RoleBasedProductService {
 
         let sale = null;
 
+        // 1. Direct product-to-sale mapping (product-level offers)
         if (productSaleMap.has(product.id)) {
           sale = activeSales.find(
             s => s.id === productSaleMap.get(product.id)
           );
         }
 
+        // 2. Category + subcategory match
         if (!sale && product.categoryId && product.subcategoryId) {
           sale = activeSales.find(
             s => s.categoryId === product.categoryId && s.subcategoryId === product.subcategoryId
+          );
+        }
+
+        // 3. Category-only match (sale applies to entire category, subcategoryId is null)
+        if (!sale && product.categoryId) {
+          sale = activeSales.find(
+            s => s.categoryId === product.categoryId && !s.subcategoryId
+          );
+        }
+
+        // 4. Sitewide sales (no categoryId, no subcategoryId — applies to all products)
+        if (!sale) {
+          sale = activeSales.find(
+            s => !s.categoryId && !s.subcategoryId
           );
         }
 

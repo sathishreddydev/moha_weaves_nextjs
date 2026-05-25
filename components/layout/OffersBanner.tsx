@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useOffersBanner } from "@/hooks/use-offers-banner";
+import { useSocketStore } from "@/lib/stores/socketStore";
 
 interface Offer {
   id: string;
@@ -48,29 +49,42 @@ export default function OffersBanner() {
 
   const { setHasOfferData, setBannerVisible } = useOffersBanner();
   const [localVisible, setLocalVisible] = useState(true);
+  const { socket } = useSocketStore();
 
   // Fetch offers
-  useEffect(() => {
-    const fetchOffers = async () => {
-      try {
-        const res = await fetch("/api/offers");
-        const data: OffersResponse = await res.json();
+  const fetchOffers = useCallback(async () => {
+    try {
+      const res = await fetch("/api/offers");
+      const data: OffersResponse = await res.json();
 
-        if (data.activeOffers?.length > 0) {
-          setOffers(data.activeOffers);
-          setHasOfferData(true);
-        } else {
-          setHasOfferData(false);
-        }
-      } catch {
+      if (data.activeOffers?.length > 0) {
+        setOffers(data.activeOffers);
+        setHasOfferData(true);
+      } else {
         setHasOfferData(false);
-      } finally {
-        setIsLoading(false);
       }
-    };
-
-    fetchOffers();
+    } catch {
+      setHasOfferData(false);
+    } finally {
+      setIsLoading(false);
+    }
   }, [setHasOfferData]);
+
+  useEffect(() => {
+    fetchOffers();
+  }, [fetchOffers]);
+
+  // Re-fetch offers when admin updates products/sales
+  useEffect(() => {
+    if (!socket) return;
+    const handler = () => fetchOffers();
+    socket.on("product_event", handler);
+    socket.on("offer_event", handler);
+    return () => {
+      socket.off("product_event", handler);
+      socket.off("offer_event", handler);
+    };
+  }, [socket, fetchOffers]);
 
   // Fix #5: smooth fade transition — pause auto-rotate while fading
   const [fading, setFading] = useState(false);
@@ -78,10 +92,14 @@ export default function OffersBanner() {
   const goTo = useCallback((index: number) => {
     setFading(true);
     setTimeout(() => {
-      setCurrentIndex(index);
+      setCurrentIndex((prev) => {
+        // Clamp to valid range in case offers changed during the fade
+        if (offers.length === 0) return 0;
+        return index >= offers.length ? 0 : index;
+      });
       setFading(false);
     }, 200);
-  }, []);
+  }, [offers.length]);
 
   const goNext = useCallback(() => {
     goTo((currentIndex + 1) % offers.length);
@@ -126,7 +144,11 @@ export default function OffersBanner() {
 
   if (isLoading || offers.length === 0 || isClosed) return null;
 
-  const offer = offers[currentIndex];
+  // Guard against index going out of bounds during fade transitions or re-fetches
+  const safeIndex = currentIndex >= offers.length ? 0 : currentIndex;
+  const offer = offers[safeIndex];
+  if (!offer) return null;
+
   const hasMultiple = offers.length > 1;
 
   return (

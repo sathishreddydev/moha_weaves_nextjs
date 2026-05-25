@@ -77,15 +77,17 @@ export default function ProductDetailClient({
 
   const { socket } = useSocketStore();
 
-  // Re-run server component when admin updates/adds/deletes a product
+  // Re-run server component when admin updates/adds/deletes a product or offer
   useEffect(() => {
     if (!socket) return;
     socket.emit("join_product_room", product.id);
     const handleProductEvent = () => router.refresh();
     socket.on("product_event", handleProductEvent);
+    socket.on("offer_event", handleProductEvent);
     return () => {
       socket.emit("leave_product_room", product.id);
       socket.off("product_event", handleProductEvent);
+      socket.off("offer_event", handleProductEvent);
     };
   }, [socket, router, product.id]);
 

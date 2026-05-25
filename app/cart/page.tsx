@@ -61,7 +61,7 @@ export default function CartPage() {
       });
   }, []);
 
-  // Re-fetch cart + related products when admin updates a product
+  // Re-fetch cart + related products when admin updates a product or offer
   useEffect(() => {
     if (!socket) return;
     const handleProductEvent = () => {
@@ -69,8 +69,10 @@ export default function CartPage() {
       fetchRelatedProducts(items);
     };
     socket.on("product_event", handleProductEvent);
+    socket.on("offer_event", handleProductEvent);
     return () => {
       socket.off("product_event", handleProductEvent);
+      socket.off("offer_event", handleProductEvent);
     };
   }, [socket, fetchCart, fetchRelatedProducts, items]);
 

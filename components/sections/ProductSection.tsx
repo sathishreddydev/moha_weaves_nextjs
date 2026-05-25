@@ -49,8 +49,10 @@ export default function ProductSection({
   useEffect(() => {
     if (!socket) return;
     socket.on("product_event", fetchProducts);
+    socket.on("offer_event", fetchProducts);
     return () => {
       socket.off("product_event", fetchProducts);
+      socket.off("offer_event", fetchProducts);
     };
   }, [socket, fetchProducts]);
 

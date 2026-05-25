@@ -6,8 +6,10 @@ import { getProductUrl } from "@/lib/utils/productUrl";
 import { getAvailableStock } from "@/lib/stock-utils";
 import { Heart, ImageIcon, ShoppingBag } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSocketStore } from "@/lib/stores/socketStore";
+import { useCartStore } from "@/lib/stores";
+import { useCartProductPurchasedListener } from "@/hooks/useProductPurchasedListener";
 import { ProductWithDetails } from "@/shared/types";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -28,6 +30,16 @@ export default function WishlistPage() {
   } = useWishlistStore();
 
   const { socket } = useSocketStore();
+  const { fetchCart } = useCartStore();
+
+  // Listen for product_purchased events to refresh wishlist stock in real-time
+  const handleStockChange = useCallback(() => {
+    fetchWishlist();
+  }, [fetchWishlist]);
+  useCartProductPurchasedListener(
+    items.map((item) => ({ productId: item.productId, variantId: null })),
+    handleStockChange,
+  );
 
   // Track selected variant per wishlist item
   const [variantSelections, setVariantSelections] = useState<VariantSelections>(
@@ -66,12 +78,14 @@ export default function WishlistPage() {
     }
   }, [items]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Re-fetch when admin updates/deletes a product so prices and names stay fresh
+  // Re-fetch when admin updates/deletes a product or changes offers so prices and names stay fresh
   useEffect(() => {
     if (!socket) return;
     socket.on("product_event", fetchWishlist);
+    socket.on("offer_event", fetchWishlist);
     return () => {
       socket.off("product_event", fetchWishlist);
+      socket.off("offer_event", fetchWishlist);
     };
   }, [socket, fetchWishlist]);
 
