@@ -15,10 +15,10 @@ export const users = pgTable("users", {
   id: varchar("id")
     .primaryKey()
     .default(sql`gen_random_uuid()`),
-  email: text("email").notNull().unique(),
-  password: text("password").notNull(),
+  email: text("email").unique(),
+  password: text("password"),
   name: text("name").notNull(),
-  phone: text("phone"),
+  phone: text("phone").unique(),
   role: enums.userRoleEnum("role").notNull().default("user"),
   storeId: varchar("store_id"),
   isActive: boolean("is_active").notNull().default(true),

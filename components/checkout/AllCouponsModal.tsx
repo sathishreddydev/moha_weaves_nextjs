@@ -218,7 +218,7 @@ export default function AllCouponsModal({
       icon={<Tag className="h-4 w-4" />}
       footer={footer}
       isMobile={isMobile}
-      maxHeight="90vh"
+      maxHeight="80vh"
     >
       {body}
     </StickyPanel>

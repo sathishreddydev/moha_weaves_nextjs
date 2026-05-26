@@ -1,8 +1,8 @@
 "use client";
 
 import { ProductFilters } from "@/app/api/products/productService";
-import CollectionsFilterSections from "@/components/filters/CollectionsFilterSections";
 import ActiveFilterBadges from "@/components/filters/ActiveFilterBadges";
+import CollectionsFilterSections from "@/components/filters/CollectionsFilterSections";
 import ProductCard from "@/components/products/ProductCard";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,14 +19,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useWishlistStore } from "@/lib/stores/wishlistStore";
 import { useFilterStore } from "@/lib/stores/fillterStore";
+import { useSocketStore } from "@/lib/stores/socketStore";
+import { useWishlistStore } from "@/lib/stores/wishlistStore";
 import { getProductUrl } from "@/lib/utils/productUrl";
 import { ProductWithDetails } from "@/shared";
 import { FilterIcon, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { useSocketStore } from "@/lib/stores/socketStore";
 
 const PAGE_SIZE = 20;
 
@@ -42,7 +42,8 @@ export default function CollectionsClient({
   initialFilters,
 }: CollectionsClientProps) {
   const router = useRouter();
-  const { socket } = useSocketStore();
+  const socket = useSocketStore((s) => s.socket);
+  const isSocketConnected = useSocketStore((s) => s.isConnected);
 
   const { categories, colors, fabrics } = useFilterStore();
   const {
@@ -55,20 +56,26 @@ export default function CollectionsClient({
 
   useEffect(() => {
     if (wishlistCount === 0) fetchWishlist();
-  }, [wishlistCount]);
+  }, [wishlistCount, fetchWishlist]);
 
   useEffect(() => {
     if (!socket) return;
     const handleProductEvent = () => router.refresh();
     socket.on("product_event", handleProductEvent);
     socket.on("offer_event", handleProductEvent);
-    return () => { socket.off("product_event", handleProductEvent); socket.off("offer_event", handleProductEvent); };
-  }, [socket]);
+    return () => {
+      socket.off("product_event", handleProductEvent);
+      socket.off("offer_event", handleProductEvent);
+    };
+  }, [isSocketConnected, router]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [showFilters, setShowFilters] = useState(false);
-  const [currentFilters, setCurrentFilters] = useState<ProductFilters>(initialFilters);
-  const [displayedProducts, setDisplayedProducts] = useState<ProductWithDetails[]>(initialProducts || []);
+  const [currentFilters, setCurrentFilters] =
+    useState<ProductFilters>(initialFilters);
+  const [displayedProducts, setDisplayedProducts] = useState<
+    ProductWithDetails[]
+  >(initialProducts || []);
   const [totalCount, setTotalCount] = useState(initialCount || 0);
   const [offset, setOffset] = useState(initialProducts?.length || 0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -85,17 +92,26 @@ export default function CollectionsClient({
   const updateURL = useCallback(
     (filters: ProductFilters) => {
       const params = new URLSearchParams();
-      if (filters.categories?.length) params.set("categories", filters.categories.join(","));
-      if (filters.colors?.length) params.set("colors", filters.colors.join(","));
-      if (filters.fabrics?.length) params.set("fabrics", filters.fabrics.join(","));
+      if (filters.categories?.length)
+        params.set("categories", filters.categories.join(","));
+      if (filters.colors?.length)
+        params.set("colors", filters.colors.join(","));
+      if (filters.fabrics?.length)
+        params.set("fabrics", filters.fabrics.join(","));
       if (filters.minPrice || filters.maxPrice)
-        params.set("price", `${filters.minPrice || 100}-${filters.maxPrice || 50000}`);
+        params.set(
+          "price",
+          `${filters.minPrice || 100}-${filters.maxPrice || 50000}`,
+        );
       if (filters.search) params.set("search", filters.search);
-      if (filters.sort && filters.sort !== "newest") params.set("sort", filters.sort);
+      if (filters.sort && filters.sort !== "newest")
+        params.set("sort", filters.sort);
       if (filters.featured) params.set("featured", "true");
       if (filters.onSale) params.set("onSale", "true");
       const qs = params.toString();
-      router.push(qs ? `/collections?${qs}` : "/collections", { scroll: false });
+      router.push(qs ? `/collections?${qs}` : "/collections", {
+        scroll: false,
+      });
     },
     [router],
   );
@@ -121,7 +137,9 @@ export default function CollectionsClient({
     (category: string, checked: boolean) => {
       const next = checked
         ? [...(currentFilters.categories || []), category.toLowerCase()]
-        : (currentFilters.categories || []).filter((c) => c !== category.toLowerCase());
+        : (currentFilters.categories || []).filter(
+            (c) => c !== category.toLowerCase(),
+          );
       handleFilterChange({ categories: next });
     },
     [currentFilters, handleFilterChange],
@@ -131,7 +149,9 @@ export default function CollectionsClient({
     (color: string, checked: boolean) => {
       const next = checked
         ? [...(currentFilters.colors || []), color.toLowerCase()]
-        : (currentFilters.colors || []).filter((c) => c !== color.toLowerCase());
+        : (currentFilters.colors || []).filter(
+            (c) => c !== color.toLowerCase(),
+          );
       handleFilterChange({ colors: next });
     },
     [currentFilters, handleFilterChange],
@@ -141,7 +161,9 @@ export default function CollectionsClient({
     (fabric: string, checked: boolean) => {
       const next = checked
         ? [...(currentFilters.fabrics || []), fabric.toLowerCase()]
-        : (currentFilters.fabrics || []).filter((c) => c !== fabric.toLowerCase());
+        : (currentFilters.fabrics || []).filter(
+            (c) => c !== fabric.toLowerCase(),
+          );
       handleFilterChange({ fabrics: next });
     },
     [currentFilters, handleFilterChange],
@@ -166,7 +188,11 @@ export default function CollectionsClient({
 
   const handleClearAllFilters = useCallback(() => {
     setIsApplyingFilters(true);
-    const cleared: ProductFilters = { limit: PAGE_SIZE, offset: 0, distributionChannel: "online" };
+    const cleared: ProductFilters = {
+      limit: PAGE_SIZE,
+      offset: 0,
+      distributionChannel: "online",
+    };
     setCurrentFilters(cleared);
     updateURL(cleared);
     setTimeout(() => setIsApplyingFilters(false), 500);
@@ -178,11 +204,16 @@ export default function CollectionsClient({
     setIsLoadingMore(true);
     try {
       const params = new URLSearchParams();
-      if (currentFilters.categories?.length) params.set("categories", currentFilters.categories.join(","));
-      if (currentFilters.colors?.length) params.set("colors", currentFilters.colors.join(","));
-      if (currentFilters.fabrics?.length) params.set("fabrics", currentFilters.fabrics.join(","));
-      if (currentFilters.minPrice) params.set("minPrice", String(currentFilters.minPrice));
-      if (currentFilters.maxPrice) params.set("maxPrice", String(currentFilters.maxPrice));
+      if (currentFilters.categories?.length)
+        params.set("categories", currentFilters.categories.join(","));
+      if (currentFilters.colors?.length)
+        params.set("colors", currentFilters.colors.join(","));
+      if (currentFilters.fabrics?.length)
+        params.set("fabrics", currentFilters.fabrics.join(","));
+      if (currentFilters.minPrice)
+        params.set("minPrice", String(currentFilters.minPrice));
+      if (currentFilters.maxPrice)
+        params.set("maxPrice", String(currentFilters.maxPrice));
       if (currentFilters.search) params.set("search", currentFilters.search);
       if (currentFilters.sort) params.set("sort", currentFilters.sort);
       if (currentFilters.featured) params.set("featured", "true");
@@ -222,22 +253,55 @@ export default function CollectionsClient({
 
   // ── Active filter badges ───────────────────────────────────────────────────
   const activeBadges = [
-    ...(currentFilters.categories || []).map((c) => ({ label: c, onRemove: () => handleCategoryChange(c, false) })),
-    ...(currentFilters.colors || []).map((c) => ({ label: c, onRemove: () => handleColorChange(c, false) })),
-    ...(currentFilters.fabrics || []).map((f) => ({ label: f, onRemove: () => handleFabricChange(f, false) })),
+    ...(currentFilters.categories || []).map((c) => ({
+      label: c,
+      onRemove: () => handleCategoryChange(c, false),
+    })),
+    ...(currentFilters.colors || []).map((c) => ({
+      label: c,
+      onRemove: () => handleColorChange(c, false),
+    })),
+    ...(currentFilters.fabrics || []).map((f) => ({
+      label: f,
+      onRemove: () => handleFabricChange(f, false),
+    })),
     ...(currentFilters.minPrice || currentFilters.maxPrice
-      ? [{ label: `₹${currentFilters.minPrice ?? 100} – ₹${currentFilters.maxPrice ?? 50000}`, onRemove: () => handleFilterChange({ minPrice: undefined, maxPrice: undefined }) }]
+      ? [
+          {
+            label: `₹${currentFilters.minPrice ?? 100} – ₹${currentFilters.maxPrice ?? 50000}`,
+            onRemove: () =>
+              handleFilterChange({ minPrice: undefined, maxPrice: undefined }),
+          },
+        ]
       : []),
-    ...(currentFilters.featured ? [{ label: "Featured", onRemove: () => handleToggleFilter("featured", false) }] : []),
-    ...(currentFilters.onSale ? [{ label: "On Sale", onRemove: () => handleToggleFilter("onSale", false) }] : []),
+    ...(currentFilters.featured
+      ? [
+          {
+            label: "Featured",
+            onRemove: () => handleToggleFilter("featured", false),
+          },
+        ]
+      : []),
+    ...(currentFilters.onSale
+      ? [
+          {
+            label: "On Sale",
+            onRemove: () => handleToggleFilter("onSale", false),
+          },
+        ]
+      : []),
   ];
-console.log(displayedProducts)
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Filters Sidebar - Desktop */}
         <aside className="hidden lg:block w-64 flex-shrink-0">
-          <div className="sticky space-y-6" style={{ top: "calc(var(--banner-height, 0px) + var(--header-height, 74px) + 1.5rem)" }}>
+          <div
+            className="sticky space-y-6"
+            style={{
+              top: "calc(var(--banner-height, 0px) + var(--header-height, 74px) + 1.5rem)",
+            }}
+          >
             <h1 className="text-xl font-light text-gray-900 uppercase tracking-[0.1em]">
               Collections
             </h1>
@@ -280,10 +344,18 @@ console.log(displayedProducts)
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="newest" className="text-xs sm:text-sm">Newest First</SelectItem>
-                <SelectItem value="price-low" className="text-xs sm:text-sm">Price: Low to High</SelectItem>
-                <SelectItem value="price-high" className="text-xs sm:text-sm">Price: High to Low</SelectItem>
-                <SelectItem value="name" className="text-xs sm:text-sm">Name: A to Z</SelectItem>
+                <SelectItem value="newest" className="text-xs sm:text-sm">
+                  Newest First
+                </SelectItem>
+                <SelectItem value="price-low" className="text-xs sm:text-sm">
+                  Price: Low to High
+                </SelectItem>
+                <SelectItem value="price-high" className="text-xs sm:text-sm">
+                  Price: High to Low
+                </SelectItem>
+                <SelectItem value="name" className="text-xs sm:text-sm">
+                  Name: A to Z
+                </SelectItem>
               </SelectContent>
             </Select>
 
@@ -291,7 +363,10 @@ console.log(displayedProducts)
             <div className="sm:hidden">
               <Drawer open={showFilters} onOpenChange={setShowFilters}>
                 <DrawerTrigger asChild>
-                  <Button variant="outline" className="h-8 px-2 border border-gray-300 rounded-lg">
+                  <Button
+                    variant="outline"
+                    className="h-8 px-2 border border-gray-300 rounded-lg"
+                  >
                     <FilterIcon className="h-4 w-4" />
                   </Button>
                 </DrawerTrigger>
@@ -301,7 +376,9 @@ console.log(displayedProducts)
                   {/* Sticky header */}
                   <DrawerHeader className="flex-shrink-0 border-b border-gray-100 px-5 py-4">
                     <div className="flex items-center justify-between">
-                      <DrawerTitle className="text-left text-base font-semibold">Filters</DrawerTitle>
+                      <DrawerTitle className="text-left text-base font-semibold">
+                        Filters
+                      </DrawerTitle>
                       <Button
                         variant="link"
                         onClick={handleClearAllFilters}
@@ -327,7 +404,10 @@ console.log(displayedProducts)
                   </div>
                   {/* Sticky footer */}
                   <div className="flex-shrink-0 px-5 py-4 border-t border-gray-100 bg-white">
-                    <Button className="w-full h-11 text-sm font-medium" onClick={() => setShowFilters(false)}>
+                    <Button
+                      className="w-full h-11 text-sm font-medium"
+                      onClick={() => setShowFilters(false)}
+                    >
                       Apply Filters
                     </Button>
                   </div>
@@ -337,13 +417,18 @@ console.log(displayedProducts)
           </div>
 
           {/* Active Filter Badges - Mobile only */}
-          <ActiveFilterBadges filters={activeBadges} onClearAll={handleClearAllFilters} />
+          <ActiveFilterBadges
+            filters={activeBadges}
+            onClearAll={handleClearAllFilters}
+          />
 
           {/* Sale context banner — shown when user arrives via a sitewide offer link */}
           {currentFilters.onSale && (
             <div className="mt-4 mb-2 px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-2 bg-red-50 border border-red-200 text-red-800">
               <span className="text-base">🎉</span>
-              <span>Showing all sale items. Prices already reflect the discount.</span>
+              <span>
+                Showing all sale items. Prices already reflect the discount.
+              </span>
               <button
                 onClick={() => handleToggleFilter("onSale", false)}
                 className="ml-auto text-red-600 hover:text-red-800 underline text-xs whitespace-nowrap"
@@ -356,8 +441,12 @@ console.log(displayedProducts)
           {/* Products */}
           {displayedProducts.length === 0 ? (
             <div className="text-center py-12">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
-              <p className="text-gray-600">Try adjusting your filters or search terms</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No products found
+              </h3>
+              <p className="text-gray-600">
+                Try adjusting your filters or search terms
+              </p>
             </div>
           ) : (
             <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 pt-6">

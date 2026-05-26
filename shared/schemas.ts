@@ -4,9 +4,9 @@ import * as tables from "./tables";
 // Insert schemas
 export const insertUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  phone: z.string().optional(),
+  email: z.string().email("Invalid email address").optional().nullable(),
+  password: z.string().min(6, "Password must be at least 6 characters").optional().nullable(),
+  phone: z.string().optional().nullable(),
   role: z.enum(["user", "admin", "store_manager"]).default("user"),
   storeId: z.string().optional(),
   isActive: z.boolean().default(true),

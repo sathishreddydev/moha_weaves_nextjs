@@ -21,6 +21,7 @@ import DeleteConfirmDialog from "./DeleteConfirmDialog";
 import { UserAddress } from "@/shared";
 import { useRouter } from "next/navigation";
 import { ThreeDotsMenu } from "../ui/three-dots-menu";
+import { useResponsive } from "@/hooks/useResponsive";
 
 function AddressTypeIcon({ type }: { type?: string }) {
   switch (type?.toLowerCase()) {
@@ -55,7 +56,7 @@ export default function Addresses() {
     null,
   );
   const router = useRouter();
-
+  const isResponsive = useResponsive();
 
   const handleShareAddress = (address: UserAddress) => {
     const text = `${address.name}\n${address.phone}\n${address.locality}, ${address.city} - ${address.pincode}`;
@@ -65,7 +66,6 @@ export default function Addresses() {
       navigator.clipboard.writeText(text);
     }
   };
-
 
   const handleDeleteAddress = (address: UserAddress) => {
     setAddressToDelete(address);
@@ -166,10 +166,14 @@ export default function Addresses() {
                 aria-label="Back to profile"
               >
                 <ArrowLeft className="w-5 h-5 text-gray-500 group-hover:text-gray-800 transition-colors" />
-                <h1 className="text-xl font-semibold text-gray-900">Addresses</h1>
+                <h1 className="text-xl font-semibold text-gray-900">
+                  Addresses
+                </h1>
               </button>
               {/* Desktop title (no back button) */}
-              <h1 className="hidden lg:block text-xl font-semibold text-gray-900">Addresses</h1>
+              <h1 className="hidden lg:block text-xl font-semibold text-gray-900">
+                Addresses
+              </h1>
               <Button
                 variant="outline"
                 onClick={handleAddAddress}
@@ -302,7 +306,7 @@ export default function Addresses() {
         isOpen={deleteConfirmOpen}
         onClose={handleCloseDeleteConfirm}
         onConfirm={handleConfirmDelete}
-        isMobile={false}
+        isMobile={isResponsive}
         isLoading={updating !== null}
         addressName={addressToDelete?.name}
       />
