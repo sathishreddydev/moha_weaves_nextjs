@@ -31,12 +31,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Send OTP via 2factor.in API (SMS only)
-    const response = await fetch(
-      `https://2factor.in/API/V1/${TWO_FACTOR_API_KEY}/SMS/${phone}/AUTOGEN/OTP1`,
-      { method: 'GET' }
-    );
+    const url = `https://2factor.in/API/V1/${TWO_FACTOR_API_KEY}/SMS/${phone}/AUTOGEN2`;
+    const response = await fetch(url, { method: 'GET' });
 
     const data = await response.json();
+
+    console.log('2factor.in send response:', JSON.stringify(data));
 
     if (data.Status === 'Success') {
       return NextResponse.json({

@@ -42,9 +42,13 @@ export async function POST(request: NextRequest) {
 
     const data = await response.json();
 
-    if (data.Status !== 'Success' || data.Details !== 'OTP Matched') {
+    console.log('2factor.in verify response:', JSON.stringify(data));
+
+    // 2factor.in returns Status: "Success" and Details: "OTP Matched" on success
+    // But Details can vary — check Status field primarily
+    if (data.Status !== 'Success') {
       return NextResponse.json(
-        { success: false, error: 'Invalid OTP. Please try again.' },
+        { success: false, error: data.Details || 'Invalid OTP. Please try again.' },
         { status: 400 }
       );
     }
