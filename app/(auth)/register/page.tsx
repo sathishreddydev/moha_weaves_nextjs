@@ -22,7 +22,7 @@ const registerSchema = z
   .object({
     name: z.string().min(2, "Name must be at least 2 characters"),
     email: z.string().email("Invalid email address"),
-    phone: z.string().optional(),
+    phone: z.string().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit mobile number"),
     password: z.string().min(6, "Password must be at least 6 characters"),
     confirmPassword: z
       .string()
@@ -149,7 +149,7 @@ export default function RegisterPage() {
 
             {/* Phone */}
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone (Optional)</Label>
+              <Label htmlFor="phone">Phone</Label>
               <Input
                 id="phone"
                 type="tel"
