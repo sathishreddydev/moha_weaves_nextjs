@@ -3,6 +3,21 @@ import { categories, Category, Color, colors, Fabric, fabrics, subcategories, Su
 import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 
+// Size ordering: predefined sizes in logical sequence
+const SIZE_ORDER = ["XS", "S", "M", "L", "XL", "2XL", "3XL"];
+
+function sortSizes(sizes: string[] | null): string[] {
+  if (!sizes || !sizes.length) return sizes || [];
+  return [...sizes].sort((a, b) => {
+    const indexA = SIZE_ORDER.indexOf(a);
+    const indexB = SIZE_ORDER.indexOf(b);
+    if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+    if (indexA !== -1) return -1;
+    if (indexB !== -1) return 1;
+    return a.localeCompare(b);
+  });
+}
+
 export async function GET(req: NextRequest) {
   try {
     const [categoriesResult, colorsResult, fabricsResult] = await Promise.all([
@@ -30,6 +45,7 @@ async function getCategoriesWithSubcategories(): Promise<(Category & { subcatego
 
   return allCategories.map(category => ({
     ...category,
+    sizes: sortSizes(category.sizes),
     subcategories: allSubcategories.filter(sub => sub.categoryId === category.id)
   }));
 }

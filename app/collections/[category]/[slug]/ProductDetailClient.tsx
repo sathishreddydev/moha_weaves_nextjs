@@ -614,7 +614,8 @@ export default function ProductDetailClient({
                       Size Guide
                     </button>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2 max-w-xs">
+                    {console.log("product.variants",product.variants)}
                     {product.variants.map((variant: any) => (
                       <Button
                         variant="outline"

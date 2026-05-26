@@ -44,6 +44,19 @@ export interface ProductFilters {
 export type UserRole = "user" | "admin"
 export class RoleBasedProductService {
 
+  private static readonly SIZE_ORDER = ["XS", "S", "M", "L", "XL", "2XL", "3XL"];
+
+  private sortVariantsBySize(variants: any[]): any[] {
+    return variants.sort((a, b) => {
+      const indexA = RoleBasedProductService.SIZE_ORDER.indexOf(a.size);
+      const indexB = RoleBasedProductService.SIZE_ORDER.indexOf(b.size);
+      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      return a.size.localeCompare(b.size);
+    });
+  }
+
   private async getActiveSales() {
     const now = new Date();
 
@@ -227,8 +240,7 @@ export class RoleBasedProductService {
           inArray(productVariants.productId, productIds),
           eq(productVariants.isActive, true)
         )
-      )
-      .orderBy(asc(productVariants.size));
+      );
 
     const productVariantMap = new Map<string, any[]>();
 
@@ -261,6 +273,11 @@ export class RoleBasedProductService {
           quantity: row.quantity,
         });
       }
+    }
+
+    // Sort variants by logical size order (XS, S, M, L, XL, 2XL, 3XL)
+    for (const [productId, variants] of productVariantMap) {
+      productVariantMap.set(productId, this.sortVariantsBySize(variants));
     }
 
     return productVariantMap;
