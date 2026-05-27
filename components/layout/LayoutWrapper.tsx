@@ -10,19 +10,22 @@ interface LayoutWrapperProps {
 export default function LayoutWrapper({ children }: LayoutWrapperProps) {
   const pathname = usePathname();
   const isHome = pathname === "/";
+  const isLogin = pathname === "/login";
+  const isFullBleed = isHome || isLogin;
 
   return (
     <main
       className={clsx(
-        // Always offset by banner + header using CSS variables set by ResizeObservers.
-        // On home the hero is full-bleed so we add no extra gap; on other pages add 1rem breathing room.
-        !isHome && "px-4 sm:px-6 lg:px-8",
-        "min-h-screen pb-12 bg-white font-sans text-slate-800 antialiased"
+        !isFullBleed && "px-4 sm:px-6 lg:px-8",
+        !isLogin && "pb-12",
+        "min-h-screen bg-white font-sans text-slate-800 antialiased"
       )}
       style={{
-        paddingTop: isHome
-          ? "calc(var(--banner-height, 0px) + var(--header-height, 74px))"
-          : "calc(var(--banner-height, 0px) + var(--header-height, 74px) + 1.5rem)",
+        paddingTop: isLogin
+          ? "0px"
+          : isHome
+            ? "calc(var(--banner-height, 0px) + var(--header-height, 74px))"
+            : "calc(var(--banner-height, 0px) + var(--header-height, 74px) + 1.5rem)",
       }}
     >
       {children}

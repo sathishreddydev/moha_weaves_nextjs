@@ -5,35 +5,19 @@ import { useAuth } from "@/auth";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Mail, Phone, Eye, EyeOff } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-
-const emailSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-});
-
-type EmailFormData = z.infer<typeof emailSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isAuthenticated, login, loginWithOtp } = useAuth();
+  const { isAuthenticated, loginWithOtp } = useAuth();
 
-  const [mode, setMode] = useState<"phone" | "email">("email");
-  const [step, setStep] = useState<"phone" | "otp">("phone");
+  const [step, setStep] = useState<"main" | "otp">("main");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [sessionId, setSessionId] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
-  const [showPassword, setShowPassword] = useState(false);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const returnUrl =
@@ -52,36 +36,18 @@ export default function LoginPage() {
     }
   }, [resendTimer]);
 
-  // Email form
-  const {
-    register,
-    handleSubmit,
-    formState: { errors: emailErrors, isSubmitting },
-  } = useForm<EmailFormData>({
-    resolver: zodResolver(emailSchema),
-  });
-
-  const onEmailSubmit = async (data: EmailFormData) => {
-    setError("");
-    const result = await login(data.email, data.password);
-    if (!result.success) {
-      setError(result.error || "Invalid email or password");
-    } else {
-      router.push(returnUrl);
-    }
+  const handleGoogleLogin = () => {
+    signIn("google", { callbackUrl: returnUrl });
   };
 
-  // Send OTP
   const handleSendOtp = async () => {
     const cleaned = phone.replace(/\s/g, "");
     if (!/^[6-9]\d{9}$/.test(cleaned)) {
       setError("Enter a valid 10-digit mobile number");
       return;
     }
-
     setError("");
     setLoading(true);
-
     try {
       const res = await fetch("/api/auth/otp/send", {
         method: "POST",
@@ -89,7 +55,6 @@ export default function LoginPage() {
         body: JSON.stringify({ phone: cleaned }),
       });
       const data = await res.json();
-
       if (data.success) {
         setSessionId(data.sessionId);
         setStep("otp");
@@ -105,7 +70,6 @@ export default function LoginPage() {
     }
   };
 
-  // OTP input
   const handleOtpChange = (index: number, value: string) => {
     if (value.length > 1) {
       const digits = value.replace(/\D/g, "").slice(0, 6).split("");
@@ -114,8 +78,7 @@ export default function LoginPage() {
         if (index + i < 6) newOtp[index + i] = d;
       });
       setOtp(newOtp);
-      const next = Math.min(index + digits.length, 5);
-      otpRefs.current[next]?.focus();
+      otpRefs.current[Math.min(index + digits.length, 5)]?.focus();
       return;
     }
     if (!/^\d*$/.test(value)) return;
@@ -131,34 +94,25 @@ export default function LoginPage() {
     }
   };
 
-  // Verify OTP
   const handleVerify = async () => {
     const otpValue = otp.join("");
     if (otpValue.length !== 6) {
       setError("Enter the 6-digit code");
       return;
     }
-
     setError("");
     setLoading(true);
-
     try {
       const res = await fetch("/api/auth/otp/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phone: phone.replace(/\s/g, ""),
-          otp: otpValue,
-          sessionId,
-        }),
+        body: JSON.stringify({ phone: phone.replace(/\s/g, ""), otp: otpValue, sessionId }),
       });
       const data = await res.json();
-
       if (!data.success) {
         setError(data.error || "Invalid code");
         return;
       }
-
       const result = await loginWithOtp(phone.replace(/\s/g, ""), data.user.id);
       if (!result.success) {
         setError(result.error || "Login failed");
@@ -172,12 +126,10 @@ export default function LoginPage() {
     }
   };
 
-  // Resend
   const handleResend = async () => {
     if (resendTimer > 0) return;
     setError("");
     setLoading(true);
-
     try {
       const res = await fetch("/api/auth/otp/send", {
         method: "POST",
@@ -185,7 +137,6 @@ export default function LoginPage() {
         body: JSON.stringify({ phone: phone.replace(/\s/g, "") }),
       });
       const data = await res.json();
-
       if (data.success) {
         setSessionId(data.sessionId);
         setResendTimer(30);
@@ -201,311 +152,158 @@ export default function LoginPage() {
     }
   };
 
-  // Switch mode
-  const switchMode = () => {
-    setMode(mode === "phone" ? "email" : "phone");
-    setError("");
-    setStep("phone");
-    setOtp(["", "", "", "", "", ""]);
-  };
+  const loginContent = (
+    <>
+      {error && (
+        <div className="bg-red-50 text-red-600 px-4 py-2.5 rounded-xl text-sm mb-5">
+          {error}
+        </div>
+      )}
 
-  return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-[400px]">
-        {/* Brand */}
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-            Welcome back
-          </h1>
-          <p className="text-gray-500 text-sm mt-2">
-            {mode === "phone"
-              ? step === "phone"
-                ? "Enter your phone number to continue"
-                : "Enter the code we sent you"
-              : "Sign in to your account"}
+      {step === "main" ? (
+        <div className="space-y-5">
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            className="w-full h-12 flex items-center justify-center gap-3 border border-gray-200 rounded-full text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+            </svg>
+            Sign in with Google
+          </button>
+
+          <div className="text-center text-sm text-gray-400">or</div>
+
+          <div className="flex items-center bg-gray-100 rounded-full px-4 h-12">
+            <span className="text-sm text-gray-500 font-medium mr-2">+91</span>
+            <input
+              type="tel"
+              inputMode="numeric"
+              placeholder="Phone number"
+              maxLength={10}
+              value={phone}
+              onChange={(e) => { setPhone(e.target.value.replace(/\D/g, "")); setError(""); }}
+              onKeyDown={(e) => { if (e.key === "Enter" && phone.length === 10) handleSendOtp(); }}
+              disabled={loading}
+              className="flex-1 bg-transparent outline-none text-sm text-gray-800 placeholder-gray-400"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={handleSendOtp}
+            disabled={loading || phone.length < 10}
+            className="w-full h-12 bg-black text-white rounded-full text-sm font-semibold hover:bg-gray-900 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {loading ? "Sending..." : "Send OTP"}
+          </button>
+
+          <p className="text-center text-xs text-gray-400 pt-2">
+            By continuing, you agree to our{" "}
+            <Link href="/terms" className="underline">Terms</Link> &{" "}
+            <Link href="/privacy" className="underline">Privacy Policy</Link>
           </p>
         </div>
+      ) : (
+        <div className="space-y-5">
+          <p className="text-sm text-gray-500 text-center">
+            Code sent to <span className="font-semibold text-gray-800">+91 {phone}</span>
+          </p>
 
-        {/* Error */}
-        {error && (
-          <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl text-sm mb-5 animate-in fade-in slide-in-from-top-1">
-            {error}
+          <div className="flex justify-center gap-2.5">
+            {otp.map((digit, i) => (
+              <input
+                key={i}
+                ref={(el) => { otpRefs.current[i] = el; }}
+                type="text"
+                inputMode="numeric"
+                maxLength={1}
+                value={digit}
+                onChange={(e) => handleOtpChange(i, e.target.value)}
+                onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                disabled={loading}
+                className="w-11 h-12 text-center text-lg font-bold bg-gray-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-black transition-all disabled:opacity-50"
+              />
+            ))}
           </div>
-        )}
 
-        {mode === "email" ? (
-          /* ─── Email Login ─── */
-          <div>
-            <form
-              onSubmit={handleSubmit(onEmailSubmit)}
-              className="space-y-5"
-              noValidate
-            >
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1.5 block">
-                  Email
-                </label>
-                <Input
-                  type="email"
-                  placeholder="you@example.com"
-                  {...register("email")}
-                  disabled={isSubmitting}
-                  className={`h-11 ${emailErrors.email ? "border-red-400 focus:ring-red-200" : ""}`}
-                  autoFocus
-                />
-                {emailErrors.email && (
-                  <p className="text-xs text-red-500 mt-1.5">
-                    {emailErrors.email.message}
-                  </p>
-                )}
-              </div>
+          <button
+            type="button"
+            onClick={handleVerify}
+            disabled={loading || otp.join("").length !== 6}
+            className="w-full h-12 bg-black text-white rounded-full text-sm font-semibold hover:bg-gray-900 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {loading ? "Verifying..." : "Verify & Sign in"}
+          </button>
 
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-sm font-medium text-gray-700">
-                    Password
-                  </label>
-                  <Link
-                    href="/forgot-password"
-                    className="text-xs text-gray-400 hover:text-gray-700 transition-colors"
-                  >
-                    Forgot?
-                  </Link>
-                </div>
-                <div className="relative">
-                  <Input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    {...register("password")}
-                    disabled={isSubmitting}
-                    className={`h-11 pr-10 ${emailErrors.password ? "border-red-400 focus:ring-red-200" : ""}`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                    tabIndex={-1}
-                  >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-                {emailErrors.password && (
-                  <p className="text-xs text-red-500 mt-1.5">
-                    {emailErrors.password.message}
-                  </p>
-                )}
-              </div>
-
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full h-11 text-sm font-semibold"
-              >
-                {isSubmitting ? (
-                  <span className="flex items-center gap-2">
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Signing in...
-                  </span>
-                ) : (
-                  "Sign in"
-                )}
-              </Button>
-            </form>
-
-            {/* Divider */}
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200" />
-              </div>
-              <div className="relative flex justify-center text-xs">
-                <span className="bg-white px-3 text-gray-400 uppercase tracking-wide">
-                  or
-                </span>
-              </div>
-            </div>
-
-            {/* OTP Login Button */}
+          <div className="flex items-center justify-between text-sm">
             <button
               type="button"
-              onClick={switchMode}
-              className="w-full h-11 flex items-center justify-center gap-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all"
+              onClick={() => { setStep("main"); setOtp(["", "", "", "", "", ""]); setError(""); }}
+              className="text-gray-500 hover:text-gray-800"
             >
-              <Phone size={16} />
-              Continue with Phone OTP
+              Change number
             </button>
-
-            {/* Create account */}
-            <p className="text-center text-sm text-gray-500 mt-6">
-              Don&apos;t have an account?{" "}
-              <Link
-                href="/register"
-                className="font-semibold text-gray-900 hover:underline"
-              >
-                Create one
-              </Link>
-            </p>
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={resendTimer > 0 || loading}
+              className={resendTimer > 0 ? "text-gray-400" : "text-black font-medium underline"}
+            >
+              {resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend code"}
+            </button>
           </div>
-        ) : (
-          /* ─── Phone OTP Login ─── */
-          <>
-            {step === "phone" ? (
-              <div className="space-y-5">
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1.5 block">
-                    Phone number
-                  </label>
-                  <div className="flex">
-                    <span className="inline-flex items-center px-3.5 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm font-medium">
-                      +91
-                    </span>
-                    <Input
-                      type="tel"
-                      inputMode="numeric"
-                      placeholder="Enter 10-digit number"
-                      maxLength={10}
-                      value={phone}
-                      onChange={(e) => {
-                        setPhone(e.target.value.replace(/\D/g, ""));
-                        setError("");
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleSendOtp();
-                      }}
-                      disabled={loading}
-                      className="rounded-l-none h-11"
-                      autoFocus
-                    />
-                  </div>
-                </div>
+        </div>
+      )}
+    </>
+  );
 
-                <Button
-                  onClick={handleSendOtp}
-                  disabled={loading || phone.length < 10}
-                  className="w-full h-11 text-sm font-semibold"
-                >
-                  {loading ? (
-                    <span className="flex items-center gap-2">
-                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Sending...
-                    </span>
-                  ) : (
-                    "Send OTP"
-                  )}
-                </Button>
+  return (
+    <>
+      {/* Mobile: Full screen, no gaps */}
+      <div className="lg:hidden min-h-screen flex flex-col">
+        <div className="relative h-40 bg-gradient-to-br from-orange-400 via-rose-400 to-purple-500 flex items-center justify-center overflow-hidden shrink-0">
+          <div className="absolute -left-6 -bottom-6 w-24 h-24 rounded-full bg-yellow-300/40" />
+          <div className="absolute -right-4 -bottom-4 w-20 h-20 rounded-full bg-green-400/40" />
+          <div className="absolute right-8 top-4 w-10 h-10 rounded-full bg-teal-300/30" />
+          <h1 className="text-xl font-bold text-white z-10 text-center px-4">
+            Login to your Moha Weaves Account
+          </h1>
+        </div>
 
-                {/* Divider */}
-                <div className="relative my-6">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-200" />
-                  </div>
-                  <div className="relative flex justify-center text-xs">
-                    <span className="bg-white px-3 text-gray-400 uppercase tracking-wide">
-                      or
-                    </span>
-                  </div>
-                </div>
-
-                {/* Email Login Button */}
-                <button
-                  type="button"
-                  onClick={switchMode}
-                  className="w-full h-11 flex items-center justify-center gap-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all"
-                >
-                  <Mail size={16} />
-                  Continue with Email
-                </button>
-
-                <p className="text-xs text-center text-gray-400 mt-4">
-                  By continuing, you agree to our{" "}
-                  <Link href="/terms" className="underline hover:text-gray-600">
-                    Terms
-                  </Link>{" "}
-                  &{" "}
-                  <Link href="/privacy" className="underline hover:text-gray-600">
-                    Privacy Policy
-                  </Link>
-                </p>
-              </div>
-            ) : (
-              /* OTP Verification */
-              <div className="space-y-5">
-                <div className="text-center">
-                  <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Phone size={24} className="text-gray-600" />
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    Code sent to{" "}
-                    <span className="font-semibold text-gray-900">
-                      +91 {phone}
-                    </span>
-                  </p>
-                </div>
-
-                {/* OTP Boxes */}
-                <div className="flex justify-center gap-2.5 py-2">
-                  {otp.map((digit, i) => (
-                    <input
-                      key={i}
-                      ref={(el) => { otpRefs.current[i] = el; }}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handleOtpChange(i, e.target.value)}
-                      onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                      disabled={loading}
-                      className="w-11 h-13 text-center text-xl font-bold border-2 border-gray-200 rounded-xl focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all disabled:opacity-50"
-                    />
-                  ))}
-                </div>
-
-                <Button
-                  onClick={handleVerify}
-                  disabled={loading || otp.join("").length !== 6}
-                  className="w-full h-11 text-sm font-semibold"
-                >
-                  {loading ? (
-                    <span className="flex items-center gap-2">
-                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Verifying...
-                    </span>
-                  ) : (
-                    "Verify & Sign in"
-                  )}
-                </Button>
-
-                <div className="flex items-center justify-between text-sm pt-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStep("phone");
-                      setOtp(["", "", "", "", "", ""]);
-                      setError("");
-                    }}
-                    className="text-gray-500 hover:text-gray-800 transition-colors"
-                  >
-                    ← Change
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleResend}
-                    disabled={resendTimer > 0 || loading}
-                    className={`transition-colors ${
-                      resendTimer > 0
-                        ? "text-gray-400"
-                        : "text-gray-900 font-medium hover:underline"
-                    }`}
-                  >
-                    {resendTimer > 0
-                      ? `Resend in ${resendTimer}s`
-                      : "Resend code"}
-                  </button>
-                </div>
-              </div>
-            )}
-          </>
-        )}
+        <div className="flex-1 bg-white rounded-t-3xl -mt-6 relative z-10 px-6 py-8">
+          {loginContent}
+        </div>
       </div>
-    </div>
+
+      {/* Desktop: Split layout - image left, login right */}
+      <div className="hidden lg:flex min-h-screen">
+        <div className="w-1/2 relative bg-gradient-to-br from-orange-400 via-rose-400 to-purple-500 overflow-hidden">
+          <div className="absolute -left-20 -bottom-20 w-72 h-72 rounded-full bg-yellow-300/30" />
+          <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-green-400/20" />
+          <div className="absolute right-20 bottom-20 w-40 h-40 rounded-full bg-teal-300/20" />
+          <div className="absolute left-16 top-16 w-28 h-28 rounded-full bg-pink-300/30" />
+          <div className="flex items-center justify-center h-full relative z-10">
+            <div className="text-center text-white">
+              <h1 className="text-5xl font-bold mb-4">Moha Weaves</h1>
+              <p className="text-lg text-white/80">Handcrafted with love</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="w-1/2 flex items-center justify-center bg-white">
+          <div className="w-full max-w-[380px] px-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-8">
+              Login to your Moha Weaves Account
+            </h2>
+            {loginContent}
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
