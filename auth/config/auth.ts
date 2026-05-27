@@ -1,6 +1,7 @@
 import NextAuth from 'next-auth';
 import { JWT } from 'next-auth/jwt';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import GoogleProvider from 'next-auth/providers/google';
 import { User } from '@/shared';
 
 // Extend NextAuth types
@@ -30,17 +31,19 @@ export const authOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   pages: {
     signIn: '/login',
-    signUp: '/register',
-    error: '/auth/error',
+    error: '/login',
   },
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID || '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+    }),
     CredentialsProvider({
       id: 'credentials',
       name: 'credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
-        role: { label: 'Role', type: 'text' }
       },
       async authorize(credentials) {
         try {
@@ -48,18 +51,13 @@ export const authOptions = {
             return null;
           }
 
-          // Use actual database authentication via auth-service
           const { AuthService } = await import('../services/auth-service');
-          
-          // Find user by email
           const user = await AuthService.findUserByEmail(credentials.email);
-          
+
           if (!user || !user.password) {
-            // User doesn't exist or is a phone-only user (no password set)
             return null;
           }
 
-          // Verify password
           const isValidPassword = await AuthService.verifyPassword(
             credentials.password,
             user.password
@@ -69,9 +67,8 @@ export const authOptions = {
             return null;
           }
 
-          // Create session tokens
           const tokens = await AuthService.createSessionTokens(user);
-          
+
           return {
             ...tokens.user,
             phone: user.phone,
@@ -95,7 +92,6 @@ export const authOptions = {
             return null;
           }
 
-          // User already verified via OTP API route — just look up and create session
           const { AuthService } = await import('../services/auth-service');
           const { db } = await import('@/lib/db');
           const { users } = await import('@/shared/tables');
@@ -111,7 +107,6 @@ export const authOptions = {
             return null;
           }
 
-          // Create session tokens
           const tokens = await AuthService.createSessionTokens(user);
 
           return {
@@ -126,28 +121,87 @@ export const authOptions = {
     }),
   ],
   callbacks: {
+    async signIn({ user, account }: any) {
+      // Handle Google sign-in: find or create user in DB
+      if (account?.provider === 'google') {
+        try {
+          const { db } = await import('@/lib/db');
+          const { users } = await import('@/shared/tables');
+          const { eq } = await import('drizzle-orm');
+
+          // Check if user exists by email
+          const [existingUser] = await db
+            .select()
+            .from(users)
+            .where(eq(users.email, user.email))
+            .limit(1);
+
+          if (!existingUser) {
+            // Create new user from Google profile
+            const [newUser] = await db
+              .insert(users)
+              .values({
+                email: user.email,
+                name: user.name || 'User',
+                role: 'user',
+                isActive: true,
+                createdAt: new Date(),
+              })
+              .returning();
+
+            user.dbId = newUser.id;
+            user.role = newUser.role;
+            user.phone = newUser.phone;
+          } else {
+            user.dbId = existingUser.id;
+            user.role = existingUser.role;
+            user.phone = existingUser.phone;
+
+            // Update name from Google if user has default name
+            if (existingUser.name === 'User' && user.name) {
+              await db
+                .update(users)
+                .set({ name: user.name })
+                .where(eq(users.id, existingUser.id));
+            }
+          }
+
+          return true;
+        } catch (error) {
+          console.error('Google signIn callback error:', error);
+          return false;
+        }
+      }
+
+      return true;
+    },
     async jwt({ token, user, account }: any) {
-      // Initial login - store user data in token
       if (user && account) {
-        token.id = user.id;
-        token.sub = user.id; // JWT standard: subject field
-        token.email = user.email || '';
-        token.phone = user.phone || '';
-        token.name = user.name;
-        token.role = user.role;
-        token.accessToken = user.accessToken || '';
+        if (account.provider === 'google') {
+          // Google login — use dbId from signIn callback
+          token.id = user.dbId || user.id;
+          token.sub = user.dbId || user.id;
+          token.email = user.email || '';
+          token.phone = user.phone || '';
+          token.name = user.name;
+          token.role = user.role || 'user';
+          token.accessToken = '';
+        } else {
+          // Credentials / OTP login
+          token.id = user.id;
+          token.sub = user.id;
+          token.email = user.email || '';
+          token.phone = user.phone || '';
+          token.name = user.name;
+          token.role = user.role;
+          token.accessToken = user.accessToken || '';
+        }
       }
-      
-      // Subsequent requests - preserve existing token data
-      else if (token && !user && !account) {
-        // Token already has data from previous login, preserve it
-      }
-      
+
       return token;
     },
     async session({ session, token }: { session: any; token: JWT }) {
       if (token) {
-        // JWT tokens use 'sub' (subject) field for user ID
         session.user.id = token.id || token.sub;
         session.user.email = token.email || null;
         session.user.phone = token.phone || null;
@@ -165,8 +219,7 @@ export const authOptions = {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: false, // Set to false for HTTP on VPS
-        // Remove domain for IP-based access
+        secure: false,
       },
     },
   },

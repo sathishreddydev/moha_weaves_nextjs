@@ -1,0 +1,77 @@
+name: Deploy to Beta
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_deployment:
+        description: 'Type "deploy" to confirm beta deployment'
+        required: true
+        default: ''
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Confirm Deployment
+        run: |
+          if [ "${{ github.event.inputs.confirm_deployment }}" != "deploy" ]; then
+            echo "❌ Deployment not confirmed. Type 'deploy' to proceed."
+            exit 1
+          fi
+          echo "✅ Beta deployment confirmed. Proceeding..."
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Load environment variables
+        run: |
+          echo "Loading beta environment variables..."
+          cp .env.beta .env.local
+
+      - name: Run database migrations
+        run: npx drizzle-kit migrate
+        env:
+          DATABASE_URL: ${{ secrets.BETA_DATABASE_URL }}
+
+      - name: Build application
+        run: npm run build
+        env:
+          NODE_ENV: production
+          DATABASE_URL: ${{ secrets.BETA_DATABASE_URL }}
+          NEXTAUTH_URL: ${{ secrets.BETA_NEXTAUTH_URL }}
+          NEXTAUTH_SECRET: ${{ secrets.BETA_NEXTAUTH_SECRET }}
+          JWT_SECRET: ${{ secrets.BETA_JWT_SECRET }}
+          CLOUDINARY_CLOUD_NAME: ${{ secrets.BETA_CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY: ${{ secrets.BETA_CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.BETA_CLOUDINARY_API_SECRET }}
+          RAZORPAY_KEY_ID: ${{ secrets.BETA_RAZORPAY_KEY_ID }}
+          RAZORPAY_KEY_SECRET: ${{ secrets.BETA_RAZORPAY_KEY_SECRET }}
+          NEXT_PUBLIC_RAZORPAY_KEY_ID: ${{ secrets.BETA_RAZORPAY_KEY_ID }}
+          NEXT_PUBLIC_SOCKET_URL: ${{ secrets.BETA_SOCKET_URL }}
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.BETA_AZUREAPPSERVICE_CLIENTID }}
+          tenant-id: ${{ secrets.BETA_AZUREAPPSERVICE_TENANTID }}
+          subscription-id: ${{ secrets.BETA_AZUREAPPSERVICE_SUBSCRIPTIONID }}
+
+      - name: Deploy to Azure Beta
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'mohaweaves-nextjs-beta'
+          slot-name: 'Production'
+          package: .

@@ -1,0 +1,77 @@
+name: Deploy to Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_deployment:
+        description: 'Type "deploy" to confirm staging deployment'
+        required: true
+        default: ''
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Confirm Deployment
+        run: |
+          if [ "${{ github.event.inputs.confirm_deployment }}" != "deploy" ]; then
+            echo "❌ Deployment not confirmed. Type 'deploy' to proceed."
+            exit 1
+          fi
+          echo "✅ Staging deployment confirmed. Proceeding..."
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Load environment variables
+        run: |
+          echo "Loading staging environment variables..."
+          cp .env.stage .env.local
+
+      - name: Run database migrations
+        run: npx drizzle-kit migrate
+        env:
+          DATABASE_URL: ${{ secrets.STAGE_DATABASE_URL }}
+
+      - name: Build application
+        run: npm run build
+        env:
+          NODE_ENV: production
+          DATABASE_URL: ${{ secrets.STAGE_DATABASE_URL }}
+          NEXTAUTH_URL: ${{ secrets.STAGE_NEXTAUTH_URL }}
+          NEXTAUTH_SECRET: ${{ secrets.STAGE_NEXTAUTH_SECRET }}
+          JWT_SECRET: ${{ secrets.STAGE_JWT_SECRET }}
+          CLOUDINARY_CLOUD_NAME: ${{ secrets.STAGE_CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY: ${{ secrets.STAGE_CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.STAGE_CLOUDINARY_API_SECRET }}
+          RAZORPAY_KEY_ID: ${{ secrets.STAGE_RAZORPAY_KEY_ID }}
+          RAZORPAY_KEY_SECRET: ${{ secrets.STAGE_RAZORPAY_KEY_SECRET }}
+          NEXT_PUBLIC_RAZORPAY_KEY_ID: ${{ secrets.STAGE_RAZORPAY_KEY_ID }}
+          NEXT_PUBLIC_SOCKET_URL: ${{ secrets.STAGE_SOCKET_URL }}
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.STAGE_AZUREAPPSERVICE_CLIENTID }}
+          tenant-id: ${{ secrets.STAGE_AZUREAPPSERVICE_TENANTID }}
+          subscription-id: ${{ secrets.STAGE_AZUREAPPSERVICE_SUBSCRIPTIONID }}
+
+      - name: Deploy to Azure Staging
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'mohaweaves-nextjs-stage'
+          slot-name: 'Production'
+          package: .
