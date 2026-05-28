@@ -266,12 +266,14 @@ export default function LoginPage() {
     <>
       {/* Mobile: Full screen, no gaps */}
       <div className="lg:hidden min-h-screen flex flex-col">
-        <div className="relative h-40 bg-gradient-to-br from-orange-400 via-rose-400 to-purple-500 flex items-center justify-center overflow-hidden shrink-0">
+        <div className="relative h-44 bg-gradient-to-br from-orange-400 via-rose-400 to-purple-500 flex items-center justify-center overflow-hidden shrink-0">
           <div className="absolute -left-6 -bottom-6 w-24 h-24 rounded-full bg-yellow-300/40" />
           <div className="absolute -right-4 -bottom-4 w-20 h-20 rounded-full bg-green-400/40" />
           <div className="absolute right-8 top-4 w-10 h-10 rounded-full bg-teal-300/30" />
-          <h1 className="text-xl font-bold text-white z-10 text-center px-4">
-            Login to your Moha Weaves Account
+          <h1 className="z-10 text-center px-4">
+            <span className="text-base font-medium text-white/90 block">Login to your</span>
+            <span className="text-2xl font-bold text-white block mt-1">Moha Weaves</span>
+            <span className="text-base font-medium text-white/90 block mt-1">Account</span>
           </h1>
         </div>
 

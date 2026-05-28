@@ -21,11 +21,9 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
         "min-h-screen bg-white font-sans text-slate-800 antialiased"
       )}
       style={{
-        paddingTop: isLogin
-          ? "0px"
-          : isHome
-            ? "calc(var(--banner-height, 0px) + var(--header-height, 74px))"
-            : "calc(var(--banner-height, 0px) + var(--header-height, 74px) + 1.5rem)",
+        paddingTop: isHome
+          ? "calc(var(--banner-height, 0px) + var(--header-height, 74px))"
+          : "calc(var(--banner-height, 0px) + var(--header-height, 74px) + 1.5rem)",
       }}
     >
       {children}
