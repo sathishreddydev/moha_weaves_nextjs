@@ -138,16 +138,6 @@ function formatOfferDescription(sale: any): string {
 }
 
 function getOfferBackgroundColor(offerType: string): string {
-  switch (offerType) {
-    case 'percentage':
-      return '#ef4444'; // red
-    case 'flat':
-      return '#3b82f6'; // blue
-    case 'flash_sale':
-      return '#f59e0b'; // amber
-    case 'category':
-      return '#10b981'; // green
-    default:
-      return '#991b1b'; // dark red
-  }
+  // Transparent dark - blends with any page background
+  return 'rgba(0, 0, 0, 0.75)';
 }

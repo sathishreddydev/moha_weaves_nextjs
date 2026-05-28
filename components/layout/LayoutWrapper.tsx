@@ -23,7 +23,9 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
       style={{
         paddingTop: isHome
           ? "calc(var(--banner-height, 0px) + var(--header-height, 74px))"
-          : "calc(var(--banner-height, 0px) + var(--header-height, 74px) + 1.5rem)",
+          : isLogin
+            ? "calc(var(--banner-height, 0px) + var(--header-height, 74px))"
+            : "calc(var(--banner-height, 0px) + var(--header-height, 74px) + 1.5rem)",
       }}
     >
       {children}
