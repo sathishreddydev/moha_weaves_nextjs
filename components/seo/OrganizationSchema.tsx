@@ -30,7 +30,7 @@ export default function OrganizationSchema() {
           availableLanguage: ["English", "Hindi", "Telugu"],
         },
         sameAs: [
-          // Add real social URLs when available
+          "https://www.instagram.com/moha_weaves/",
         ],
       },
       {

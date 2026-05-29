@@ -130,7 +130,9 @@ export default function Footer() {
               <div>
                 <Link
                   scroll={true}
-                  href="#"
+                  href="https://www.instagram.com/moha_weaves/"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="inline-block text-[10px] font-bold uppercase tracking-widest text-slate-700 border-b border-transparent hover:border-slate-900 transition-all pb-1"
                 >
                   Instagram
