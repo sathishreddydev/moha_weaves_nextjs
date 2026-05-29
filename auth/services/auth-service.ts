@@ -166,13 +166,15 @@ export class AuthService {
   }
 
   // Validate refresh token
-  static async validateRefreshToken(token: string): Promise<User | null> {
+  static async validateRefreshToken(token: string, userId: string): Promise<User | null> {
     try {
+      // Only fetch tokens for the specific user (not all tokens in the system)
       const tokens = await db
         .select()
         .from(tables.refreshTokens)
         .where(
           and(
+            eq(tables.refreshTokens.userId, userId),
             gt(tables.refreshTokens.expiresAt, new Date()),
             eq(tables.refreshTokens.isRevoked, false)
           )
@@ -198,10 +200,18 @@ export class AuthService {
     }
   }
 
-  // Revoke refresh token
-  static async revokeRefreshToken(token: string) {
+  // Revoke refresh token for a specific user
+  static async revokeRefreshToken(token: string, userId: string) {
     try {
-      const tokens = await db.select().from(tables.refreshTokens);
+      const tokens = await db
+        .select()
+        .from(tables.refreshTokens)
+        .where(
+          and(
+            eq(tables.refreshTokens.userId, userId),
+            eq(tables.refreshTokens.isRevoked, false)
+          )
+        );
 
       for (const record of tokens) {
         const match = await bcrypt.compare(token, record.token);
@@ -215,6 +225,23 @@ export class AuthService {
           return;
         }
       }
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Revoke all refresh tokens for a user (logout all devices)
+  static async revokeAllRefreshTokens(userId: string) {
+    try {
+      await db
+        .update(tables.refreshTokens)
+        .set({ isRevoked: true })
+        .where(
+          and(
+            eq(tables.refreshTokens.userId, userId),
+            eq(tables.refreshTokens.isRevoked, false)
+          )
+        );
     } catch (error) {
       throw error;
     }

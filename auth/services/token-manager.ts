@@ -1,46 +1,12 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
-
 export class AuthTokenManager {
   private static refreshPromise: Promise<any> | null = null;
 
-  // Get current access token from session
+  // Get current access token from localStorage
   static getAccessToken(): string | null {
     if (typeof window === 'undefined') return null;
-
-    // Always prefer the token from the live NextAuth session — it may have
-    // been refreshed since the last time we cached it in localStorage.
-    const sessionData = this.getSessionFromStorage();
-    if (sessionData?.accessToken) {
-      localStorage.setItem('accessToken', sessionData.accessToken);
-      return sessionData.accessToken;
-    }
-
-    // Fall back to the cached token in localStorage
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      return token;
-    }
-
-    return null;
-  }
-
-  // Get session from localStorage (fallback)
-  private static getSessionFromStorage(): any {
-    try {
-      const session = localStorage.getItem('next-auth.session-token');
-      if (!session) return null;
-      
-      // Parse JWT payload
-      const parts = session.split('.');
-      if (parts.length !== 3) return null;
-      
-      const payload = JSON.parse(atob(parts[1]));
-      return payload;
-    } catch {
-      return null;
-    }
+    return localStorage.getItem('accessToken');
   }
 
   // Check if token is expired
@@ -63,7 +29,8 @@ export class AuthTokenManager {
   static async refreshToken(): Promise<boolean> {
     // Prevent multiple refresh attempts
     if (this.refreshPromise) {
-      return this.refreshPromise;
+      const result = await this.refreshPromise;
+      return result.success;
     }
 
     this.refreshPromise = this.performTokenRefresh();
@@ -96,21 +63,18 @@ export class AuthTokenManager {
       if (data.success) {
         // Store new tokens
         localStorage.setItem('accessToken', data.accessToken);
-        localStorage.setItem('refreshToken', data.refreshToken);
+        if (data.refreshToken) {
+          localStorage.setItem('refreshToken', data.refreshToken);
+        }
         
         return { success: true, data };
       } else {
         throw new Error(data.error || 'Token refresh failed');
       }
     } catch (error) {
-      
-      // Clear invalid tokens and redirect to login
+      // Clear invalid tokens
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
-      
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
-      }
       
       return { success: false, error };
     }
@@ -141,21 +105,16 @@ export class AuthTokenManager {
     return headers;
   }
 
-  // Sync token from NextAuth session to localStorage
-  static syncTokenFromSession(): void {
+  // Store token from session (called after login)
+  static setAccessToken(token: string): void {
     if (typeof window === 'undefined') return;
-    
-    const sessionData = this.getSessionFromStorage();
-    if (sessionData?.accessToken) {
-      localStorage.setItem('accessToken', sessionData.accessToken);
-    }
+    localStorage.setItem('accessToken', token);
   }
 
   // Logout and clear tokens
   static logout(): void {
+    if (typeof window === 'undefined') return;
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
-    localStorage.removeItem('next-auth.session-token');
-    localStorage.removeItem('next-auth.csrf-token');
   }
 }

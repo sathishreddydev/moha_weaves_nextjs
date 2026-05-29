@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { RateLimitService } from '@/auth/server';
 
 const sendOtpSchema = z.object({
   phone: z.string().regex(/^[6-9]\d{9}$/, 'Invalid Indian phone number'),
@@ -22,6 +23,33 @@ export async function POST(request: NextRequest) {
 
     const { phone } = validation.data;
 
+    // Rate limit: max 3 OTP sends per phone per 10 minutes
+    const rateLimit = await RateLimitService.checkRateLimit(
+      `otp-send:${phone}`,
+      3,
+      10 * 60 * 1000
+    );
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { success: false, error: 'Too many OTP requests. Please try again later.' },
+        { status: 429 }
+      );
+    }
+
+    // Also rate limit by IP to prevent abuse across different numbers
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const ipRateLimit = await RateLimitService.checkRateLimit(
+      `otp-send-ip:${ip}`,
+      10,
+      15 * 60 * 1000
+    );
+    if (!ipRateLimit.allowed) {
+      return NextResponse.json(
+        { success: false, error: 'Too many requests. Please try again later.' },
+        { status: 429 }
+      );
+    }
+
     if (!TWO_FACTOR_API_KEY) {
       console.error('TWO_FACTOR_API_KEY not configured');
       return NextResponse.json(
@@ -35,8 +63,6 @@ export async function POST(request: NextRequest) {
     const response = await fetch(url, { method: 'GET' });
 
     const data = await response.json();
-
-    console.log('2factor.in send response:', JSON.stringify(data));
 
     if (data.Status === 'Success') {
       return NextResponse.json({

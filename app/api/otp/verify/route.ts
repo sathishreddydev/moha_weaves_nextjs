@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { users } from '@/shared';
 import { eq } from 'drizzle-orm';
+import { RateLimitService } from '@/auth/server';
 
 const verifyOtpSchema = z.object({
   phone: z.string().regex(/^[6-9]\d{9}$/, 'Invalid Indian phone number'),
@@ -27,6 +28,19 @@ export async function POST(request: NextRequest) {
 
     const { phone, otp, sessionId } = validation.data;
 
+    // Rate limit: max 5 verify attempts per phone per 10 minutes
+    const rateLimit = await RateLimitService.checkRateLimit(
+      `otp-verify:${phone}`,
+      5,
+      10 * 60 * 1000
+    );
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { success: false, error: 'Too many attempts. Please request a new OTP.' },
+        { status: 429 }
+      );
+    }
+
     if (!TWO_FACTOR_API_KEY) {
       return NextResponse.json(
         { success: false, error: 'OTP service not configured' },
@@ -42,10 +56,7 @@ export async function POST(request: NextRequest) {
 
     const data = await response.json();
 
-    console.log('2factor.in verify response:', JSON.stringify(data));
-
     // 2factor.in returns Status: "Success" and Details: "OTP Matched" on success
-    // But Details can vary — check Status field primarily
     if (data.Status !== 'Success') {
       return NextResponse.json(
         { success: false, error: data.Details || 'Invalid OTP. Please try again.' },
@@ -53,7 +64,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // OTP verified — find or create user by phone
+    // OTP verified — clear rate limit for this phone
+    RateLimitService.clearRateLimit(`otp-verify:${phone}`);
+
+    // Find or create user by phone
     let [existingUser] = await db
       .select()
       .from(users)
@@ -64,7 +78,6 @@ export async function POST(request: NextRequest) {
 
     if (!existingUser) {
       // Create a new user with phone number only (Myntra-style)
-      // No email, no password — user can add these later in profile
       const [newUser] = await db
         .insert(users)
         .values({
