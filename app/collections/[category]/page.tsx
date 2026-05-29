@@ -36,7 +36,6 @@ export async function generateMetadata({
   searchParams,
 }: CategoryPageProps): Promise<Metadata> {
   const resolvedParams = await params;
-  const resolvedSearchParams = await searchParams;
 
   const categoryName = decodeURIComponent(resolvedParams.category);
 
@@ -44,13 +43,10 @@ export async function generateMetadata({
 
   const description = `Discover premium ${categoryName} at Mohaweaves. Beautiful Indian ethnic wear crafted with traditional artistry.`;
 
-  const queryString = new URLSearchParams(resolvedSearchParams).toString();
-
   // Get base URL from environment
   const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
-  const canonical = queryString
-    ? `${baseUrl}/collections/${categoryName}?${queryString}`
-    : `${baseUrl}/collections/${categoryName}`;
+  // Canonical should always point to the clean URL without filters to consolidate ranking signals
+  const canonical = `${baseUrl}/collections/${categoryName}`;
 
   return {
     title,
@@ -62,14 +58,8 @@ export async function generateMetadata({
       description,
       url: canonical,
       type: "website",
-      images: [
-        {
-          url: `${baseUrl}/og-collections.jpg`,
-          width: 1200,
-          height: 630,
-          alt: title,
-        },
-      ],
+      locale: "en_IN",
+      siteName: "Mohaweaves",
     },
   };
 }

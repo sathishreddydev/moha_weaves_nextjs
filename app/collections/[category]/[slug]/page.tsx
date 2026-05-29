@@ -58,6 +58,8 @@ export async function generateMetadata({
       description,
       type: "website",
       url: canonical,
+      locale: "en_IN",
+      siteName: "Mohaweaves",
       images:
         product.images && product.images.length > 0
           ? [
@@ -70,9 +72,9 @@ export async function generateMetadata({
             ]
           : [
               {
-                url: `${baseUrl}/og-product.jpg`,
-                width: 1200,
-                height: 630,
+                url: `${baseUrl}/logo.png`,
+                width: 512,
+                height: 512,
                 alt: title,
               },
             ],
@@ -84,7 +86,7 @@ export async function generateMetadata({
       images:
         product.images && product.images.length > 0
           ? [product.images[0]]
-          : [`${baseUrl}/og-product.jpg`],
+          : [`${baseUrl}/logo.png`],
     },
     alternates: { canonical },
     robots: {

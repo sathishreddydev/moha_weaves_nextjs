@@ -53,10 +53,21 @@ export async function generateMetadata({
       ? `${titleParts.join(" | ")} - Premium Indian Ethnic Wear | Mohaweaves`
       : "Collections - Premium Indian Ethnic Wear | Mohaweaves";
 
+  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+
   return {
     title,
     description:
       "Discover exquisite Indian ethnic wear including sarees, salwar kameez, lehengas and more.",
+    alternates: {
+      canonical: `${baseUrl}/collections`,
+    },
+    openGraph: {
+      title,
+      description: "Discover exquisite Indian ethnic wear including sarees, salwar kameez, lehengas and more.",
+      url: `${baseUrl}/collections`,
+      type: "website",
+    },
   };
 }
 

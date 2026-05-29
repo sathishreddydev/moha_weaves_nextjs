@@ -3,106 +3,101 @@ import { productService } from './api/products/productService'
 import { createSlug } from '@/lib/utils/slug'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  try {
-    // Get base URL from environment
-    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
-    
-    // Get all products for sitemap
-    const products = await productService.getProductsByRole({}, 'user')
-    
-    // Get categories for sitemap
-    const filtersResponse = await fetch(`${baseUrl}/api/filters`)
-    if (!filtersResponse.ok) {
-      throw new Error('Failed to fetch filters')
-    }
-    const filtersData = await filtersResponse.json()
-    const categories = filtersData.categories || []
+  // Get base URL from environment
+  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
 
-  // Static pages
-  const staticPages = [
+  // Static pages (always included)
+  const staticPages: MetadataRoute.Sitemap = [
     {
       url: `${baseUrl}/`,
       lastModified: new Date(),
-      changeFrequency: 'daily' as const,
+      changeFrequency: 'daily',
       priority: 1,
     },
     {
       url: `${baseUrl}/collections`,
       lastModified: new Date(),
-      changeFrequency: 'daily' as const,
+      changeFrequency: 'daily',
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/categories`,
+      url: `${baseUrl}/about-us`,
       lastModified: new Date(),
-      changeFrequency: 'weekly' as const,
-      priority: 0.7,
+      changeFrequency: 'monthly',
+      priority: 0.5,
+    },
+    {
+      url: `${baseUrl}/faq`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.4,
+    },
+    {
+      url: `${baseUrl}/contact`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.4,
+    },
+    {
+      url: `${baseUrl}/shipping-policy`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.3,
+    },
+    {
+      url: `${baseUrl}/returns-exchange-policy`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.3,
+    },
+    {
+      url: `${baseUrl}/privacy`,
+      lastModified: new Date(),
+      changeFrequency: 'yearly',
+      priority: 0.2,
+    },
+    {
+      url: `${baseUrl}/terms`,
+      lastModified: new Date(),
+      changeFrequency: 'yearly',
+      priority: 0.2,
     },
   ]
 
-  // Category pages
-  const categoryPages = categories.map((category: any) => ({
-    url: `${baseUrl}/collections?category=${createSlug(category.name)}`,
-    lastModified: new Date(),
-    changeFrequency: 'weekly' as const,
-    priority: 0.9,
-  }))
+  try {
+    // Get all products for sitemap
+    const products = await productService.getProductsByRole({}, 'user')
 
-  // Subcategory pages
-  const subcategoryPages: any[] = []
-  categories.forEach((category: any) => {
-    if (category.subcategories) {
-      category.subcategories.forEach((subcategory: any) => {
-        subcategoryPages.push({
-          url: `${baseUrl}/collections?subcategory=${createSlug(subcategory.name)}`,
-          lastModified: new Date(),
-          changeFrequency: 'weekly' as const,
-          priority: 0.85,
-        })
-      })
-    }
-  })
+    // Product pages
+    const productPages: MetadataRoute.Sitemap = products.map((product: any) => {
+      const categorySlug = createSlug(product.category?.name || 'ethnic-wear')
+      const productSlug = product.urlSlug || createSlug(product.name)
+      return {
+        url: `${baseUrl}/collections/${categorySlug}/${productSlug}`,
+        lastModified: new Date(product.updatedAt || product.createdAt || Date.now()),
+        changeFrequency: 'weekly',
+        priority: 0.6,
+      }
+    })
 
-  // Product pages
-  const productPages = products.map((product: any) => {
-    const categorySlug = createSlug(product.category?.name || 'ethnic-wear')
-    const productSlug = product.urlSlug || createSlug(product.name)
-    return {
-      url: `${baseUrl}/collections/${categorySlug}/${productSlug}`,
-      lastModified: new Date(product.updatedAt || product.createdAt),
-      changeFrequency: 'weekly' as const,
-      priority: 0.6,
-    }
-  })
+    // Extract unique categories from products for category pages
+    const categorySet = new Set<string>()
+    products.forEach((product: any) => {
+      if (product.category?.name) {
+        categorySet.add(product.category.name)
+      }
+    })
 
-  return [...staticPages, ...categoryPages, ...subcategoryPages, ...productPages]
+    const categoryPages: MetadataRoute.Sitemap = Array.from(categorySet).map((categoryName) => ({
+      url: `${baseUrl}/collections/${createSlug(categoryName)}`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    }))
+
+    return [...staticPages, ...categoryPages, ...productPages]
   } catch (error) {
-    
-    // Get base URL from environment for fallback
-    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
-    
     // Return static pages only if dynamic data fails
-    const staticPages = [
-      {
-        url: `${baseUrl}/`,
-        lastModified: new Date(),
-        changeFrequency: 'daily' as const,
-        priority: 1,
-      },
-      {
-        url: `${baseUrl}/collections`,
-        lastModified: new Date(),
-        changeFrequency: 'daily' as const,
-        priority: 0.8,
-      },
-      {
-        url: `${baseUrl}/categories`,
-        lastModified: new Date(),
-        changeFrequency: 'weekly' as const,
-        priority: 0.7,
-      },
-    ]
-    
     return staticPages
   }
 }

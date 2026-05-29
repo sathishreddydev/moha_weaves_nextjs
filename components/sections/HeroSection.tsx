@@ -4,6 +4,7 @@ import { ArrowUpRight, ArrowDown } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useFilterStore } from "@/lib/stores";
+import Image from "next/image";
 
 export default function HeroSection() {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -144,10 +145,13 @@ export default function HeroSection() {
           className={`absolute inset-0 transition-all duration-&lsqb;1500ms&rsqb; ease-out ${activeIndex === idx ? "opacity-100 scale-100" : "opacity-0 scale-110"}`}
         >
           {cat?.imageUrl && (
-            <img
+            <Image
               src={cat.imageUrl}
-              className="w-full h-full object-cover brightness-[0.6]"
-              alt={cat?.name}
+              fill
+              className="object-cover brightness-[0.6]"
+              alt={cat?.name || "Category image"}
+              priority={idx === 0}
+              sizes="100vw"
             />
           )}
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />

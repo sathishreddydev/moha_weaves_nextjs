@@ -15,6 +15,9 @@ export default function StructuredData({ products, filters, currentUrl }: Struct
   // Get base URL from environment
   const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
   
+  // Ensure URL is absolute
+  const absoluteUrl = currentUrl?.startsWith('http') ? currentUrl : `${baseUrl}${currentUrl || '/collections'}`
+  
   const structuredData = {
     "@context": "https://schema.org",
     "@graph": [
@@ -22,7 +25,7 @@ export default function StructuredData({ products, filters, currentUrl }: Struct
         "@type": "CollectionPage",
         name: filters ? generateCollectionTitle(filters) : "Collections",
         description: filters ? generateCollectionDescription(filters) : "Discover exquisite Indian ethnic wear",
-        url: currentUrl || `${baseUrl}/collections`,
+        url: absoluteUrl,
         mainEntity: {
           "@type": "ItemList",
           numberOfItems: products.length,

@@ -11,20 +11,11 @@ export const metadata = {
     type: 'website',
     siteName: 'Mohaweaves',
     locale: 'en_IN',
-    images: [
-      {
-        url: `/og-image.jpg`,
-        width: 1200,
-        height: 630,
-        alt: 'Mohaweaves - Premium Fashion Collection'
-      }
-    ]
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Mohaweaves - Premium Fashion & Lifestyle Collection',
     description: 'Discover elegant fashion and lifestyle products at Mohaweaves. Shop our curated collection of premium clothing, accessories, and more.',
-    images: ['/og-image.jpg']
   },
   alternates: {
     canonical: '/'

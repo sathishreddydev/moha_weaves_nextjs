@@ -15,10 +15,13 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXTAUTH_URL || 'http://localhost:3000'),
-  title: "Moha Weaves - Handcrafted Sarees",
+  title: {
+    default: "Moha Weaves - Handcrafted Sarees & Premium Indian Ethnic Wear",
+    template: "%s | Moha Weaves",
+  },
   description:
     "Discover exquisite handcrafted sarees celebrating India's rich textile heritage. Shop our collection of traditional and contemporary sarees.",
-  keywords: ["sarees", "handcrafted", "ethnic wear", "indian fashion", "traditional clothing"],
+  keywords: ["sarees", "handcrafted", "ethnic wear", "indian fashion", "traditional clothing", "moha weaves", "indian sarees online"],
   icons: {
     icon: "/favicon.png",
     shortcut: "/favicon.png",
@@ -34,7 +37,12 @@ export const metadata: Metadata = {
     title: "Moha Weaves - Handcrafted Sarees",
     description: "Discover exquisite handcrafted sarees celebrating India's rich textile heritage",
     type: "website",
-    locale: "en_US",
+    locale: "en_IN",
+    siteName: "Mohaweaves",
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: "@mohaweaves",
   },
   robots: {
     index: true,
@@ -42,13 +50,22 @@ export const metadata: Metadata = {
     googleBot: {
       index: true,
       follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
     },
   },
+  // Add your Google Search Console verification code here
+  // verification: {
+  //   google: "your-google-verification-code",
+  // },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  maximumScale: 5,
+  themeColor: "#991b1b",
 };
 
 export default async function RootLayout({

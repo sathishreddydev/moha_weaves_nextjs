@@ -30,22 +30,6 @@
       "purpose": "any maskable"
     }
   ],
-  "screenshots": [
-    {
-      "src": "/og-collections.jpg",
-      "sizes": "1280x720",
-      "type": "image/jpeg",
-      "form_factor": "wide",
-      "label": "Browse our premium collection of Indian ethnic wear"
-    },
-    {
-      "src": "/og-product.jpg",
-      "sizes": "1280x720",
-      "type": "image/jpeg",
-      "form_factor": "wide",
-      "label": "Product details with high-quality images"
-    }
-  ],
   "shortcuts": [
     {
       "name": "Browse Collections",

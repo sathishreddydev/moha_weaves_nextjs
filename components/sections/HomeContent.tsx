@@ -2,10 +2,17 @@ import React from "react";
 import HeroSection from "./HeroSection";
 import ShopCategories from "./ShopCategories";
 import ProductSection from "./ProductSection";
+import OrganizationSchema from "@/components/seo/OrganizationSchema";
 
 export default function HomeContent() {
   return (
     <div id="main-content">
+      <OrganizationSchema />
+      {/* Visually hidden h1 for SEO — the hero section provides the visual heading */}
+      <h1 className="sr-only">
+        Moha Weaves - Handcrafted Sarees & Premium Indian Ethnic Wear
+      </h1>
+
       {/* Hero is full-bleed — no max-width constraint */}
       <HeroSection />
 
