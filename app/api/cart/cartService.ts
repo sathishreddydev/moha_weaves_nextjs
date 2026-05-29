@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { cart, CartItemWithProduct, InsertCartItem } from "@/shared";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { productService } from "../products/productService";
 import { getAvailableStock } from "@/lib/stock-utils";
 
@@ -73,6 +73,9 @@ export class CartRepository {
     const existingConditions = [eq(cart.userId, item.userId), eq(cart.productId, item.productId)];
     if (item.variantId) {
       existingConditions.push(eq(cart.variantId, item.variantId));
+    } else {
+      // Explicitly check for NULL variantId to avoid matching rows with a different variant
+      existingConditions.push(isNull(cart.variantId));
     }
     
     const [existing] = await db
@@ -111,6 +114,43 @@ export class CartRepository {
     }
 
     return await this.buildCart(item.userId);
+  }
+
+  /**
+   * Sets the cart item quantity to the max available stock.
+   * Used during merge when adding guest qty would exceed stock.
+   */
+  async setToMaxStock(params: { userId: string; productId: string; variantId: string | null }) {
+    const { userId, productId, variantId } = params;
+
+    const product = await productService.getProductByRole(productId, "user");
+    if (!product) return;
+
+    const availableStock = getAvailableStock(product, variantId);
+    if (availableStock <= 0) return;
+
+    // Find existing cart item
+    const existingConditions = [eq(cart.userId, userId), eq(cart.productId, productId)];
+    if (variantId) {
+      existingConditions.push(eq(cart.variantId, variantId));
+    } else {
+      existingConditions.push(isNull(cart.variantId));
+    }
+
+    const [existing] = await db
+      .select()
+      .from(cart)
+      .where(and(...existingConditions));
+
+    if (existing) {
+      // Cap at max stock
+      if (existing.quantity < availableStock) {
+        await db.update(cart).set({ quantity: availableStock }).where(eq(cart.id, existing.id));
+      }
+    } else {
+      // Insert with max stock
+      await db.insert(cart).values({ userId, productId, variantId, quantity: availableStock });
+    }
   }
 
   async updateCartItem(id: string, quantity: number, userId: string) {

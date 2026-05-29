@@ -314,7 +314,7 @@ export default function MobileCartView({
           {/* Checkout Button */}
           {isGuest ? (
             <Button asChild className="w-full h-12 text-sm font-medium">
-              <Link href="/login?redirect=/checkout">Sign in to Checkout</Link>
+              <Link href={items.length > 0 ? "/login?redirect=/checkout" : "/login?redirect=/cart"}>Sign in to Checkout</Link>
             </Button>
           ) : (
             <Button

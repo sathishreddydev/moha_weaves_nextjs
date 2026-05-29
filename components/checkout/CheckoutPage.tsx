@@ -91,18 +91,6 @@ export default function CheckoutPage() {
   const totalSavings = saleDiscount;
   const freeShippingGap = pricing.subtotal < 999 ? 999 - pricing.subtotal : 0;
 
-  // ── Auth redirect ─────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (status === "unauthenticated") router.push("/login?redirect=/checkout");
-  }, [status, router]);
-
-  // ── Empty cart redirect ───────────────────────────────────────────────────
-  useEffect(() => {
-    if (status === "authenticated" && !cartLoading && !orderPlaced && items.length === 0) {
-      router.push("/cart");
-    }
-  }, [status, cartLoading, items.length, orderPlaced, router]);
-
   // ── Fetch addresses ───────────────────────────────────────────────────────
   useEffect(() => {
     if (status === "authenticated") fetchAddresses();

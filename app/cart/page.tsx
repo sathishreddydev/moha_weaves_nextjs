@@ -145,17 +145,12 @@ export default function CartPage() {
         )}
 
         {isGuest && items.length > 0 && (
-          <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded mb-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Shopping as guest</p>
-                <p className="text-sm text-blue-600">
-                  Sign in to save your cart and access your orders
-                </p>
-              </div>
-              <Button asChild variant="outline" size="sm">
-                <Link href="/login?redirect=/cart">Sign In</Link>
-              </Button>
+          <div className="border border-gray-200 bg-gray-50/50 px-5 py-3.5 rounded-lg mb-6">
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-sm text-gray-600">
+                <Link href="/login?redirect=/cart" className="font-medium text-gray-900 underline underline-offset-2 hover:text-amber-800 transition-colors">Sign in</Link>
+                {" "}to save your cart and track orders
+              </p>
             </div>
           </div>
         )}

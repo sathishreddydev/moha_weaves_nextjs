@@ -37,20 +37,61 @@ export async function POST(request: NextRequest) {
 
     // Merge each guest cart item into the user's server-side cart
     let mergedCount = 0;
+    const skippedItems: string[] = [];
+    
+    // Get current user cart to check for existing items
+    const currentCart = await cartServices.getCartItems(userId);
+    
     for (const guestItem of guestCartItems) {
       if (!guestItem.productId) continue;
+
+      const guestVariantId = guestItem.variantId || null;
+      
+      // Check if this exact product+variant already exists in user's cart
+      const existingItem = currentCart.cart.find(
+        (item: any) => item.productId === guestItem.productId && 
+          (item.variantId || null) === guestVariantId
+      );
+      
+      // If guest item has no variant but the product exists in cart WITH a variant,
+      // skip to avoid creating a duplicate null-variant row alongside a real variant row.
+      // But if the existing item also has no variant, let addToCart handle the merge (increment qty).
+      if (!guestVariantId) {
+        const existingWithVariant = currentCart.cart.find(
+          (item: any) => item.productId === guestItem.productId && item.variantId
+        );
+        if (existingWithVariant) {
+          // Product exists in cart with a specific variant — guest didn't select one, skip
+          skippedItems.push(guestItem.productId);
+          continue;
+        }
+      }
 
       try {
         await cartServices.addToCart({
           userId,
           productId: guestItem.productId,
           quantity: guestItem.quantity || 1,
-          variantId: guestItem.variantId || null,
+          variantId: guestVariantId,
         });
         mergedCount++;
       } catch (error: any) {
-        // Skip items that fail (e.g., out of stock) — don't block the whole merge
-        console.warn(`Failed to merge item ${guestItem.productId}:`, error.message);
+        // If stock exceeded, cap quantity to max available stock
+        if (error.message?.includes('available in stock')) {
+          try {
+            await cartServices.setToMaxStock({
+              userId,
+              productId: guestItem.productId,
+              variantId: guestVariantId,
+            });
+            mergedCount++;
+          } catch {
+            skippedItems.push(guestItem.productId);
+          }
+        } else {
+          skippedItems.push(guestItem.productId);
+          console.warn(`Failed to merge item ${guestItem.productId}:`, error.message);
+        }
       }
     }
 
@@ -58,6 +99,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Cart merged successfully',
       mergedItems: mergedCount,
+      skippedItems: skippedItems.length,
     });
   } catch (error) {
     console.error('Cart merge error:', error);

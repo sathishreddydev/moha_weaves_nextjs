@@ -334,7 +334,7 @@ export default function DesktopCartView({
               <div className="mt-6 space-y-3">
                 {isGuest ? (
                   <Button asChild className="w-full h-12 text-sm font-medium">
-                    <Link href="/login?redirect=/checkout">
+                    <Link href={items.length > 0 ? "/login?redirect=/checkout" : "/login?redirect=/cart"}>
                       Sign in to Checkout
                     </Link>
                   </Button>
