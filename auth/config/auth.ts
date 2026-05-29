@@ -2,6 +2,10 @@ import NextAuth from 'next-auth';
 import { JWT } from 'next-auth/jwt';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
+import { users } from '@/shared/tables';
+import { db } from '@/lib/db';
+import { AuthService } from '../services/auth-service';
+import { eq } from 'drizzle-orm';
 import { User } from '@/shared';
 
 // Extend NextAuth types
@@ -51,7 +55,6 @@ export const authOptions = {
             return null;
           }
 
-          const { AuthService } = await import('../services/auth-service');
           const user = await AuthService.findUserByEmail(credentials.email);
 
           if (!user || !user.password) {
@@ -92,11 +95,6 @@ export const authOptions = {
             return null;
           }
 
-          const { AuthService } = await import('../services/auth-service');
-          const { db } = await import('@/lib/db');
-          const { users } = await import('@/shared/tables');
-          const { eq } = await import('drizzle-orm');
-
           const [user] = await db
             .select()
             .from(users)
@@ -125,10 +123,6 @@ export const authOptions = {
       // Handle Google sign-in: find or create user in DB
       if (account?.provider === 'google') {
         try {
-          const { db } = await import('@/lib/db');
-          const { users } = await import('@/shared/tables');
-          const { eq } = await import('drizzle-orm');
-
           // Check if user exists by email
           const [existingUser] = await db
             .select()
@@ -185,7 +179,25 @@ export const authOptions = {
           token.phone = user.phone || '';
           token.name = user.name;
           token.role = user.role || 'user';
-          token.accessToken = '';
+
+          // Generate accessToken for Google users so socket/API auth works
+          try {
+
+            const [dbUser] = await db
+              .select()
+              .from(users)
+              .where(eq(users.id, token.id))
+              .limit(1);
+
+            if (dbUser) {
+              const tokens = await AuthService.createSessionTokens(dbUser);
+              token.accessToken = tokens.accessToken;
+            } else {
+              token.accessToken = '';
+            }
+          } catch {
+            token.accessToken = '';
+          }
         } else {
           // Credentials / OTP login
           token.id = user.id;
@@ -214,12 +226,14 @@ export const authOptions = {
   },
   cookies: {
     sessionToken: {
-      name: 'next-auth.session-token',
+      name: process.env.NODE_ENV === 'production' 
+        ? '__Secure-next-auth.session-token' 
+        : 'next-auth.session-token',
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: false,
+        secure: process.env.NODE_ENV === 'production',
       },
     },
   },
