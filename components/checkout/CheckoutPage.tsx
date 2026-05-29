@@ -9,7 +9,7 @@ import { useAddressStore, useCartStore } from "@/lib/stores";
 import { UserAddress } from "@/shared/types";
 import { CheckCircle2, Loader2, Package, Tag } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { toast } from "sonner";
 import { type AddressFormData } from "../user/AddressForm";
 import { useCartProductPurchasedListener } from "@/hooks/useProductPurchasedListener";
@@ -63,6 +63,17 @@ export default function CheckoutPage() {
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   const addressLoadedRef = useRef(false);
 
+  // Stable items reference for socket listener — only changes when product set changes
+  const cartProductIds = useMemo(
+    () => items.map((i) => i.productId).sort().join(","),
+    [items]
+  );
+  const stableItemsForSocket = useMemo(
+    () => items.map((i) => ({ productId: i.productId, variantId: i.variantId })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [cartProductIds]
+  );
+
   // ── Pricing ──────────────────────────────────────────────────────────────
   const couponForPricing = appliedCoupon
     ? {
@@ -113,7 +124,7 @@ export default function CheckoutPage() {
     validateCartStock();
   }, [items, validateCartStock]);
 
-  useCartProductPurchasedListener(items, fetchCart);
+  useCartProductPurchasedListener(stableItemsForSocket, fetchCart);
 
   // Re-fetch cart when offers or coupons change (prices may have updated)
   const { socket } = useSocketStore();

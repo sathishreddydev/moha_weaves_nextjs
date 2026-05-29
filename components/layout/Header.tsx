@@ -31,26 +31,23 @@ export default function Header() {
   // Track previous auth state to detect login/logout transitions
   const prevAuthRef = useRef(isAuthenticated);
 
+  const hasFetchedRef = useRef(false);
+
   useEffect(() => {
     if (authLoading) return; // Wait for auth status to resolve
 
     const authChanged = prevAuthRef.current !== isAuthenticated;
     prevAuthRef.current = isAuthenticated;
 
-    if (isAuthenticated) {
-      // Always fetch on auth change (login), or if count is 0 (initial load)
-      if (authChanged || cartCount === 0) fetchCart();
-      if (authChanged || wishlistCount === 0) fetchWishlist();
-    } else {
-      // Guest user — load cart/wishlist from localStorage
-      if (authChanged || cartCount === 0) fetchCart();
-      if (authChanged) fetchWishlist();
+    // Fetch on auth state transitions or on initial mount (once)
+    if (authChanged || !hasFetchedRef.current) {
+      hasFetchedRef.current = true;
+      fetchCart();
+      fetchWishlist();
     }
   }, [
     authLoading,
     isAuthenticated,
-    cartCount,
-    wishlistCount,
     fetchCart,
     fetchWishlist,
   ]);

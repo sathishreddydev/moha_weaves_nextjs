@@ -6,9 +6,8 @@ import { getProductUrl } from "@/lib/utils/productUrl";
 import { getAvailableStock } from "@/lib/stock-utils";
 import { Heart, ImageIcon, ShoppingBag } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSocketStore } from "@/lib/stores/socketStore";
-import { useCartStore } from "@/lib/stores";
 import { useCartProductPurchasedListener } from "@/hooks/useProductPurchasedListener";
 import { ProductWithDetails } from "@/shared/types";
 import Image from "next/image";
@@ -30,16 +29,23 @@ export default function WishlistPage() {
   } = useWishlistStore();
 
   const { socket } = useSocketStore();
-  const { fetchCart } = useCartStore();
+
+  // Stable items reference for socket listener — only changes when product set changes
+  const wishlistProductIds = useMemo(
+    () => items.map((i) => i.productId).sort().join(","),
+    [items]
+  );
+  const stableItemsForSocket = useMemo(
+    () => items.map((item) => ({ productId: item.productId, variantId: null })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [wishlistProductIds]
+  );
 
   // Listen for product_purchased events to refresh wishlist stock in real-time
   const handleStockChange = useCallback(() => {
     fetchWishlist();
   }, [fetchWishlist]);
-  useCartProductPurchasedListener(
-    items.map((item) => ({ productId: item.productId, variantId: null })),
-    handleStockChange,
-  );
+  useCartProductPurchasedListener(stableItemsForSocket, handleStockChange);
 
   // Track selected variant per wishlist item
   const [variantSelections, setVariantSelections] = useState<VariantSelections>(

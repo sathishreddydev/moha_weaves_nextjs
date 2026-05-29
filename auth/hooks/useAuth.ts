@@ -2,7 +2,7 @@
 
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { User } from '@/shared';
 import { useCartStore, useWishlistStore } from '@/lib/stores';
 
@@ -13,6 +13,7 @@ export function useAuth() {
   const isAuthenticated = status === 'authenticated';
   const isLoading = status === 'loading';
   const user = session?.user as User | null;
+  const hasMergedRef = useRef(false);
 
   const mergeGuestData = useCallback(async () => {
     const guestCart = localStorage.getItem('mohaweavs_guest_cart');
@@ -51,6 +52,18 @@ export function useAuth() {
       useWishlistStore.getState().fetchWishlist(),
     ]);
   }, []);
+
+  // Auto-merge guest data on any login method (Google redirect, OTP, credentials)
+  useEffect(() => {
+    if (status === 'authenticated' && !hasMergedRef.current) {
+      const guestCart = localStorage.getItem('mohaweavs_guest_cart');
+      const guestWishlist = localStorage.getItem('mohaweavs_guest_wishlist');
+      if (guestCart || guestWishlist) {
+        hasMergedRef.current = true;
+        mergeGuestData();
+      }
+    }
+  }, [status, mergeGuestData]);
 
   const login = useCallback(async (email: string, password: string) => {
     try {

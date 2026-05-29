@@ -31,7 +31,14 @@ export const useWishlistStore = create<WishlistStore>((set, get) => ({
 
   fetchWishlist: async () => {
     try {
-      set({ loading: true, error: null })
+      // Only show loading spinner on initial load (when wishlist is empty)
+      // Avoid flashing spinner on background refreshes
+      const { items: currentItems } = get()
+      if (currentItems.length === 0) {
+        set({ loading: true, error: null })
+      } else {
+        set({ error: null })
+      }
       
       // Try API first
       const response = await fetch('/api/wishlist')
@@ -153,7 +160,7 @@ export const useWishlistStore = create<WishlistStore>((set, get) => ({
           count: data.data.count || 0,
           updating: null 
         })
-      } else if (data.isGuest) {
+      } else if (response.status === 401 || data.isGuest) {
         // Handle guest user - fetch product details first
         try {
           // Fetch product details for guest wishlist
@@ -236,8 +243,12 @@ export const useWishlistStore = create<WishlistStore>((set, get) => ({
   },
 
   removeFromWishlist: async (productId: string) => {
+    // Save previous state for rollback on failure
+    const { items: prevItems, count: prevCount } = get()
     try {
-      set({ updating: productId })
+      // Optimistic removal — immediately remove from UI
+      const optimisticItems = prevItems.filter(item => item.productId !== productId)
+      set({ updating: productId, items: optimisticItems, count: optimisticItems.length })
       
       // Try API first
       const response = await fetch(`/api/wishlist?productId=${productId}`, {
@@ -251,7 +262,7 @@ export const useWishlistStore = create<WishlistStore>((set, get) => ({
           count: data.data.count || 0,
           updating: null 
         })
-      } else if (data.isGuest) {
+      } else if (response.status === 401 || data.isGuest) {
         // Handle guest user - use localStorage
         guestStorage.wishlist.remove(productId)
         
@@ -262,13 +273,19 @@ export const useWishlistStore = create<WishlistStore>((set, get) => ({
           updating: null 
         })
       } else {
+        // Revert optimistic removal on failure
         set({ 
+          items: prevItems,
+          count: prevCount,
           error: data.error || 'Failed to remove from wishlist',
           updating: null 
         })
       }
     } catch (error) {
+      // Revert optimistic removal on network error
       set({ 
+        items: prevItems,
+        count: prevCount,
         error: 'An error occurred while removing from wishlist',
         updating: null 
       })
@@ -293,7 +310,7 @@ export const useWishlistStore = create<WishlistStore>((set, get) => ({
 
   addToCartFromWishlist: async (productId: string, variantId?: string | null) => {
     try {
-      set({ updating: productId })
+      set({ updating: productId, error: null })
       
       // First add to cart
       const cartResponse = await fetch('/api/cart', {

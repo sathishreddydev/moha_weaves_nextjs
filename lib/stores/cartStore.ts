@@ -56,7 +56,14 @@ export const useCartStore = create<CartStore>((set, get) => ({
 
   fetchCart: async () => {
     try {
-      set({ loading: true, error: null })
+      // Only show loading spinner if cart is empty (initial load)
+      // Avoid flashing spinner on background refreshes
+      const { items: currentItems } = get()
+      if (currentItems.length === 0) {
+        set({ loading: true, error: null })
+      } else {
+        set({ error: null })
+      }
       
       const response = await fetch('/api/cart', { headers: getHeaders() })
       const data = await response.json()
@@ -263,8 +270,16 @@ export const useCartStore = create<CartStore>((set, get) => ({
   },
 
   removeFromCart: async (itemId: string) => {
+    // Save previous state for rollback on failure
+    const { items: prevItems, count: prevCount, stockStatus: prevStockStatus, hasStockIssues: prevHasStockIssues } = get()
     try {
-      set({ updating: itemId })
+      // Optimistic removal — immediately remove from UI
+      const optimisticItems = prevItems.filter(item => item.id !== itemId)
+      const optimisticCount = optimisticItems.reduce((total, item) => total + item.quantity, 0)
+      const newStockStatus = { ...prevStockStatus }
+      delete newStockStatus[itemId]
+      const hasStockIssues = Object.values(newStockStatus).some((s) => s.outOfStock || s.limitedStock)
+      set({ updating: itemId, items: optimisticItems, count: optimisticCount, stockStatus: newStockStatus, hasStockIssues })
       
       const response = await fetch(`/api/cart?id=${itemId}`, {
         method: 'DELETE',
@@ -273,15 +288,9 @@ export const useCartStore = create<CartStore>((set, get) => ({
       const data = await response.json()
       
       if (data.success) {
-        const { stockStatus } = get()
-        const newStockStatus = { ...stockStatus }
-        delete newStockStatus[itemId]
-        const hasStockIssues = Object.values(newStockStatus).some((s) => s.outOfStock || s.limitedStock)
         set({ 
           items: data.data.cart || [],
           count: data.data.count || 0,
-          stockStatus: newStockStatus,
-          hasStockIssues,
           updating: null 
         })
         return
@@ -291,26 +300,30 @@ export const useCartStore = create<CartStore>((set, get) => ({
       if (response.status === 401 || data.isGuest) {
         guestStorage.cart.remove(itemId)
         const guestCart = guestStorage.cart.get()
-        const { stockStatus } = get()
-        const newStockStatus = { ...stockStatus }
-        delete newStockStatus[itemId]
-        const hasStockIssues = Object.values(newStockStatus).some((s) => s.outOfStock || s.limitedStock)
         set({ 
           items: guestCart as any,
           count: guestStorage.cart.getCount(),
-          stockStatus: newStockStatus,
-          hasStockIssues,
           updating: null 
         })
         return
       }
       
+      // Revert optimistic removal on failure
       set({ 
+        items: prevItems,
+        count: prevCount,
+        stockStatus: prevStockStatus,
+        hasStockIssues: prevHasStockIssues,
         error: data.error || 'Failed to remove from cart',
         updating: null 
       })
     } catch (error) {
+      // Revert optimistic removal on network error
       set({ 
+        items: prevItems,
+        count: prevCount,
+        stockStatus: prevStockStatus,
+        hasStockIssues: prevHasStockIssues,
         error: 'An error occurred while removing from cart',
         updating: null 
       })

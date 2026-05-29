@@ -9,7 +9,7 @@ import { useSocketStore } from "@/lib/stores/socketStore";
 import { useCartProductPurchasedListener } from "@/hooks/useProductPurchasedListener";
 import { ProductWithDetails } from "@/shared";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export default function CartPage() {
   const { status } = useAuth();
@@ -31,12 +31,28 @@ export default function CartPage() {
 
   const { socket } = useSocketStore();
   const isGuest = status === "unauthenticated";
+  const hasSyncedRef = useRef(false);
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
 
   const [relatedProducts, setRelatedProducts] = useState<ProductWithDetails[]>([]);
   const [categoryName, setCategoryName] = useState<string>("all");
 
+  // Stable reference for socket listener — only re-register when product IDs change
+  const cartProductIds = useMemo(
+    () => items.map((i) => i.productId).sort().join(","),
+    [items]
+  );
+
+  // Stable items for socket listener (only changes when product IDs change)
+  const stableItemsForSocket = useMemo(
+    () => items.map((i) => ({ productId: i.productId, variantId: i.variantId })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [cartProductIds]
+  );
+
   // Re-validate stock when any cart product is purchased by another user
-  useCartProductPurchasedListener(items, fetchCart);
+  useCartProductPurchasedListener(stableItemsForSocket, fetchCart);
 
   const fetchRelatedProducts = useCallback((cartItems: typeof items) => {
     if (cartItems.length === 0) return;
@@ -46,14 +62,14 @@ export default function CartPage() {
     if (!category) return;
 
     const slug = category.name?.toLowerCase().replace(/\s+/g, "-") || "all";
-    const cartProductIds = cartItems.map((i: any) => i.product?.id).filter(Boolean);
+    const productIds = cartItems.map((i: any) => i.product?.id).filter(Boolean);
     setCategoryName(slug);
 
     fetch(`/api/products?categories=${encodeURIComponent(category.name)}&limit=8&inStock=true`)
       .then((res) => res.json())
       .then((json: { success: boolean; data: ProductWithDetails[] }) => {
         if (!json.success) return;
-        const filtered = json.data.filter((p) => !cartProductIds.includes(p.id));
+        const filtered = json.data.filter((p) => !productIds.includes(p.id));
         setRelatedProducts(filtered.slice(0, 4));
       })
       .catch(() => {
@@ -65,8 +81,9 @@ export default function CartPage() {
   useEffect(() => {
     if (!socket) return;
     const handleProductEvent = () => {
-      fetchCart();
-      fetchRelatedProducts(items);
+      fetchCart().then(() => {
+        fetchRelatedProducts(itemsRef.current);
+      });
     };
     socket.on("product_event", handleProductEvent);
     socket.on("offer_event", handleProductEvent);
@@ -74,11 +91,12 @@ export default function CartPage() {
       socket.off("product_event", handleProductEvent);
       socket.off("offer_event", handleProductEvent);
     };
-  }, [socket, fetchCart, fetchRelatedProducts, items]);
+  }, [socket, fetchCart, fetchRelatedProducts]);
 
-  // Sync guest cart on page load
+  // Sync guest cart ONCE on page load (after fetchCart populates items)
   useEffect(() => {
-    if (isGuest && items.length > 0) {
+    if (isGuest && !hasSyncedRef.current && items.length > 0) {
+      hasSyncedRef.current = true;
       syncGuestCart();
     }
   }, [isGuest, items.length, syncGuestCart]);
@@ -96,10 +114,11 @@ export default function CartPage() {
     validateCartStock();
   }, [items, validateCartStock]);
 
-  // Fetch related products whenever cart items change
+  // Fetch related products only when the set of product IDs changes (not on qty updates)
   useEffect(() => {
     fetchRelatedProducts(items);
-  }, [items, fetchRelatedProducts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartProductIds, fetchRelatedProducts]);
 
   if (loading) {
     return (
