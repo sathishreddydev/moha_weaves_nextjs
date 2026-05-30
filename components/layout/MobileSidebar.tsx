@@ -9,13 +9,12 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import { useFilterStore } from "@/lib/stores/fillterStore";
-import { ProductWithDetails } from "@/shared";
 import { ProductService } from "@/lib/services/productService";
+import { useSocketStore } from "@/lib/stores/socketStore";
 import {
   X,
   Search,
   User,
-  Heart,
   ShoppingBag,
   HelpCircle,
   Info,
@@ -24,11 +23,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, {
   useEffect,
-  useRef,
   useState,
   useCallback,
   Suspense,
 } from "react";
+import Image from "next/image";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface MobileSidebarProps {
   isOpen: boolean;
@@ -36,58 +36,7 @@ interface MobileSidebarProps {
   onLinkClick?: () => void;
 }
 
-// Lazy loading image component
-const LazyImage = ({
-  src,
-  alt,
-  className,
-  fallback,
-}: {
-  src: string;
-  alt: string;
-  className: string;
-  fallback?: React.ReactNode;
-}) => {
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [hasError, setHasError] = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null);
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && !isLoaded && !hasError) {
-            const img = entry.target as HTMLImageElement;
-            img.src = src;
-            img.onload = () => setIsLoaded(true);
-            img.onerror = () => setHasError(true);
-          }
-        });
-      },
-      { threshold: 0.1 },
-    );
-
-    if (imgRef.current) {
-      observer.observe(imgRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, [src, isLoaded, hasError]);
-
-  if (hasError && fallback) {
-    return <>{fallback}</>;
-  }
-
-  return (
-    <img
-      ref={imgRef}
-      data-src={src}
-      alt={alt}
-      className={`${className} ${!isLoaded ? "opacity-0" : "opacity-100"} transition-opacity duration-300`}
-      loading="lazy"
-    />
-  );
-};
 
 // Error boundary component
 class ErrorBoundary extends React.Component<
@@ -133,22 +82,31 @@ export default function MobileSidebar({
 }: MobileSidebarProps) {
   const router = useRouter();
   const { categories, loading } = useFilterStore();
-  const [newProducts, setNewProducts] = useState<ProductWithDetails[]>([]);
-  const [newProductsLoading, setNewProductsLoading] = useState(false);
+  const { socket } = useSocketStore();
+  const queryClient = useQueryClient();
   const [mobileSearch, setMobileSearch] = useState("");
 
-  // Fetch new products using ProductService
-  const fetchNewProducts = useCallback(async () => {
-    try {
-      setNewProductsLoading(true);
-      const products = await ProductService.getProducts("/api/products/new");
-      setNewProducts(products);
-    } catch (error) {
-      setNewProducts([]);
-    } finally {
-      setNewProductsLoading(false);
-    }
-  }, []);
+  // Fetch new products with react-query (cached, no refetch on every open)
+  const { data: newProducts = [], isLoading: newProductsLoading } = useQuery({
+    queryKey: ["newProducts", "sidebar"],
+    queryFn: () => ProductService.getProducts("/api/products/new"),
+    enabled: isOpen,
+    staleTime: Infinity, // Never stale — only refetches on invalidation
+  });
+
+  // Invalidate new products cache when a product_event arrives via socket
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleProductEvent = () => {
+      queryClient.invalidateQueries({ queryKey: ["newProducts"] });
+    };
+
+    socket.on("product_event", handleProductEvent);
+    return () => {
+      socket.off("product_event", handleProductEvent);
+    };
+  }, [socket, queryClient]);
 
   // Optimized mobile link click with useCallback
   const handleMobileLinkClick = useCallback(() => {
@@ -172,13 +130,6 @@ export default function MobileSidebar({
     },
     [mobileSearch, router, onClose],
   );
-
-  // Fetch new products when sidebar opens
-  useEffect(() => {
-    if (isOpen) {
-      fetchNewProducts();
-    }
-  }, [isOpen, fetchNewProducts]);
 
   // Focus management for accessibility
   useEffect(() => {
@@ -280,19 +231,15 @@ export default function MobileSidebar({
                             role="listitem"
                             aria-label={`Browse ${category.name} collection`}
                           >
-                            <div className="w-24 h-24 rounded-lg overflow-hidden bg-gray-100 mb-2 mx-auto group-hover:scale-105 transition-transform duration-200 will-change-transform">
+                            <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-gray-100 mb-2 mx-auto group-hover:scale-105 transition-transform duration-200 will-change-transform">
                               {category.imageUrl ? (
-                                <LazyImage
+                                <Image
                                   src={category.imageUrl}
                                   alt={category.name}
-                                  className="w-full h-full object-cover"
-                                  fallback={
-                                    <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                                      <span className="text-gray-700 text-xs font-medium">
-                                        {category.name.slice(0, 2)}
-                                      </span>
-                                    </div>
-                                  }
+                                  fill
+                                  sizes="96px"
+                                  className="object-cover"
+                                  loading="lazy"
                                 />
                               ) : (
                                 <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
@@ -355,12 +302,15 @@ export default function MobileSidebar({
                           role="listitem"
                           aria-label={`View ${product.name} product`}
                         >
-                          <div className="w-24 h-24 rounded-lg overflow-hidden bg-gray-100 mb-2 mx-auto group-hover:scale-105 transition-transform duration-200 will-change-transform">
+                          <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-gray-100 mb-2 mx-auto group-hover:scale-105 transition-transform duration-200 will-change-transform">
                             {product.imageUrl ? (
-                              <img
+                              <Image
                                 src={product.imageUrl}
                                 alt={product.name}
-                                className="w-full h-full object-cover"
+                                fill
+                                sizes="96px"
+                                className="object-cover"
+                                loading="lazy"
                               />
                             ) : (
                               <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">

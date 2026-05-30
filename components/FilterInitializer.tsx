@@ -6,30 +6,29 @@ import { useSocketStore } from '@/lib/stores/socketStore';
 
 /**
  * Mounts once inside Providers and:
- * 1. Fetches filters on app load (if not already loaded)
- * 2. Re-fetches when the server emits a filter_event via socket
+ * 1. Fetches filters on app load (uses cached data if already hydrated)
+ * 2. Invalidates & re-fetches filters when the server emits a filter_event via socket
  *
  * No children needed — state lives in useFilterStore.
  */
 export function FilterInitializer() {
-  const { categories, fetchFilters } = useFilterStore();
+  const fetchFilters = useFilterStore((s) => s.fetchFilters);
+  const invalidate = useFilterStore((s) => s.invalidate);
   const { socket } = useSocketStore();
 
-  // Initial fetch
+  // Initial fetch — will be a no-op if data is already cached (isHydrated)
   useEffect(() => {
-    if (categories.length === 0) {
-      fetchFilters();
-    }
-  }, []);
+    fetchFilters();
+  }, [fetchFilters]);
 
-  // Re-fetch on socket filter_event
+  // Re-fetch on socket filter_event — invalidates cache first
   useEffect(() => {
     if (!socket) return;
-    socket.on('filter_event', fetchFilters);
+    socket.on('filter_event', invalidate);
     return () => {
-      socket.off('filter_event', fetchFilters);
+      socket.off('filter_event', invalidate);
     };
-  }, [socket, fetchFilters]);
+  }, [socket, invalidate]);
 
   return null;
 }

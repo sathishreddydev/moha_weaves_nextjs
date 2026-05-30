@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import { AlertCircle, Archive, ChevronRight } from "lucide-react";
 
 export default function CategoriesPage() {
-  const { categories, loading, error, fetchFilters } = useFilterStore();
+  const { categories, loading, error, invalidate } = useFilterStore();
 
   
   if (loading) {
@@ -30,7 +30,7 @@ export default function CategoriesPage() {
           <h3 className="text-lg font-medium text-gray-900 mb-2">Error loading categories</h3>
           <p className="text-gray-500 mb-4">{error}</p>
           <button
-            onClick={fetchFilters}
+            onClick={invalidate}
             className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
           >
             Try Again
