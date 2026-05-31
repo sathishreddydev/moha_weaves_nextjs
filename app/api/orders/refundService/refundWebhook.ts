@@ -40,7 +40,6 @@ export class RefundWebhookService {
       }
 
       const event = JSON.parse(body);
-      console.log("Webhook event received:", event.event);
 
       switch (event.event) {
         case "refund.processed":
@@ -56,7 +55,6 @@ export class RefundWebhookService {
           break;
         
         default:
-          console.log(`Unhandled webhook event: ${event.event}`);
       }
 
       return NextResponse.json({ status: "ok" });
@@ -74,13 +72,11 @@ export class RefundWebhookService {
         .where(eq(refunds.razorpayRefundId, refundEntity.id));
 
       if (!refund) {
-        console.log(`Refund not found for Razorpay ID: ${refundEntity.id}`);
         return;
       }
 
       await refundService.processRefundManually(refund.id, "completed");
       
-      console.log(`Refund ${refund.id} marked as completed via webhook`);
     } catch (error) {
       console.error("Error handling refund processed webhook:", error);
     }
@@ -94,7 +90,6 @@ export class RefundWebhookService {
         .where(eq(refunds.razorpayRefundId, refundEntity.id));
 
       if (!refund) {
-        console.log(`Refund not found for Razorpay ID: ${refundEntity.id}`);
         return;
       }
 
@@ -106,7 +101,6 @@ export class RefundWebhookService {
         })
         .where(eq(refunds.id, refund.id));
 
-      console.log(`Refund ${refund.id} marked as failed via webhook`);
     } catch (error) {
       console.error("Error handling refund failed webhook:", error);
     }
@@ -120,7 +114,6 @@ export class RefundWebhookService {
         .where(eq(refunds.razorpayRefundId, refundEntity.id));
 
       if (!refund) {
-        console.log(`Refund not found for Razorpay ID: ${refundEntity.id}`);
         return;
       }
 
@@ -133,7 +126,6 @@ export class RefundWebhookService {
         })
         .where(eq(refunds.id, refund.id));
 
-      console.log(`Refund ${refund.id} updated with Razorpay details via webhook`);
     } catch (error) {
       console.error("Error handling refund created webhook:", error);
     }
@@ -145,8 +137,6 @@ export class RefundWebhookService {
         .select()
         .from(refunds)
         .where(eq(refunds.status, "processing"));
-
-      console.log(`Checking ${pendingRefunds.length} pending refunds...`);
 
       for (const refund of pendingRefunds) {
         if (refund.razorpayRefundId) {

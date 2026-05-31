@@ -79,7 +79,6 @@ async function mergeGuestWishlistToUser(user: User, guestWishlistItems: string[]
       });
     }
 
-    console.log(`Successfully merged ${newItems.length} new wishlist items for user ${user.id}`);
   } catch (error) {
     console.error('Error merging guest wishlist to user wishlist:', error);
     throw error;

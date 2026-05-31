@@ -76,7 +76,6 @@ export class RefundService {
                 undefined
             );
 
-            console.log(`Razorpay refund initiated: ${razorpayRefund.id} for refund: ${refundId}`);
         } catch (error) {
             console.error("Failed to initiate Razorpay refund:", error);
             await this.updateRefundStatus(

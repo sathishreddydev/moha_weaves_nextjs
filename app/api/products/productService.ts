@@ -141,9 +141,6 @@ export class RoleBasedProductService {
       .from(fabrics)
       .where(or(...conditions));
 
-    console.log("Fabric lookup - Input names:", names);
-    console.log("Fabric lookup - Found fabrics:", result);
-
     return result.map((f) => f.id);
   }
 

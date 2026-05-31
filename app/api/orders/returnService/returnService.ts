@@ -415,7 +415,6 @@ export class ReturnStorage implements IReturnStorage {
                         processedBy: processedBy,
                     });
 
-                    console.log(`Auto-refund initiated for return request: ${id}, amount: ₹${refundAmount}`);
                 } catch (error) {
                     console.error("Failed to initiate auto-refund for return:", id, error);
                 }

@@ -15,12 +15,6 @@ export async function POST(request: NextRequest) {
 
     const performanceData = await request.json();
     
-    // Log performance metrics
-    console.log('Performance metrics:', {
-      userId: session.user.id,
-      timestamp: new Date().toISOString(),
-      metrics: performanceData,
-    });
 
     // In production, send to monitoring service
     if (process.env.NODE_ENV === 'production') {
