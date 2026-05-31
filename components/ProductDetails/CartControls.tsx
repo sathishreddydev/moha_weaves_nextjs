@@ -2,8 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Plus, Minus, ShoppingBag } from "lucide-react";
-import { useState, useEffect } from "react";
-import { useCartStore } from "@/lib/stores";
+import { useState, useEffect, useMemo } from "react";
+import { useAddToCart, useUpdateCartQuantity, useRemoveFromCart, useCartQuery, useGuestCart } from "@/hooks/useCartQueries";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/auth";
 import { CartItemWithProduct } from "@/shared";
@@ -22,8 +22,25 @@ export default function CartControls({
 }: CartControlsProps) {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAuth();
-  const { addToCart, removeFromCart, updateQuantity, updating, items } =
-    useCartStore();
+  
+  // React Query hooks for authenticated users
+  const { data: cartData } = useCartQuery();
+  const addToCartMutation = useAddToCart();
+  const updateQuantityMutation = useUpdateCartQuantity();
+  const removeFromCartMutation = useRemoveFromCart();
+  
+  // Guest cart hook
+  const guestCart = useGuestCart();
+  
+  // Unified items
+  const items = useMemo(
+    () => isAuthenticated ? (cartData?.cart ?? []) : (guestCart.items as any),
+    [isAuthenticated, cartData?.cart, guestCart.items]
+  );
+  const updating = addToCartMutation.isPending || updateQuantityMutation.isPending || removeFromCartMutation.isPending
+    ? product.id
+    : null;
+  
   const [isInCart, setIsInCart] = useState(false);
   const [cartQuantity, setCartQuantity] = useState(0);
 
@@ -56,7 +73,11 @@ export default function CartControls({
     }
 
     try {
-      await addToCart(product.id, 1, selectedVariant?.id || null);
+      if (isAuthenticated) {
+        addToCartMutation.mutate({ productId: product.id, quantity: 1, variantId: selectedVariant?.id || null });
+      } else {
+        await guestCart.addToCart(product.id, 1, selectedVariant?.id || null);
+      }
       toast.success("Added to cart");
     } catch (error) {
       toast.error("Failed to add item to cart. Please try again.");
@@ -70,7 +91,25 @@ export default function CartControls({
     }
 
     try {
-      await addToCart(product.id, 1, selectedVariant?.id || null);
+      if (isAuthenticated) {
+        const cartItem = items.find(
+          (item: CartItemWithProduct) =>
+            item.product?.id === product.id &&
+            (!selectedVariant?.id || item.variantId === selectedVariant.id),
+        );
+        if (cartItem) {
+          updateQuantityMutation.mutate({ itemId: cartItem.id, quantity: cartQuantity + 1 });
+        }
+      } else {
+        const cartItem = items.find(
+          (item: any) =>
+            item.productId === product.id &&
+            (!selectedVariant?.id || item.variantId === selectedVariant.id),
+        );
+        if (cartItem) {
+          guestCart.updateQuantity(cartItem.id, cartQuantity + 1);
+        }
+      }
     } catch (error) {
       toast.error("Failed to update cart. Please try again.");
     }
@@ -81,12 +120,16 @@ export default function CartControls({
       // Remove from cart completely
       try {
         const cartItem = items.find(
-          (item: CartItemWithProduct) =>
-            item.product?.id === product.id &&
+          (item: any) =>
+            (item.product?.id === product.id || item.productId === product.id) &&
             (!selectedVariant?.id || item.variantId === selectedVariant.id),
         );
         if (cartItem) {
-          await removeFromCart(cartItem.id);
+          if (isAuthenticated) {
+            removeFromCartMutation.mutate(cartItem.id);
+          } else {
+            guestCart.removeFromCart(cartItem.id);
+          }
         }
       } catch (error) {
         toast.error("Failed to remove item from cart. Please try again.");
@@ -95,12 +138,16 @@ export default function CartControls({
       // Decrease quantity
       try {
         const cartItem = items.find(
-          (item: CartItemWithProduct) =>
-            item.product?.id === product.id &&
+          (item: any) =>
+            (item.product?.id === product.id || item.productId === product.id) &&
             (!selectedVariant?.id || item.variantId === selectedVariant.id),
         );
         if (cartItem) {
-          await updateQuantity(cartItem.id, cartQuantity - 1);
+          if (isAuthenticated) {
+            updateQuantityMutation.mutate({ itemId: cartItem.id, quantity: cartQuantity - 1 });
+          } else {
+            guestCart.updateQuantity(cartItem.id, cartQuantity - 1);
+          }
         }
       } catch (error) {
         toast.error("Failed to update cart. Please try again.");

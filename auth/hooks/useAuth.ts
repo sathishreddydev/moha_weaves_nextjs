@@ -4,11 +4,14 @@ import { useSession, signIn, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef } from 'react';
 import { User } from '@/shared';
-import { useCartStore, useWishlistStore } from '@/lib/stores';
+import { useQueryClient } from '@tanstack/react-query';
+import { cartKeys } from '@/hooks/useCartQueries';
+import { wishlistKeys } from '@/hooks/useWishlistQueries';
 
 export function useAuth() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const isAuthenticated = status === 'authenticated';
   const isLoading = status === 'loading';
@@ -46,12 +49,10 @@ export function useAuth() {
       localStorage.removeItem('mohaweavs_guest_wishlist');
     }
 
-    // Re-fetch stores immediately after merge so counts are accurate
-    await Promise.all([
-      useCartStore.getState().fetchCart(),
-      useWishlistStore.getState().fetchWishlist(),
-    ]);
-  }, []);
+    // Invalidate React Query caches to trigger fresh fetches
+    queryClient.invalidateQueries({ queryKey: cartKeys.all });
+    queryClient.invalidateQueries({ queryKey: wishlistKeys.all });
+  }, [queryClient]);
 
   // Auto-merge guest data on any login method (Google redirect, OTP, credentials)
   useEffect(() => {
@@ -107,12 +108,15 @@ export function useAuth() {
 
   const logout = useCallback(async () => {
     try {
+      // Clear React Query caches for cart and wishlist
+      queryClient.removeQueries({ queryKey: cartKeys.all });
+      queryClient.removeQueries({ queryKey: wishlistKeys.all });
       await signOut({ redirect: false });
       router.push('/login');
       router.refresh();
     } catch (error) {
     }
-  }, [router]);
+  }, [router, queryClient]);
 
   return {
     user,

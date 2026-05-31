@@ -1,9 +1,18 @@
 "use client";
 
+import { useAuth } from "@/auth";
 import { Button } from "@/components/ui/button";
-import { useWishlistStore } from "@/lib/stores";
+import {
+  useWishlistQuery,
+  useRemoveFromWishlist,
+  useMoveToCart,
+  useGuestWishlist,
+} from "@/hooks/useWishlistQueries";
+import { useGuestCart } from "@/hooks/useCartQueries";
+import { useCartSocketSync } from "@/hooks/useCartSocketSync";
 import { getProductUrl } from "@/lib/utils/productUrl";
 import { getAvailableStock } from "@/lib/stock-utils";
+import { guestStorage } from "@/lib/guest-storage";
 import { Heart, ImageIcon, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, useCallback, useMemo } from "react";
@@ -12,53 +21,78 @@ import { useCartProductPurchasedListener } from "@/hooks/useProductPurchasedList
 import { ProductWithDetails } from "@/shared/types";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import { wishlistKeys } from "@/hooks/useWishlistQueries";
 
 // ── Variant picker state per product ─────────────────────────────────────────
 type VariantSelections = Record<string, string>; // productId → variantId
 
 export default function WishlistPage() {
   const router = useRouter();
-  const {
-    items,
-    loading,
-    error,
-    updating,
-    fetchWishlist,
-    removeFromWishlist,
-    addToCartFromWishlist,
-  } = useWishlistStore();
+  const { status } = useAuth();
+  const isGuest = status === "unauthenticated";
+  const queryClient = useQueryClient();
 
+  // ── Authenticated wishlist via React Query ──────────────────────────────
+  const {
+    data: wishlistData,
+    isLoading: authLoading,
+    error: authError,
+    refetch: refetchWishlist,
+  } = useWishlistQuery();
+
+  // ── Guest wishlist via localStorage ─────────────────────────────────────
+  const guestWishlist = useGuestWishlist();
+  const guestCart = useGuestCart();
+
+  // ── Mutations (authenticated) ───────────────────────────────────────────
+  const removeFromWishlistMutation = useRemoveFromWishlist();
+  const moveToCartMutation = useMoveToCart();
+
+  // ── Unified items based on auth status ──────────────────────────────────
+  const items = isGuest
+    ? (guestWishlist.items as any)
+    : (wishlistData?.wishlist ?? []);
+  const loading =
+    status === "loading" || (isGuest ? guestWishlist.loading : authLoading);
+  const error = isGuest
+    ? guestWishlist.error
+    : authError
+      ? (authError as Error).message
+      : null;
+
+  // ── Socket sync ─────────────────────────────────────────────────────────
+  useCartSocketSync();
   const { socket } = useSocketStore();
 
-  // Stable items reference for socket listener — only changes when product set changes
+  // Stable items reference for socket listener
   const wishlistProductIds = useMemo(
-    () => items.map((i) => i.productId).sort().join(","),
+    () => items.map((i: any) => i.productId).sort().join(","),
     [items]
   );
   const stableItemsForSocket = useMemo(
-    () => items.map((item) => ({ productId: item.productId, variantId: null })),
+    () => items.map((item: any) => ({ productId: item.productId, variantId: null })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [wishlistProductIds]
   );
 
-  // Listen for product_purchased events to refresh wishlist stock in real-time
+  // Listen for product_purchased events to refresh wishlist stock
   const handleStockChange = useCallback(() => {
-    fetchWishlist();
-  }, [fetchWishlist]);
+    if (!isGuest) refetchWishlist();
+    else guestWishlist.fetchWishlist();
+  }, [isGuest, refetchWishlist, guestWishlist]);
   useCartProductPurchasedListener(stableItemsForSocket, handleStockChange);
 
   // Track selected variant per wishlist item
-  const [variantSelections, setVariantSelections] = useState<VariantSelections>(
-    {},
-  );
-  // Track which items are showing a "please select size" error
-  const [variantErrors, setVariantErrors] = useState<Record<string, boolean>>(
-    {},
-  );
+  const [variantSelections, setVariantSelections] = useState<VariantSelections>({});
+  const [variantErrors, setVariantErrors] = useState<Record<string, boolean>>({});
 
+  // Fetch guest wishlist on mount
   useEffect(() => {
-    fetchWishlist();
-  }, [fetchWishlist]);
+    if (isGuest) {
+      guestWishlist.fetchWishlist();
+    }
+  }, [isGuest]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-select first active variant for items that have multiple variants
   useEffect(() => {
@@ -69,9 +103,9 @@ export default function WishlistPage() {
 
     for (const item of items) {
       if (newSelections[item.productId]) continue;
-      const variants = item.product.variants ?? [];
+      const variants = item.product?.variants ?? [];
       const activeVariants = variants.filter(
-        (v) => v.isActive && v.onlineStock > 0,
+        (v: any) => v.isActive && v.onlineStock > 0
       );
       if (activeVariants.length > 1) {
         newSelections[item.productId] = activeVariants[0].id;
@@ -84,35 +118,70 @@ export default function WishlistPage() {
     }
   }, [items]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Re-fetch when admin updates/deletes a product or changes offers so prices and names stay fresh
+  // Re-fetch when admin updates/deletes a product or changes offers
   useEffect(() => {
     if (!socket) return;
-    socket.on("product_event", fetchWishlist);
-    socket.on("offer_event", fetchWishlist);
-    return () => {
-      socket.off("product_event", fetchWishlist);
-      socket.off("offer_event", fetchWishlist);
+    const handler = () => {
+      if (!isGuest) refetchWishlist();
+      else guestWishlist.fetchWishlist();
     };
-  }, [socket, fetchWishlist]);
+    socket.on("product_event", handler);
+    socket.on("offer_event", handler);
+    return () => {
+      socket.off("product_event", handler);
+      socket.off("offer_event", handler);
+    };
+  }, [socket, isGuest, refetchWishlist, guestWishlist]);
+
+  // ── Updating state ──────────────────────────────────────────────────────
+  const updating = isGuest
+    ? guestWishlist.updating
+    : removeFromWishlistMutation.isPending
+      ? removeFromWishlistMutation.variables
+      : moveToCartMutation.isPending
+        ? moveToCartMutation.variables?.productId
+        : null;
+
+  // ── Handlers ────────────────────────────────────────────────────────────
+  const handleRemoveFromWishlist = useCallback(
+    (productId: string) => {
+      if (isGuest) {
+        guestWishlist.removeFromWishlist(productId);
+      } else {
+        removeFromWishlistMutation.mutate(productId);
+      }
+    },
+    [isGuest, guestWishlist, removeFromWishlistMutation]
+  );
 
   const handleAddToCart = async (
     productId: string,
-    product: ProductWithDetails,
+    product: ProductWithDetails
   ) => {
     const variants = product.variants ?? [];
     const activeVariants = variants.filter(
-      (v) => v.isActive && v.onlineStock > 0,
+      (v: any) => v.isActive && v.onlineStock > 0
     );
 
     // No variants at all — add directly
     if (variants.length === 0) {
-      await addToCartFromWishlist(productId, null);
+      if (isGuest) {
+        await guestCart.addToCart(productId, 1, null);
+        guestWishlist.removeFromWishlist(productId);
+      } else {
+        moveToCartMutation.mutate({ productId, variantId: null });
+      }
       return;
     }
 
     // Only one active variant — auto-select it
     if (activeVariants.length === 1) {
-      await addToCartFromWishlist(productId, activeVariants[0].id);
+      if (isGuest) {
+        await guestCart.addToCart(productId, 1, activeVariants[0].id);
+        guestWishlist.removeFromWishlist(productId);
+      } else {
+        moveToCartMutation.mutate({ productId, variantId: activeVariants[0].id });
+      }
       return;
     }
 
@@ -124,7 +193,12 @@ export default function WishlistPage() {
     }
 
     setVariantErrors((prev) => ({ ...prev, [productId]: false }));
-    await addToCartFromWishlist(productId, selectedVariantId);
+    if (isGuest) {
+      await guestCart.addToCart(productId, 1, selectedVariantId);
+      guestWishlist.removeFromWishlist(productId);
+    } else {
+      moveToCartMutation.mutate({ productId, variantId: selectedVariantId });
+    }
   };
 
   const handleVariantSelect = (productId: string, variantId: string) => {
@@ -144,7 +218,7 @@ export default function WishlistPage() {
   }
 
   return (
-    <div >
+    <div>
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-xl font-light text-gray-900 uppercase tracking-[0.1em]">
@@ -171,11 +245,12 @@ export default function WishlistPage() {
         </div>
       ) : (
         <div className="grid gap-4 grid-cols-2 sm:grid-cols-4 lg:grid-cols-5">
-          {items.map((item) => {
+          {items.map((item: any) => {
             const product = item.product;
+            if (!product) return null;
             const variants = product.variants ?? [];
             const activeVariants = variants.filter(
-              (v) => v.isActive && v.onlineStock > 0,
+              (v: any) => v.isActive && v.onlineStock > 0
             );
             const needsVariantSelection = activeVariants.length > 1;
             const totalOnlineStock = getAvailableStock(
@@ -186,7 +261,7 @@ export default function WishlistPage() {
                 totalStock: (product as any).totalStock ?? 0,
                 variants: product.variants,
               },
-              null,
+              null
             );
             const isOutOfStock = totalOnlineStock <= 0;
             const hasDiscount =
@@ -198,12 +273,10 @@ export default function WishlistPage() {
 
             return (
               <div key={item.id || item.productId} className="flex flex-col gap-1 md:gap-2">
-                {/* Image container — same as ProductCard */}
+                {/* Image container */}
                 <div
                   className={`relative aspect-[3/4] overflow-hidden bg-stone-100 rounded-sm ${
-                    isOutOfStock
-                      ? "cursor-not-allowed"
-                      : "cursor-pointer group"
+                    isOutOfStock ? "cursor-not-allowed" : "cursor-pointer group"
                   }`}
                   onClick={() => {
                     if (!isOutOfStock) router.push(getProductUrl(product));
@@ -249,7 +322,7 @@ export default function WishlistPage() {
                     )}
                   </div>
 
-                  {/* Size selector + Add to Cart — overlaid on image bottom */}
+                  {/* Size selector + Add to Cart */}
                   {!isOutOfStock && (
                     <div
                       className="absolute inset-x-0 bottom-0 px-3 pb-3 pt-8 bg-gradient-to-t from-black/60 to-transparent translate-y-0 opacity-100 lg:translate-y-full lg:opacity-0 lg:group-hover:translate-y-0 lg:group-hover:opacity-100 transition-all duration-300"
@@ -259,7 +332,7 @@ export default function WishlistPage() {
                       {needsVariantSelection && (
                         <div className="mb-2">
                           <div className="flex flex-wrap gap-1.5 justify-center">
-                            {activeVariants.map((v) => (
+                            {activeVariants.map((v: any) => (
                               <button
                                 key={v.id}
                                 type="button"
@@ -300,7 +373,7 @@ export default function WishlistPage() {
                   )}
                 </div>
 
-                {/* Product info — same structure as ProductCard */}
+                {/* Product info */}
                 <div className="space-y-0.5 md:space-y-1">
                   <div className="flex justify-between items-start">
                     <div className="flex-1 pr-4">
@@ -323,9 +396,9 @@ export default function WishlistPage() {
                       </h4>
                     </div>
 
-                    {/* Wishlist heart — same position as ProductCard */}
+                    {/* Wishlist heart */}
                     <button
-                      onClick={() => removeFromWishlist(item.productId)}
+                      onClick={() => handleRemoveFromWishlist(item.productId)}
                       disabled={updating === item.productId}
                       className="text-red-500 hover:text-red-700 transition-colors flex-shrink-0 disabled:opacity-50"
                       aria-label="Remove from wishlist"

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/auth';
 import { useRouter } from 'next/navigation';
-import { useCartStore } from '@/lib/stores';
+import { useAddToCart, useGuestCart } from '@/hooks/useCartQueries';
 import { Button } from '@/components/ui/button';
 
 interface AddToCartButtonProps {
@@ -13,23 +13,21 @@ interface AddToCartButtonProps {
 }
 
 export default function AddToCartButton({ productId, onlineStock, variantId }: AddToCartButtonProps) {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
   const router = useRouter();
-  const { addToCart, updating } = useCartStore();
+  const addToCartMutation = useAddToCart();
+  const guestCart = useGuestCart();
   const [quantity, setQuantity] = useState(1);
 
   const handleAddToCart = async () => {
-    if (!isAuthenticated) {
-      router.push('/login');
-      return;
+    if (isAuthenticated) {
+      addToCartMutation.mutate({ productId, quantity, variantId });
+    } else {
+      await guestCart.addToCart(productId, quantity, variantId);
     }
-
-    await addToCart(productId, quantity, variantId);
-    // Optionally show success message or redirect to cart
-    // router.push('/cart');
   };
 
-  const isUpdating = updating === productId;
+  const isUpdating = addToCartMutation.isPending || guestCart.loading;
   const isOutOfStock = !onlineStock || onlineStock === 0;
 
   return (

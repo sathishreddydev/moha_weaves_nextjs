@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuth } from "@/auth";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import CartControls from "@/components/ProductDetails/CartControls";
 import ProductReviews from "@/components/ProductDetails/ProductReviews";
@@ -9,7 +10,8 @@ import ProductCard from "@/components/products/ProductCard";
 import { Button } from "@/components/ui/button";
 import { useProductPurchasedListener } from "@/hooks/useProductPurchasedListener";
 import { getAvailableStock } from "@/lib/stock-utils";
-import { useCartStore, useWishlistStore } from "@/lib/stores";
+import { useAddToCart, useGuestCart } from "@/hooks/useCartQueries";
+import { useWishlistQuery, useAddToWishlist, useRemoveFromWishlist, useGuestWishlist } from "@/hooks/useWishlistQueries";
 import { useSocketStore } from "@/lib/stores/socketStore";
 import { ProductWithDetails } from "@/shared";
 import {
@@ -53,14 +55,48 @@ export default function ProductDetailClient({
   reviewsData,
 }: ProductDetailClientProps) {
   const router = useRouter();
-  const { error } = useCartStore();
-  const {
-    addToWishlist,
-    removeFromWishlist,
-    isInWishlist,
-    updating: wishlistUpdating,
-    error: wishlistError,
-  } = useWishlistStore();
+  const { isAuthenticated } = useAuth();
+  
+  // Cart hooks
+  const addToCartMutation = useAddToCart();
+  const guestCartHook = useGuestCart();
+  const error = addToCartMutation.error ? (addToCartMutation.error as Error).message : guestCartHook.error;
+  
+  // Wishlist hooks
+  const { data: wishlistData } = useWishlistQuery();
+  const addToWishlistMutation = useAddToWishlist();
+  const removeFromWishlistMutation = useRemoveFromWishlist();
+  const guestWishlistHook = useGuestWishlist();
+  
+  const wishlistUpdating = isAuthenticated
+    ? (addToWishlistMutation.isPending || removeFromWishlistMutation.isPending
+        ? product.id
+        : null)
+    : guestWishlistHook.updating;
+  const wishlistError = isAuthenticated
+    ? (addToWishlistMutation.error ? (addToWishlistMutation.error as Error).message : null)
+    : guestWishlistHook.error;
+  
+  const addToWishlist = async (productId: string) => {
+    if (isAuthenticated) {
+      addToWishlistMutation.mutate(productId);
+    } else {
+      await guestWishlistHook.addToWishlist(productId);
+    }
+  };
+  const removeFromWishlist = async (productId: string) => {
+    if (isAuthenticated) {
+      removeFromWishlistMutation.mutate(productId);
+    } else {
+      guestWishlistHook.removeFromWishlist(productId);
+    }
+  };
+  const isInWishlist = (productId: string) => {
+    if (isAuthenticated) {
+      return (wishlistData?.wishlist ?? []).some(item => item.productId === productId);
+    }
+    return guestWishlistHook.isInWishlist(productId);
+  };
 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isImageLoading, setIsImageLoading] = useState(true);

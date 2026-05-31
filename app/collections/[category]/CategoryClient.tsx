@@ -23,7 +23,8 @@ import { CategoryWithSubcategories, ProductWithDetails } from "@/shared";
 import { FilterIcon, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useState, useEffect } from "react";
-import { useWishlistStore } from "@/lib/stores/wishlistStore";
+import { useAuth } from "@/auth";
+import { useWishlistQuery, useAddToWishlist, useRemoveFromWishlist, useGuestWishlist } from "@/hooks/useWishlistQueries";
 import { useFilterStore } from "@/lib/stores/fillterStore";
 import { getProductUrl } from "@/lib/utils/productUrl";
 import { useSocketStore } from "@/lib/stores/socketStore";
@@ -45,11 +46,30 @@ export default function CategoryClient({
 }: CategoryClientProps) {
   const router = useRouter();
   const { socket } = useSocketStore();
+  const { isAuthenticated } = useAuth();
 
   const { categories, colors, fabrics } = useFilterStore();
-  const { fetchWishlist, addToWishlist, removeFromWishlist, isInWishlist } = useWishlistStore();
+  const { data: wishlistData } = useWishlistQuery();
+  const addToWishlistMutation = useAddToWishlist();
+  const removeFromWishlistMutation = useRemoveFromWishlist();
+  const guestWishlist = useGuestWishlist();
+  
+  const addToWishlist = (productId: string) => {
+    if (isAuthenticated) addToWishlistMutation.mutate(productId);
+    else guestWishlist.addToWishlist(productId);
+  };
+  const removeFromWishlist = (productId: string) => {
+    if (isAuthenticated) removeFromWishlistMutation.mutate(productId);
+    else guestWishlist.removeFromWishlist(productId);
+  };
+  const isInWishlist = (productId: string) => {
+    if (isAuthenticated) return (wishlistData?.wishlist ?? []).some(item => item.productId === productId);
+    return guestWishlist.isInWishlist(productId);
+  };
 
-  useEffect(() => { fetchWishlist(); }, []);
+  useEffect(() => {
+    if (!isAuthenticated) guestWishlist.fetchWishlist();
+  }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!socket) return;

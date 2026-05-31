@@ -5,7 +5,9 @@ import MobileSidebar from "@/components/layout/MobileSidebar";
 import MegaMenu from "@/components/navigation/MegaMenu";
 import { useOffersBanner } from "@/hooks/use-offers-banner";
 import { useSwipeToToggleMenu } from "@/hooks/use-swipe-gesture";
-import { useCartStore, useWishlistStore } from "@/lib/stores";
+import { useCartCount } from "@/hooks/useCartQueries";
+import { useWishlistCount } from "@/hooks/useWishlistQueries";
+import { useCartSocketSync } from "@/hooks/useCartSocketSync";
 import { Heart, Menu, ShoppingBag, UserIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -25,32 +27,11 @@ export default function Header() {
     () => setIsMobileMenuOpen(false),
   ) as React.RefObject<HTMLDivElement>;
 
-  const { count: cartCount, fetchCart } = useCartStore();
-  const { count: wishlistCount, fetchWishlist } = useWishlistStore();
+  const { count: cartCount } = useCartCount();
+  const { count: wishlistCount } = useWishlistCount();
 
-  // Track previous auth state to detect login/logout transitions
-  const prevAuthRef = useRef(isAuthenticated);
-
-  const hasFetchedRef = useRef(false);
-
-  useEffect(() => {
-    if (authLoading) return; // Wait for auth status to resolve
-
-    const authChanged = prevAuthRef.current !== isAuthenticated;
-    prevAuthRef.current = isAuthenticated;
-
-    // Fetch on auth state transitions or on initial mount (once)
-    if (authChanged || !hasFetchedRef.current) {
-      hasFetchedRef.current = true;
-      fetchCart();
-      fetchWishlist();
-    }
-  }, [
-    authLoading,
-    isAuthenticated,
-    fetchCart,
-    fetchWishlist,
-  ]);
+  // Socket sync — invalidates cart cache on product_purchased, offer_event, etc.
+  useCartSocketSync();
 
   // Expose --header-height CSS variable so LayoutWrapper and sticky elements
   // can always reference the real measured height instead of hardcoded values.

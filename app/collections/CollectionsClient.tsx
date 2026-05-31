@@ -21,7 +21,8 @@ import {
 } from "@/components/ui/select";
 import { useFilterStore } from "@/lib/stores/fillterStore";
 import { useSocketStore } from "@/lib/stores/socketStore";
-import { useWishlistStore } from "@/lib/stores/wishlistStore";
+import { useAuth } from "@/auth";
+import { useWishlistQuery, useAddToWishlist, useRemoveFromWishlist, useGuestWishlist } from "@/hooks/useWishlistQueries";
 import { getProductUrl } from "@/lib/utils/productUrl";
 import { ProductWithDetails } from "@/shared";
 import { FilterIcon, Loader2 } from "lucide-react";
@@ -44,19 +45,30 @@ export default function CollectionsClient({
   const router = useRouter();
   const socket = useSocketStore((s) => s.socket);
   const isSocketConnected = useSocketStore((s) => s.isConnected);
+  const { isAuthenticated } = useAuth();
 
   const { categories, colors, fabrics } = useFilterStore();
-  const {
-    fetchWishlist,
-    addToWishlist,
-    removeFromWishlist,
-    isInWishlist,
-    count: wishlistCount,
-  } = useWishlistStore();
+  const { data: wishlistData } = useWishlistQuery();
+  const addToWishlistMutation = useAddToWishlist();
+  const removeFromWishlistMutation = useRemoveFromWishlist();
+  const guestWishlist = useGuestWishlist();
+  
+  const addToWishlist = (productId: string) => {
+    if (isAuthenticated) addToWishlistMutation.mutate(productId);
+    else guestWishlist.addToWishlist(productId);
+  };
+  const removeFromWishlist = (productId: string) => {
+    if (isAuthenticated) removeFromWishlistMutation.mutate(productId);
+    else guestWishlist.removeFromWishlist(productId);
+  };
+  const isInWishlist = (productId: string) => {
+    if (isAuthenticated) return (wishlistData?.wishlist ?? []).some(item => item.productId === productId);
+    return guestWishlist.isInWishlist(productId);
+  };
 
   useEffect(() => {
-    if (wishlistCount === 0) fetchWishlist();
-  }, [wishlistCount, fetchWishlist]);
+    if (!isAuthenticated) guestWishlist.fetchWishlist();
+  }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!socket) return;

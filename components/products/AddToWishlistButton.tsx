@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { useWishlistStore } from '@/lib/stores';
+import { useWishlistQuery, useAddToWishlist, useRemoveFromWishlist, useGuestWishlist } from '@/hooks/useWishlistQueries';
 import { Heart } from 'lucide-react';
 import { useAuth } from '@/auth';
 import { useRouter } from 'next/navigation';
@@ -19,23 +19,38 @@ export default function AddToWishlistButton({
   variant = 'outline',
   size = 'default'
 }: AddToWishlistButtonProps) {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
   const router = useRouter();
-  const { addToWishlist, removeFromWishlist, isInWishlist, updating } = useWishlistStore();
+  
+  // Authenticated
+  const { data: wishlistData } = useWishlistQuery();
+  const addToWishlistMutation = useAddToWishlist();
+  const removeFromWishlistMutation = useRemoveFromWishlist();
+  
+  // Guest
+  const guestWishlist = useGuestWishlist();
 
-  const isInWishlistLocal = isInWishlist(productId);
-  const isUpdating = updating === productId;
+  const isInWishlistLocal = isAuthenticated
+    ? (wishlistData?.wishlist ?? []).some(item => item.productId === productId)
+    : guestWishlist.isInWishlist(productId);
+
+  const isUpdating = isAuthenticated
+    ? addToWishlistMutation.isPending || removeFromWishlistMutation.isPending
+    : guestWishlist.updating === productId;
 
   const handleWishlistToggle = async () => {
-    if (!isAuthenticated) {
-      router.push('/login');
-      return;
-    }
-
     if (isInWishlistLocal) {
-      await removeFromWishlist(productId);
+      if (isAuthenticated) {
+        removeFromWishlistMutation.mutate(productId);
+      } else {
+        guestWishlist.removeFromWishlist(productId);
+      }
     } else {
-      await addToWishlist(productId);
+      if (isAuthenticated) {
+        addToWishlistMutation.mutate(productId);
+      } else {
+        await guestWishlist.addToWishlist(productId);
+      }
     }
   };
 

@@ -5,7 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/formatters";
 import { calculatePricing } from "@/lib/pricing-utils";
-import { useCartStore } from "@/lib/stores";
+import {
+  useCartQuery,
+  useClearCart,
+  useCartStockValidation,
+} from "@/hooks/useCartQueries";
+import { useCartSocketSync } from "@/hooks/useCartSocketSync";
 import {
   useAddresses,
   useCreateAddress,
@@ -39,13 +44,16 @@ export default function CheckoutPage() {
   const { user, status } = useAuth();
   const router = useRouter();
   const {
-    items,
-    loading: cartLoading,
-    clearCart,
-    fetchCart,
-    hasStockIssues,
-    validateCartStock,
-  } = useCartStore();
+    data: cartData,
+    isLoading: cartLoading,
+    refetch: refetchCart,
+  } = useCartQuery();
+  const clearCartMutation = useClearCart();
+  const items = cartData?.cart ?? [];
+  const { stockStatus, hasStockIssues } = useCartStockValidation(items);
+
+  // Socket sync for real-time stock/price updates
+  useCartSocketSync();
   const {
     data: addresses = [],
     isLoading: addressesLoading,
@@ -115,24 +123,22 @@ export default function CheckoutPage() {
   }, [addresses, addressesLoading, selectedAddressId]);
 
   // ── Validate stock ────────────────────────────────────────────────────────
-  useEffect(() => {
-    validateCartStock();
-  }, [items, validateCartStock]);
+  // Stock validation is now derived from cart data via useCartStockValidation above
 
-  useCartProductPurchasedListener(stableItemsForSocket, fetchCart);
+  useCartProductPurchasedListener(stableItemsForSocket, () => refetchCart());
 
   // Re-fetch cart when offers or coupons change (prices may have updated)
   const { socket } = useSocketStore();
   useEffect(() => {
     if (!socket) return;
-    const handleOfferChange = () => fetchCart();
+    const handleOfferChange = () => refetchCart();
     socket.on("offer_event", handleOfferChange);
     socket.on("coupon_event", handleOfferChange);
     return () => {
       socket.off("offer_event", handleOfferChange);
       socket.off("coupon_event", handleOfferChange);
     };
-  }, [socket, fetchCart]);
+  }, [socket, refetchCart]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleAddressSubmit = async (data: AddressFormData) => {
@@ -187,11 +193,11 @@ export default function CheckoutPage() {
     (newOrderId: string) => {
       setOrderTotal(total);
       setOrderItemCount(items.length);
-      clearCart();
+      clearCartMutation.mutate();
       setOrderId(newOrderId);
       setOrderPlaced(true);
     },
-    [clearCart, total, items.length],
+    [clearCartMutation, total, items.length],
   );
 
   // ── Loading ───────────────────────────────────────────────────────────────

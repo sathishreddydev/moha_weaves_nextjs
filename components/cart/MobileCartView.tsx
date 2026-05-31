@@ -8,17 +8,19 @@ import { useState } from "react";
 import { ArrowRight, ChevronUp, Minus, Plus, Truck } from "lucide-react";
 import Image from "next/image";
 import { getProductUrl } from "@/lib/utils/productUrl";
-import { CartItemStockStatus } from "@/lib/stores/cartStore";
+import { CartItemStockStatus } from "@/hooks/useCartQueries";
 import { getAvailableStock } from "@/lib/stock-utils";
 import { getEffectivePrice } from "@/lib/pricing-utils";
 import ProductCard from "../products/ProductCard";
 import { useRouter } from "next/navigation";
-import { useWishlistStore } from "@/lib/stores";
+import { useAuth } from "@/auth";
+import { useWishlistQuery, useAddToWishlist, useRemoveFromWishlist, useGuestWishlist } from "@/hooks/useWishlistQueries";
 import { ProductWithDetails } from "@/shared";
 
 interface MobileCartViewProps {
   items: any[];
   updating: string | null;
+  updatingAction?: "updating" | "removing" | "clearing" | null;
   stockStatus: Record<string, CartItemStockStatus>;
   hasStockIssues: boolean;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
@@ -35,6 +37,7 @@ const FREE_SHIPPING_THRESHOLD = 999;
 export default function MobileCartView({
   items,
   updating,
+  updatingAction,
   stockStatus,
   hasStockIssues,
   updateQuantity,
@@ -47,12 +50,37 @@ export default function MobileCartView({
 }: MobileCartViewProps) {
   const [showSummary, setShowSummary] = useState(false);
   const router = useRouter();
-  const {
-    addToWishlist,
-    removeFromWishlist,
-    isInWishlist,
-    updating: wishlistUpdating,
-  } = useWishlistStore();
+  const { isAuthenticated } = useAuth();
+  
+  // Wishlist hooks
+  const { data: wishlistData } = useWishlistQuery();
+  const addToWishlistMutation = useAddToWishlist();
+  const removeFromWishlistMutation = useRemoveFromWishlist();
+  const guestWishlist = useGuestWishlist();
+  
+  const addToWishlist = (productId: string) => {
+    if (isAuthenticated) {
+      addToWishlistMutation.mutate(productId);
+    } else {
+      guestWishlist.addToWishlist(productId);
+    }
+  };
+  const removeFromWishlist = (productId: string) => {
+    if (isAuthenticated) {
+      removeFromWishlistMutation.mutate(productId);
+    } else {
+      guestWishlist.removeFromWishlist(productId);
+    }
+  };
+  const isInWishlist = (productId: string) => {
+    if (isAuthenticated) {
+      return (wishlistData?.wishlist ?? []).some(item => item.productId === productId);
+    }
+    return guestWishlist.isInWishlist(productId);
+  };
+  const wishlistUpdating = addToWishlistMutation.isPending || removeFromWishlistMutation.isPending
+    ? (addToWishlistMutation.variables || removeFromWishlistMutation.variables || null)
+    : guestWishlist.updating;
 
   const discountedTotal = calculateTotal();
 
@@ -95,8 +123,17 @@ export default function MobileCartView({
           return (
             <div
               key={item.id}
-              className={`px-4 py-5 ${isOutOfStock ? "opacity-60" : ""}`}
+              className={`relative px-4 py-5 ${isOutOfStock ? "opacity-60" : ""}`}
             >
+              {/* Removing status overlay — only shown for remove action */}
+              {updating === item.id && updatingAction === "removing" && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 rounded-lg backdrop-blur-[1px]">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 shadow-sm px-3 py-1.5 rounded-full">
+                    <span className="inline-block w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                    Removing…
+                  </span>
+                </div>
+              )}
               <div className="flex gap-4">
                 {/* Product Image */}
                 <div className="flex-shrink-0 relative">
@@ -187,7 +224,6 @@ export default function MobileCartView({
                           updateQuantity(item.id, item.quantity - 1)
                         }
                         disabled={
-                          updating === item.id ||
                           item.quantity <= 1 ||
                           isOutOfStock
                         }
@@ -204,7 +240,6 @@ export default function MobileCartView({
                           updateQuantity(item.id, item.quantity + 1)
                         }
                         disabled={
-                          updating === item.id ||
                           isOutOfStock ||
                           item.quantity >= effectiveAvailableStock
                         }

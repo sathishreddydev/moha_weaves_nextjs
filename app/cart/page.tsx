@@ -4,55 +4,76 @@ import { useAuth } from "@/auth";
 import DesktopCartView from "@/components/cart/DesktopCartView";
 import MobileCartView from "@/components/cart/MobileCartView";
 import { Button } from "@/components/ui/button";
-import { useCartStore } from "@/lib/stores";
+import {
+  useCartQuery,
+  useGuestCart,
+  useUpdateCartQuantity,
+  useRemoveFromCart,
+  useClearCart,
+  useCartStockValidation,
+  calculateCartTotal,
+} from "@/hooks/useCartQueries";
+import { useCartSocketSync } from "@/hooks/useCartSocketSync";
 import { useSocketStore } from "@/lib/stores/socketStore";
 import { useCartProductPurchasedListener } from "@/hooks/useProductPurchasedListener";
+import { syncGuestCart } from "@/lib/guest-cart-sync";
 import { ProductWithDetails } from "@/shared";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export default function CartPage() {
   const { status } = useAuth();
+  const isGuest = status === "unauthenticated";
+
+  // ── Authenticated cart via React Query ──────────────────────────────────
   const {
-    items,
-    loading,
-    error,
-    updating,
-    stockStatus,
-    hasStockIssues,
-    updateQuantity,
-    removeFromCart,
-    clearCart,
-    calculateTotal,
-    syncGuestCart,
-    fetchCart,
-    validateCartStock,
-  } = useCartStore();
+    data: cartData,
+    isLoading: authLoading,
+    error: authError,
+    refetch: refetchCart,
+  } = useCartQuery();
+
+  // ── Guest cart via localStorage ─────────────────────────────────────────
+  const guestCart = useGuestCart();
+
+  // ── Unified items/count based on auth status ────────────────────────────
+  const items = isGuest ? (guestCart.items as any) : (cartData?.cart ?? []);
+  const loading = status === "loading" || (isGuest ? guestCart.loading : authLoading);
+  const error = isGuest ? guestCart.error : authError ? (authError as Error).message : null;
+
+  // ── Mutations (authenticated) ───────────────────────────────────────────
+  const updateQuantityMutation = useUpdateCartQuantity();
+  const removeFromCartMutation = useRemoveFromCart();
+  const clearCartMutation = useClearCart();
+
+  // ── Stock validation ────────────────────────────────────────────────────
+  const { stockStatus, hasStockIssues } = useCartStockValidation(items);
+
+  // ── Socket sync for real-time updates ───────────────────────────────────
+  useCartSocketSync();
 
   const { socket } = useSocketStore();
-  const isGuest = status === "unauthenticated";
   const hasSyncedRef = useRef(false);
-  const itemsRef = useRef(items);
-  itemsRef.current = items;
 
   const [relatedProducts, setRelatedProducts] = useState<ProductWithDetails[]>([]);
   const [categoryName, setCategoryName] = useState<string>("all");
 
-  // Stable reference for socket listener — only re-register when product IDs change
+  // Stable reference for socket listener
   const cartProductIds = useMemo(
-    () => items.map((i) => i.productId).sort().join(","),
+    () => items.map((i: any) => i.productId).sort().join(","),
     [items]
   );
 
-  // Stable items for socket listener (only changes when product IDs change)
   const stableItemsForSocket = useMemo(
-    () => items.map((i) => ({ productId: i.productId, variantId: i.variantId })),
+    () => items.map((i: any) => ({ productId: i.productId, variantId: i.variantId })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [cartProductIds]
   );
 
   // Re-validate stock when any cart product is purchased by another user
-  useCartProductPurchasedListener(stableItemsForSocket, fetchCart);
+  useCartProductPurchasedListener(stableItemsForSocket, () => {
+    if (!isGuest) refetchCart();
+  });
 
   const fetchRelatedProducts = useCallback((cartItems: typeof items) => {
     if (cartItems.length === 0) return;
@@ -72,18 +93,16 @@ export default function CartPage() {
         const filtered = json.data.filter((p) => !productIds.includes(p.id));
         setRelatedProducts(filtered.slice(0, 4));
       })
-      .catch(() => {
-        // silently fail — "You May Also Like" is non-critical
-      });
+      .catch(() => {});
   }, []);
 
   // Re-fetch cart + related products when admin updates a product or offer
   useEffect(() => {
     if (!socket) return;
     const handleProductEvent = () => {
-      fetchCart().then(() => {
-        fetchRelatedProducts(itemsRef.current);
-      });
+      if (!isGuest) {
+        refetchCart();
+      }
     };
     socket.on("product_event", handleProductEvent);
     socket.on("offer_event", handleProductEvent);
@@ -91,34 +110,74 @@ export default function CartPage() {
       socket.off("product_event", handleProductEvent);
       socket.off("offer_event", handleProductEvent);
     };
-  }, [socket, fetchCart, fetchRelatedProducts]);
+  }, [socket, isGuest, refetchCart]);
 
-  // Sync guest cart ONCE on page load (after fetchCart populates items)
+  // Sync guest cart ONCE on page load
   useEffect(() => {
     if (isGuest && !hasSyncedRef.current && items.length > 0) {
       hasSyncedRef.current = true;
-      syncGuestCart();
+      syncGuestCart({
+        validateStock: true,
+        updatePrices: true,
+        removeOutOfStock: false,
+      }).then(() => {
+        guestCart.refreshItems();
+      });
     }
-  }, [isGuest, items.length, syncGuestCart]);
+  }, [isGuest, items.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fetch cart once when auth status resolves (handles login redirect to cart)
-  useEffect(() => {
-    if (status !== "loading") {
-      fetchCart();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status]);
-
-  // Validate stock whenever items change (add, remove, quantity update, fetch)
-  useEffect(() => {
-    validateCartStock();
-  }, [items, validateCartStock]);
-
-  // Fetch related products only when the set of product IDs changes (not on qty updates)
+  // Fetch related products only when the set of product IDs changes
   useEffect(() => {
     fetchRelatedProducts(items);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cartProductIds, fetchRelatedProducts]);
+
+  // ── Unified action handlers ─────────────────────────────────────────────
+  const updatingInfo: { itemId: string; action: "updating" | "removing" | "clearing" } | null =
+    updateQuantityMutation.isPending
+      ? { itemId: updateQuantityMutation.variables?.itemId ?? "", action: "updating" }
+      : removeFromCartMutation.isPending
+        ? { itemId: removeFromCartMutation.variables ?? "", action: "removing" }
+        : clearCartMutation.isPending
+          ? { itemId: "all", action: "clearing" }
+          : null;
+
+  const updating = updatingInfo?.itemId ?? null;
+
+  const updateQuantity = useCallback(
+    async (itemId: string, quantity: number) => {
+      if (quantity < 1) return;
+      if (isGuest) {
+        guestCart.updateQuantity(itemId, quantity);
+      } else {
+        updateQuantityMutation.mutate({ itemId, quantity });
+      }
+    },
+    [isGuest, guestCart, updateQuantityMutation]
+  );
+
+  const removeFromCart = useCallback(
+    async (itemId: string) => {
+      if (isGuest) {
+        guestCart.removeFromCart(itemId);
+      } else {
+        removeFromCartMutation.mutate(itemId);
+      }
+    },
+    [isGuest, guestCart, removeFromCartMutation]
+  );
+
+  const clearCart = useCallback(async () => {
+    if (isGuest) {
+      guestCart.clearCart();
+    } else {
+      clearCartMutation.mutate();
+    }
+  }, [isGuest, guestCart, clearCartMutation]);
+
+  const calculateTotal = useCallback(() => {
+    return calculateCartTotal(items);
+  }, [items]);
 
   if (loading) {
     return (
@@ -167,6 +226,7 @@ export default function CartPage() {
             <DesktopCartView
               items={items}
               updating={updating}
+              updatingAction={updatingInfo?.action ?? null}
               stockStatus={stockStatus}
               hasStockIssues={hasStockIssues}
               updateQuantity={updateQuantity}
@@ -180,6 +240,7 @@ export default function CartPage() {
             <MobileCartView
               items={items}
               updating={updating}
+              updatingAction={updatingInfo?.action ?? null}
               stockStatus={stockStatus}
               hasStockIssues={hasStockIssues}
               updateQuantity={updateQuantity}
