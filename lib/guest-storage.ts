@@ -19,6 +19,7 @@ export interface GuestCartItem {
       offerType: string;
       discountValue: string;
       maxDiscount?: string;
+      bgColor?: string;
     } | null;
     variants?: Array<{
       id: string;
@@ -78,6 +79,7 @@ export interface GuestWishlistItem {
       offerType: string;
       discountValue: string;
       maxDiscount?: string;
+      bgColor?: string;
     } | null;
     variants?: Array<{
       id: string;

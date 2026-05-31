@@ -23,6 +23,7 @@ export async function GET() {
         isActive: sales.isActive,
         isFeatured: sales.isFeatured,
         bannerImage: sales.bannerImage,
+        bgColor: sales.bgColor,
         categoryName: categories.name,
         createdAt: sales.createdAt,
       })
@@ -65,7 +66,7 @@ export async function GET() {
         id: offer.id,
         title: formatOfferTitle(offer),
         description: offer.description || formatOfferDescription(offer),
-        backgroundColor: getOfferBackgroundColor(offer.offerType),
+        backgroundColor: offer.bgColor || "#1f2937",
         textColor: "#ffffff",
         link,
         isActive: offer.isActive,
@@ -137,7 +138,3 @@ function formatOfferDescription(sale: any): string {
   }
 }
 
-function getOfferBackgroundColor(offerType: string): string {
-  // Transparent dark - blends with any page background
-  return 'rgba(0, 0, 0, 0.75)';
-}

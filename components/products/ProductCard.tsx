@@ -126,7 +126,10 @@ export default function ProductCard({
             </span>
           )}
           {hasSale && !outOfStock && (
-            <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+            <span
+              className="text-white px-3 py-1 rounded-full text-sm font-semibold"
+              style={{ backgroundColor: product.activeSale?.bgColor || '#ef4444' }}
+            >
               Sale
             </span>
           )}

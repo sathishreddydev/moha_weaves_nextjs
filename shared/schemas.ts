@@ -360,6 +360,7 @@ export const insertSaleSchema = z.object({
   validFrom: z.date().or(z.string()),
   validUntil: z.date().or(z.string()),
   bannerImage: z.string().optional(),
+  bgColor: z.string().optional(),
 });
 
 export const insertSaleProductSchema = z.object({
