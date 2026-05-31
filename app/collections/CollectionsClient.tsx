@@ -3,7 +3,7 @@
 import { ProductFilters } from "@/app/api/products/productService";
 import ActiveFilterBadges from "@/components/filters/ActiveFilterBadges";
 import CollectionsFilterSections from "@/components/filters/CollectionsFilterSections";
-import ProductCard from "@/components/products/ProductCard";
+import VirtualizedProductGrid from "@/components/products/VirtualizedProductGrid";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -25,7 +25,7 @@ import { useAuth } from "@/auth";
 import { useWishlistQuery, useAddToWishlist, useRemoveFromWishlist, useGuestWishlist } from "@/hooks/useWishlistQueries";
 import { getProductUrl } from "@/lib/utils/productUrl";
 import { ProductWithDetails } from "@/shared";
-import { FilterIcon, Loader2 } from "lucide-react";
+import { FilterIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
@@ -461,40 +461,15 @@ export default function CollectionsClient({
               </p>
             </div>
           ) : (
-            <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 pt-6">
-              {displayedProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  showNewBadge={true}
-                  showFeaturedBadge={true}
-                  onQuickView={handleQuickView}
-                  onWishlistToggle={handleWishlistToggle}
-                  isWishlisted={isInWishlist(product.id)}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Load More */}
-          {hasMore && (
-            <div className="mt-10 flex justify-center">
-              <Button
-                variant="outline"
-                onClick={handleLoadMore}
-                disabled={isLoadingMore}
-                className="min-w-[200px]"
-              >
-                {isLoadingMore ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Loading...
-                  </>
-                ) : (
-                  `Load More (${totalCount - displayedProducts.length} remaining)`
-                )}
-              </Button>
-            </div>
+            <VirtualizedProductGrid
+              products={displayedProducts}
+              hasMore={hasMore}
+              isLoadingMore={isLoadingMore}
+              onLoadMore={handleLoadMore}
+              onQuickView={handleQuickView}
+              onWishlistToggle={handleWishlistToggle}
+              isWishlisted={isInWishlist}
+            />
           )}
         </div>
       </div>
