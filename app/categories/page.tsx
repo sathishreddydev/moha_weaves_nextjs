@@ -1,20 +1,30 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useFilterStore } from "@/lib/stores/fillterStore";
-import { useEffect } from "react";
-import { AlertCircle, Archive, ChevronRight } from "lucide-react";
+import { AlertCircle, Archive, ArrowRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export default function CategoriesPage() {
   const { categories, loading, error, invalidate } = useFilterStore();
 
-  
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto py-12">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading categories...</p>
+      <div className="min-h-screen">
+        {/* Header skeleton */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2">
+          <div className="h-6 w-40 bg-gray-200 rounded animate-pulse" />
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div
+                key={i}
+                className="animate-pulse aspect-[3/4] bg-gray-200 rounded-xl"
+              />
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -22,16 +32,18 @@ export default function CategoriesPage() {
 
   if (error) {
     return (
-      <div className="max-w-7xl mx-auto py-12">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-8 h-8 text-red-600" />
+      <div className="min-h-[60vh] flex items-center justify-center px-4">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-8 h-8 text-red-500" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Error loading categories</h3>
-          <p className="text-gray-500 mb-4">{error}</p>
+          <h3 className="text-lg font-serif font-medium text-gray-900 mb-2">
+            Unable to load categories
+          </h3>
+          <p className="text-sm text-muted-foreground mb-6">{error}</p>
           <button
             onClick={invalidate}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            className="inline-flex items-center px-6 py-2.5 bg-primary-600 text-white text-sm font-medium rounded-full hover:bg-primary-700 transition-colors"
           >
             Try Again
           </button>
@@ -41,103 +53,122 @@ export default function CategoriesPage() {
   }
 
   return (
-    <div>
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Browse Categories
-          </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Discover our extensive collection of premium Indian ethnic wear.
-            From traditional sarees to modern fusion wear, find your perfect
-            style.
-          </p>
-        </div>
+    <div className="min-h-screen">
+      {/* Header - matching collections page style */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2">
+        <h1 className="text-xl font-light text-gray-900 uppercase tracking-[0.1em]">
+          Categories
+        </h1>
+      </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {categories.map((category) => (
-            <Link
-              key={category.id}
-              href={`/collections/${encodeURIComponent(category.name)}`}
-              className="group bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
-            >
-              <div className="aspect-video bg-gray-100 relative overflow-hidden">
-                {category.imageUrl ? (
-                  <img
-                    src={category.imageUrl}
-                    alt={category.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center">
-                    <span className="text-purple-600 text-lg font-medium">
-                      {category.name.slice(0, 3).toUpperCase()}
-                    </span>
+      {/* Categories Grid */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 mt-4">
+        {categories.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
+            {categories.map((category, index) => {
+              const isLarge = index === 0 || index === 3;
+              return (
+                <Link
+                  key={category.id}
+                  href={`/collections/${encodeURIComponent(category.name)}`}
+                  className={`group relative overflow-hidden rounded-xl ${
+                    isLarge
+                      ? "col-span-2 row-span-2 aspect-[4/5]"
+                      : "aspect-[3/4]"
+                  }`}
+                >
+                  {/* Image */}
+                  <div className="absolute inset-0">
+                    {category.imageUrl ? (
+                      <Image
+                        src={category.imageUrl}
+                        alt={category.name}
+                        fill
+                        className="object-cover transition-transform duration-700 group-hover:scale-105"
+                        sizes={
+                          isLarge
+                            ? "(max-width: 768px) 100vw, 50vw"
+                            : "(max-width: 768px) 50vw, 25vw"
+                        }
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-stone-200 to-stone-300" />
+                    )}
                   </div>
-                )}
-              </div>
 
-              <div className="p-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
-                  {category.name}
-                </h3>
-                {category.description && (
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                    {category.description}
-                  </p>
-                )}
+                  {/* Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent transition-opacity group-hover:from-black/80" />
 
-                {category.subcategories &&
-                  category.subcategories.length > 0 && (
-                    <div className="mb-4">
-                      <p className="text-xs text-gray-500 font-medium mb-2">
-                        Subcategories ({category.subcategories.length}):
+                  {/* Content */}
+                  <div className="absolute inset-0 flex flex-col justify-end p-4 md:p-6">
+                    <h3
+                      className={`font-serif text-white mb-1 ${
+                        isLarge
+                          ? "text-xl md:text-3xl"
+                          : "text-base md:text-xl"
+                      }`}
+                    >
+                      {category.name}
+                    </h3>
+
+                    {category.description && isLarge && (
+                      <p className="text-white/80 text-xs md:text-sm line-clamp-2 mb-3 hidden md:block">
+                        {category.description}
                       </p>
-                      <div className="flex flex-wrap gap-1">
-                        {category.subcategories
-                          .slice(0, 3)
-                          .map((subcategory) => (
-                            <span
-                              key={subcategory.id}
-                              className="inline-block px-2 py-1 bg-purple-50 text-purple-600 text-xs rounded-full"
+                    )}
+
+                    {category.subcategories &&
+                      category.subcategories.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mb-3 hidden md:flex">
+                          {category.subcategories
+                            .slice(0, isLarge ? 4 : 2)
+                            .map((sub) => (
+                              <Badge
+                                key={sub.id}
+                                variant="secondary"
+                                className="bg-white/20 text-white border-white/30 text-[10px] backdrop-blur-sm"
+                              >
+                                {sub.name}
+                              </Badge>
+                            ))}
+                          {category.subcategories.length >
+                            (isLarge ? 4 : 2) && (
+                            <Badge
+                              variant="secondary"
+                              className="bg-white/20 text-white border-white/30 text-[10px] backdrop-blur-sm"
                             >
-                              {subcategory.name}
-                            </span>
-                          ))}
-                        {category.subcategories.length > 3 && (
-                          <span className="inline-block px-2 py-1 bg-gray-100 text-gray-500 text-xs rounded-full">
-                            +{category.subcategories.length - 3} more
-                          </span>
-                        )}
-                      </div>
+                              +
+                              {category.subcategories.length -
+                                (isLarge ? 4 : 2)}{" "}
+                              more
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+
+                    <div className="flex items-center gap-1 text-white/90 text-xs font-medium opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                      <span>Shop Now</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </div>
-                  )}
-
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-purple-600 font-medium">
-                    View Collection
-                  </span>
-                 <ChevronRight className="w-4 h-4 text-purple-600 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        {categories.length === 0 && (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Archive className="w-8 h-8 text-gray-400" />
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-20">
+            <div className="w-16 h-16 bg-stone-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Archive className="w-8 h-8 text-stone-400" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No categories found
+            <h3 className="text-lg font-serif font-medium text-gray-900 mb-2">
+              No categories yet
             </h3>
-            <p className="text-gray-500">
-              Check back soon for new categories and collections.
+            <p className="text-sm text-muted-foreground">
+              Check back soon for new collections.
             </p>
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }
