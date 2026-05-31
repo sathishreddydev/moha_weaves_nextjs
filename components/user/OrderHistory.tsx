@@ -19,6 +19,7 @@ import {
   Package,
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import React, { useCallback, useState } from "react";
 import ShippingAddress from "./shippingAddress";
 import OrderSkeleton from "./OrderSkeleton";
@@ -121,7 +122,7 @@ export default function OrderHistory() {
   const totalPages = data?.totalPages ?? 0;
   const error = queryError ? (queryError as Error).message : null;
 
-  const { invalidateList, setOrderList } = useInvalidateOrders();
+  const { invalidateList, setOrderList, prefetchOrderDetail } = useInvalidateOrders();
 
   // Real-time socket listeners — optimistically update query cache.
   // useOrderItemStatusListenerList expects a React setState-style setter,
@@ -216,6 +217,8 @@ export default function OrderHistory() {
                 <Link
                   key={order.id}
                   href={`/my/orders/${order.id}`}
+                  onMouseEnter={() => prefetchOrderDetail(order.id)}
+                  onTouchStart={() => prefetchOrderDetail(order.id)}
                   onClick={() => {
                     try { sessionStorage.setItem(RESTORE_KEY, "1"); } catch { /* ignore */ }
                   }}
@@ -276,9 +279,15 @@ export default function OrderHistory() {
 
                       return (
                         <div key={item.id} className="flex gap-4">
-                          <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                          <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 relative">
                             {item.product?.imageUrl ? (
-                              <img src={item.product.imageUrl} alt={item.product.name} className="w-full h-full object-cover" />
+                              <Image
+                                src={item.product.imageUrl}
+                                alt={item.product.name}
+                                fill
+                                sizes="64px"
+                                className="object-cover"
+                              />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
                                 <Package className="w-8 h-8 text-gray-400" />

@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -369,10 +370,12 @@ function InlineReviewPanel({
             <div className="flex flex-wrap gap-2">
               {images.map((url, i) => (
                 <div key={i} className="relative w-16 h-16 flex-shrink-0">
-                  <img
+                  <Image
                     src={url}
                     alt={`Review photo ${i + 1}`}
-                    className="w-full h-full object-cover rounded-lg border border-gray-200"
+                    fill
+                    sizes="64px"
+                    className="object-cover rounded-lg border border-gray-200"
                   />
                   <button
                     type="button"
@@ -499,12 +502,14 @@ export function OrderItem({
     <Card className="p-4 hover:border-slate-300 transition-colors bg-white">
       {/* ── Product row ── */}
       <div className="flex gap-4">
-        <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+        <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 relative">
           {item.product?.imageUrl ? (
-            <img
+            <Image
               src={item.product.imageUrl}
               alt={item.product.name}
-              className="w-full h-full object-cover"
+              fill
+              sizes="64px"
+              className="object-cover"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
@@ -759,10 +764,12 @@ function SubmittedReviewPanel({
                   className="relative w-14 h-14 rounded-lg overflow-hidden border border-gray-200 hover:border-gray-400 transition-colors flex-shrink-0 group"
                   aria-label={`View photo ${i + 1}`}
                 >
-                  <img
+                  <Image
                     src={img}
                     alt={`Review photo ${i + 1}`}
-                    className="w-full h-full object-cover"
+                    fill
+                    sizes="56px"
+                    className="object-cover"
                   />
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
                 </button>

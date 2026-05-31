@@ -93,5 +93,13 @@ export function useInvalidateOrders() {
     /** Optimistically update order list in cache */
     setOrderList: (page: number, pageSize: number, updater: (old: OrderListResponse | undefined) => OrderListResponse | undefined) =>
       queryClient.setQueryData(orderKeys.list(page, pageSize), updater),
+
+    /** Prefetch order details (e.g. on hover) — won't refetch if already cached & fresh */
+    prefetchOrderDetail: (orderId: string) =>
+      queryClient.prefetchQuery({
+        queryKey: orderKeys.detail(orderId),
+        queryFn: () => fetchOrderDetails(orderId),
+        staleTime: 1 * 60 * 1000,
+      }),
   };
 }

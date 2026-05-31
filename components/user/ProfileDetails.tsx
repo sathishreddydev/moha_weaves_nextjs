@@ -16,24 +16,21 @@ import { useRouter } from "next/navigation";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import ProfileSkeleton from "./ProfileSkeleton";
-
-interface UserProfile {
-  id: string;
-  name: string;
-  email: string | null;
-  phone: string | null;
-  role: string;
-}
+import { useProfile, useUpdateProfile, type UserProfile } from "@/hooks/useProfileQuery";
 
 export default function ProfileDetails() {
   const { user, logout } = useAuth();
   const router = useRouter();
 
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  // ─── React Query ────────────────────────────────────────────────────────────
+  const {
+    data: profile,
+    isLoading: loading,
+  } = useProfile(!!user);
+
+  const updateProfileMutation = useUpdateProfile();
+
   const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
   // Edit form state
@@ -41,51 +38,24 @@ export default function ProfileDetails() {
   const [editEmail, setEditEmail] = useState("");
   const [editPhone, setEditPhone] = useState("");
 
-  // Fetch profile from API
+  // Sync form state when profile data arrives or changes
   useEffect(() => {
-    if (user) {
-      fetchProfile();
+    if (profile) {
+      setEditName(profile.name || "");
+      setEditEmail(profile.email || "");
+      setEditPhone(profile.phone || "");
     }
-  }, [user]);
-
-  const fetchProfile = async () => {
-    try {
-      const res = await fetch("/api/profile");
-      const data = await res.json();
-      if (data.success) {
-        setProfile(data.user);
-        setEditName(data.user.name || "");
-        setEditEmail(data.user.email || "");
-        setEditPhone(data.user.phone || "");
-      }
-    } catch {
-      // fallback to session data
-      if (user) {
-        setProfile({
-          id: user.id,
-          name: user.name || "",
-          email: user.email || null,
-          phone: (user as any).phone || null,
-          role: user.role || "user",
-        });
-        setEditName(user.name || "");
-        setEditEmail(user.email || "");
-        setEditPhone((user as any).phone || "");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [profile]);
 
   const handleEdit = () => {
     setEditing(true);
-    setError("");
     setSuccess("");
+    updateProfileMutation.reset();
   };
 
   const handleCancel = () => {
     setEditing(false);
-    setError("");
+    updateProfileMutation.reset();
     // Reset to current values
     if (profile) {
       setEditName(profile.name || "");
@@ -95,59 +65,48 @@ export default function ProfileDetails() {
   };
 
   const handleSave = async () => {
-    setError("");
     setSuccess("");
-    setSaving(true);
+
+    const body: Record<string, string> = {};
+
+    // Always send name if changed
+    if (editName.trim() && editName.trim() !== profile?.name) {
+      body.name = editName.trim();
+    }
+
+    // Only send email if it's not already set
+    if (!profile?.email && editEmail.trim()) {
+      body.email = editEmail.trim();
+    }
+
+    // Only send phone if it's not already set
+    if (!profile?.phone && editPhone.trim()) {
+      body.phone = editPhone.replace(/\s/g, "");
+    }
+
+    if (Object.keys(body).length === 0) {
+      setEditing(false);
+      return;
+    }
 
     try {
-      const body: Record<string, string> = {};
-
-      // Always send name
-      if (editName.trim() && editName.trim() !== profile?.name) {
-        body.name = editName.trim();
-      }
-
-      // Only send email if it's not already set
-      if (!profile?.email && editEmail.trim()) {
-        body.email = editEmail.trim();
-      }
-
-      // Only send phone if it's not already set
-      if (!profile?.phone && editPhone.trim()) {
-        body.phone = editPhone.replace(/\s/g, "");
-      }
-
-      if (Object.keys(body).length === 0) {
-        setEditing(false);
-        return;
-      }
-
-      const res = await fetch("/api/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        setProfile(data.user);
-        setEditing(false);
-        setSuccess("Profile updated successfully");
-        setTimeout(() => setSuccess(""), 3000);
-      } else {
-        setError(data.error || "Failed to update profile");
-      }
+      await updateProfileMutation.mutateAsync(body);
+      setEditing(false);
+      setSuccess("Profile updated successfully");
+      setTimeout(() => setSuccess(""), 3000);
     } catch {
-      setError("Something went wrong. Try again.");
-    } finally {
-      setSaving(false);
+      // Error is available via updateProfileMutation.error
     }
   };
 
   const handleBack = () => {
     router.push("/my");
   };
+
+  const saving = updateProfileMutation.isPending;
+  const error = updateProfileMutation.error
+    ? (updateProfileMutation.error as Error).message
+    : "";
 
   if (!user || loading) {
     return <ProfileSkeleton />;
