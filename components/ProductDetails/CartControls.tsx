@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Plus, Minus, ShoppingBag } from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import { useAddToCart, useUpdateCartQuantity, useRemoveFromCart, useCartQuery, useGuestCart } from "@/hooks/useCartQueries";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/auth";
@@ -40,33 +40,25 @@ export default function CartControls({
   const updating = addToCartMutation.isPending || updateQuantityMutation.isPending || removeFromCartMutation.isPending
     ? product.id
     : null;
-  
-  const [isInCart, setIsInCart] = useState(false);
-  const [cartQuantity, setCartQuantity] = useState(0);
+
+  // Memoize the cart item lookup — single source of truth, no stale state
+  const cartItem = useMemo(() => {
+    return items.find(
+      (item: any) =>
+        (item.product?.id === product.id || item.productId === product.id) &&
+        (!selectedVariant?.id || item.variantId === selectedVariant.id),
+    );
+  }, [items, product.id, selectedVariant?.id]);
+
+  const isInCart = Boolean(cartItem);
+  const cartQuantity = cartItem?.quantity ?? 0;
 
   const currentPrice = Number(product.discountedPrice || product.price);
   const availableStock = getAvailableStock(product, selectedVariant?.id);
 
   const isLoggedIn = isAuthenticated;
 
-  // Sync cart state with actual cart items
-  useEffect(() => {
-    const existingItem = items.find(
-      (item: CartItemWithProduct) =>
-        item.product?.id === product.id &&
-        (!selectedVariant?.id || item.variantId === selectedVariant.id),
-    );
-
-    if (existingItem) {
-      setIsInCart(true);
-      setCartQuantity(existingItem.quantity);
-    } else {
-      setIsInCart(false);
-      setCartQuantity(0);
-    }
-  }, [items, product.id, selectedVariant?.id]);
-
-  const handleAddToCart = async () => {
+  const handleAddToCart = useCallback(async () => {
     if (availableStock <= 0) {
       toast.error("This item is out of stock.");
       return;
@@ -82,9 +74,9 @@ export default function CartControls({
     } catch (error) {
       toast.error("Failed to add item to cart. Please try again.");
     }
-  };
+  }, [availableStock, isAuthenticated, addToCartMutation, product.id, selectedVariant?.id, guestCart]);
 
-  const handleIncreaseQuantity = async () => {
+  const handleIncreaseQuantity = useCallback(async () => {
     if (cartQuantity >= availableStock) {
       toast.error(`Only ${availableStock} items available in stock.`);
       return;
@@ -92,20 +84,10 @@ export default function CartControls({
 
     try {
       if (isAuthenticated) {
-        const cartItem = items.find(
-          (item: CartItemWithProduct) =>
-            item.product?.id === product.id &&
-            (!selectedVariant?.id || item.variantId === selectedVariant.id),
-        );
         if (cartItem) {
           updateQuantityMutation.mutate({ itemId: cartItem.id, quantity: cartQuantity + 1 });
         }
       } else {
-        const cartItem = items.find(
-          (item: any) =>
-            item.productId === product.id &&
-            (!selectedVariant?.id || item.variantId === selectedVariant.id),
-        );
         if (cartItem) {
           guestCart.updateQuantity(cartItem.id, cartQuantity + 1);
         }
@@ -113,23 +95,18 @@ export default function CartControls({
     } catch (error) {
       toast.error("Failed to update cart. Please try again.");
     }
-  };
+  }, [cartQuantity, availableStock, isAuthenticated, cartItem, updateQuantityMutation, guestCart]);
 
-  const handleDecreaseQuantity = async () => {
+  const handleDecreaseQuantity = useCallback(async () => {
+    if (!cartItem) return;
+
     if (cartQuantity <= 1) {
       // Remove from cart completely
       try {
-        const cartItem = items.find(
-          (item: any) =>
-            (item.product?.id === product.id || item.productId === product.id) &&
-            (!selectedVariant?.id || item.variantId === selectedVariant.id),
-        );
-        if (cartItem) {
-          if (isAuthenticated) {
-            removeFromCartMutation.mutate(cartItem.id);
-          } else {
-            guestCart.removeFromCart(cartItem.id);
-          }
+        if (isAuthenticated) {
+          removeFromCartMutation.mutate(cartItem.id);
+        } else {
+          guestCart.removeFromCart(cartItem.id);
         }
       } catch (error) {
         toast.error("Failed to remove item from cart. Please try again.");
@@ -137,27 +114,20 @@ export default function CartControls({
     } else {
       // Decrease quantity
       try {
-        const cartItem = items.find(
-          (item: any) =>
-            (item.product?.id === product.id || item.productId === product.id) &&
-            (!selectedVariant?.id || item.variantId === selectedVariant.id),
-        );
-        if (cartItem) {
-          if (isAuthenticated) {
-            updateQuantityMutation.mutate({ itemId: cartItem.id, quantity: cartQuantity - 1 });
-          } else {
-            guestCart.updateQuantity(cartItem.id, cartQuantity - 1);
-          }
+        if (isAuthenticated) {
+          updateQuantityMutation.mutate({ itemId: cartItem.id, quantity: cartQuantity - 1 });
+        } else {
+          guestCart.updateQuantity(cartItem.id, cartQuantity - 1);
         }
       } catch (error) {
         toast.error("Failed to update cart. Please try again.");
       }
     }
-  };
+  }, [cartItem, cartQuantity, isAuthenticated, removeFromCartMutation, updateQuantityMutation, guestCart]);
 
-  const handleCheckout = () => {
+  const handleCheckout = useCallback(() => {
     router.push("/cart");
-  };
+  }, [router]);
 
   // If session is loading, show loading state
   if (isLoading) {

@@ -578,17 +578,111 @@ export class RoleBasedProductService {
   /**
    * Returns the total count of products matching the given filters,
    * ignoring limit/offset. Used for pagination.
+   * Uses a lightweight SQL COUNT query instead of fetching all rows.
    */
   async getProductsCount(
     filters: ProductFilters = {},
     role: UserRole = "user",
   ): Promise<number> {
-    // Fetch without limit/offset to get the full matching set
-    const all = await this.getProductsByRole(
-      { ...filters, limit: 100000, offset: 0 },
-      role,
-    );
-    return all.length;
+    try {
+      const conditions: any[] = [eq(products.isActive, true)];
+
+      if (filters.ids?.length)
+        conditions.push(inArray(products.id, filters.ids));
+
+      if (filters.sku)
+        conditions.push(eq(products.sku, filters.sku));
+
+      if (filters.slug) {
+        conditions.push(eq(productSeo.urlSlug, filters.slug));
+      }
+
+      if (filters.search) {
+        conditions.push(
+          or(
+            ilike(products.name, `%${filters.search}%`),
+            ilike(products.description, `%${filters.search}%`),
+            ilike(products.sku, `%${filters.search}%`)
+          )
+        );
+      }
+
+      // Resolve names to IDs
+      const categoryIds = filters.categories?.length ? await this.resolveCategoryNames(filters.categories) : [];
+      const subcategoryIds = filters.subcategories?.length ? await this.resolveSubcategoryNames(filters.subcategories) : [];
+      const colorIds = filters.colors?.length ? await this.resolveColorNames(filters.colors) : [];
+      const fabricIds = filters.fabrics?.length ? await this.resolveFabricNames(filters.fabrics) : [];
+
+      const categorySubcategoryIds = (categoryIds.length > 0 && subcategoryIds.length === 0)
+        ? await this.resolveCategoryAndSubcategoryIds(categoryIds)
+        : [];
+
+      const allSubcategoryIds = subcategoryIds.length > 0
+        ? subcategoryIds
+        : categorySubcategoryIds;
+
+      if (allSubcategoryIds.length) {
+        conditions.push(inArray(products.subcategoryId, allSubcategoryIds));
+      }
+
+      if (colorIds.length) {
+        conditions.push(inArray(products.colorId, colorIds));
+      }
+
+      if (fabricIds.length) {
+        conditions.push(inArray(products.fabricId, fabricIds));
+      }
+
+      if (filters.featured)
+        conditions.push(eq(products.isFeatured, true));
+
+      if (filters.distributionChannel === "online") {
+        conditions.push(
+          or(
+            eq(products.distributionChannel, "online"),
+            eq(products.distributionChannel, "both")
+          )
+        );
+      }
+
+      if (filters.distributionChannel === "shop") {
+        conditions.push(
+          or(
+            eq(products.distributionChannel, "shop"),
+            eq(products.distributionChannel, "both")
+          )
+        );
+      }
+
+      // For filters that require post-processing (onSale, price range with discounts,
+      // storeId, size, inStock), we still need to fetch products. But for the common
+      // case without these filters, we can use a fast COUNT query.
+      const needsPostProcessing = filters.onSale || filters.minPrice !== undefined ||
+        filters.maxPrice !== undefined || filters.storeId || filters.size?.length ||
+        filters.inStock || filters.minStock !== undefined;
+
+      if (needsPostProcessing) {
+        // Fall back to fetching products for complex filters that need JS processing
+        const all = await this.getProductsByRole(
+          { ...filters, limit: 100000, offset: 0 },
+          role,
+        );
+        return all.length;
+      }
+
+      // Fast SQL COUNT for simple filters
+      let query = db
+        .select({ count: sql<number>`count(distinct ${products.id})` })
+        .from(products)
+        .leftJoin(productSeo, eq(products.id, productSeo.productId))
+        .where(and(...conditions));
+
+      const result = await query;
+      return Number(result[0]?.count ?? 0);
+    } catch (error) {
+      console.error('Error counting products:', error);
+      return 0;
+    }
   }
 
 

@@ -82,11 +82,39 @@ export default function VirtualizedProductGrid({
     [columns],
   );
 
+  // Track scrollMargin dynamically so it updates when banner appears/disappears
+  const [scrollMargin, setScrollMargin] = useState(0);
+
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+
+    const updateScrollMargin = () => {
+      setScrollMargin(el.offsetTop);
+    };
+
+    updateScrollMargin();
+
+    // Use MutationObserver on document to detect layout shifts (banner show/hide)
+    const observer = new MutationObserver(updateScrollMargin);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['style'],
+    });
+
+    // Also update on resize
+    window.addEventListener('resize', updateScrollMargin);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateScrollMargin);
+    };
+  }, []);
+
   const virtualizer = useWindowVirtualizer({
     count: rowCount,
     estimateSize,
     overscan,
-    scrollMargin: listRef.current?.offsetTop ?? 0,
+    scrollMargin,
   });
 
   // Infinite scroll: observe sentinel near the bottom

@@ -1,50 +1,58 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sales, categories } from "@/shared";
-import { and, desc, eq, gte, lte } from "drizzle-orm";
+import { and, desc, eq, gte, lte, or, not } from "drizzle-orm";
 
 export async function GET() {
   try {
     const now = new Date();
 
-    // ✅ Fetch ALL offers
-    const allSales = await db
-      .select({
-        id: sales.id,
-        name: sales.name,
-        description: sales.description,
-        offerType: sales.offerType,
-        discountValue: sales.discountValue,
-        categoryId: sales.categoryId,
-        minOrderAmount: sales.minOrderAmount,
-        maxDiscount: sales.maxDiscount,
-        validFrom: sales.validFrom,
-        validUntil: sales.validUntil,
-        isActive: sales.isActive,
-        isFeatured: sales.isFeatured,
-        bannerImage: sales.bannerImage,
-        bgColor: sales.bgColor,
-        categoryName: categories.name,
-        createdAt: sales.createdAt,
-      })
+    const selectFields = {
+      id: sales.id,
+      name: sales.name,
+      description: sales.description,
+      offerType: sales.offerType,
+      discountValue: sales.discountValue,
+      categoryId: sales.categoryId,
+      minOrderAmount: sales.minOrderAmount,
+      maxDiscount: sales.maxDiscount,
+      validFrom: sales.validFrom,
+      validUntil: sales.validUntil,
+      isActive: sales.isActive,
+      isFeatured: sales.isFeatured,
+      bannerImage: sales.bannerImage,
+      bgColor: sales.bgColor,
+      categoryName: categories.name,
+      createdAt: sales.createdAt,
+    };
+
+    // ✅ Fetch active offers with SQL filtering (no JS post-filter)
+    const activeSales = await db
+      .select(selectFields)
       .from(sales)
       .leftJoin(categories, eq(categories.id, sales.categoryId))
+      .where(
+        and(
+          eq(sales.isActive, true),
+          lte(sales.validFrom, now),
+          gte(sales.validUntil, now)
+        )
+      )
       .orderBy(desc(sales.isFeatured), desc(sales.createdAt));
 
-    // ✅ Split active / inactive
-    const activeSales = allSales.filter(
-      (o) =>
-        o.isActive &&
-        new Date(o.validFrom) <= now &&
-        new Date(o.validUntil) >= now
-    );
-
-    const inactiveSales = allSales.filter(
-      (o) =>
-        !o.isActive ||
-        new Date(o.validFrom) > now ||
-        new Date(o.validUntil) < now
-    );
+    // ✅ Fetch inactive offers separately
+    const inactiveSales = await db
+      .select(selectFields)
+      .from(sales)
+      .leftJoin(categories, eq(categories.id, sales.categoryId))
+      .where(
+        or(
+          not(eq(sales.isActive, true)),
+          gte(sales.validFrom, now),
+          lte(sales.validUntil, now)
+        )
+      )
+      .orderBy(desc(sales.createdAt));
 
     // ✅ Pick best offer (featured already sorted)
     const currentOffer = activeSales?.[0] || null;
@@ -90,7 +98,7 @@ export async function GET() {
 
       hasOffer: Boolean(formattedOffer),
       totalActiveOffers: activeSales.length,
-      totalOffers: allSales.length,
+      totalOffers: activeSales.length + inactiveSales.length,
     });
   } catch (error) {
     console.error("Error fetching offers:", error);

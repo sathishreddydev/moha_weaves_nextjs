@@ -88,26 +88,35 @@ export default function OffersBanner() {
 
   // Fix #5: smooth fade transition — pause auto-rotate while fading
   const [fading, setFading] = useState(false);
+  const offersRef = useRef<Offer[]>(offers);
+  offersRef.current = offers;
 
   const goTo = useCallback((index: number) => {
     setFading(true);
     setTimeout(() => {
-      setCurrentIndex((prev) => {
-        // Clamp to valid range in case offers changed during the fade
-        if (offers.length === 0) return 0;
-        return index >= offers.length ? 0 : index;
+      setCurrentIndex(() => {
+        const currentOffers = offersRef.current;
+        if (currentOffers.length === 0) return 0;
+        return index >= currentOffers.length ? 0 : index;
       });
       setFading(false);
     }, 200);
-  }, [offers.length]);
+  }, []);
+
+  const currentIndexRef = useRef(currentIndex);
+  currentIndexRef.current = currentIndex;
 
   const goNext = useCallback(() => {
-    goTo((currentIndex + 1) % offers.length);
-  }, [currentIndex, offers.length, goTo]);
+    const len = offersRef.current.length;
+    if (len === 0) return;
+    goTo((currentIndexRef.current + 1) % len);
+  }, [goTo]);
 
   const goPrev = useCallback(() => {
-    goTo((currentIndex - 1 + offers.length) % offers.length);
-  }, [currentIndex, offers.length, goTo]);
+    const len = offersRef.current.length;
+    if (len === 0) return;
+    goTo((currentIndexRef.current - 1 + len) % len);
+  }, [goTo]);
 
   // Auto-rotate every 4s — only when not fading
   useEffect(() => {

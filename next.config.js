@@ -2,6 +2,9 @@
 const nextConfig = {
   output: 'standalone',
   trailingSlash: false,
+  experimental: {
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+  },
   images: {
     remotePatterns: [
       {
@@ -26,6 +29,10 @@ const nextConfig = {
       },
     ],
   },
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
+  poweredByHeader: false,
 
   async headers() {
     return [
