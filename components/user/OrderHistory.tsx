@@ -19,7 +19,7 @@ import {
   Package,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import ShippingAddress from "./shippingAddress";
 import OrderSkeleton from "./OrderSkeleton";
 import { useRouter } from "next/navigation";
@@ -28,6 +28,7 @@ import {
   useReturnCreatedListener,
   useExchangeCreatedListener,
 } from "@/hooks/useProductPurchasedListener";
+import { useOrderList, useInvalidateOrders } from "@/hooks/useOrderQueries";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const MAX_PAGE_BUTTONS = 5;
@@ -107,39 +108,41 @@ export default function OrderHistory() {
     return readSavedPagination().pageSize;
   });
 
-  const [orders, setOrders] = useState<OrderWithItems[]>([]);
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [isFetching, setIsFetching] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [totalPages, setTotalPages] = useState(0);
+  // ─── React Query ────────────────────────────────────────────────────────────
+  const {
+    data,
+    isLoading: initialLoading,
+    isFetching,
+    error: queryError,
+    refetch,
+  } = useOrderList(currentPage, ordersPerPage);
 
-  const fetchOrders = useCallback(async (page: number, pageSize: number) => {
-    try {
-      setIsFetching(true);
-      setError(null);
-      const response = await fetch(`/api/orders?page=${page}&pageSize=${pageSize}`);
-      if (!response.ok) throw new Error("Failed to fetch orders");
-      const result = await response.json();
-      setOrders(result.data || []);
-      setTotalPages(result.totalPages || 0);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch orders");
-    } finally {
-      setIsFetching(false);
-      setInitialLoading(false);
-    }
-  }, []);
+  const orders = data?.data ?? [];
+  const totalPages = data?.totalPages ?? 0;
+  const error = queryError ? (queryError as Error).message : null;
 
-  // Fetch on mount and whenever page/pageSize changes
-  useEffect(() => {
-    fetchOrders(currentPage, ordersPerPage);
-  }, [currentPage, ordersPerPage, fetchOrders]);
+  const { invalidateList, setOrderList } = useInvalidateOrders();
 
-  useOrderItemStatusListenerList(setOrders);
+  // Real-time socket listeners — optimistically update query cache.
+  // useOrderItemStatusListenerList expects a React setState-style setter,
+  // so we wrap the query cache update to match that signature.
+  const cacheSetOrders: React.Dispatch<React.SetStateAction<OrderWithItems[]>> = useCallback(
+    (action) => {
+      setOrderList(currentPage, ordersPerPage, (old) => {
+        if (!old) return old;
+        const prev = old.data;
+        const next = typeof action === "function" ? action(prev) : action;
+        return { ...old, data: next };
+      });
+    },
+    [setOrderList, currentPage, ordersPerPage],
+  );
+
+  useOrderItemStatusListenerList(cacheSetOrders);
 
   const handleReturnExchangeCreated = useCallback(() => {
-    fetchOrders(currentPage, ordersPerPage);
-  }, [fetchOrders, currentPage, ordersPerPage]);
+    invalidateList();
+  }, [invalidateList]);
 
   useReturnCreatedListener(null, handleReturnExchangeCreated);
   useExchangeCreatedListener(null, handleReturnExchangeCreated);
@@ -175,7 +178,7 @@ export default function OrderHistory() {
     return (
       <div className="bg-white rounded-lg shadow p-6 text-center">
         <p className="text-red-600 mb-3">Error loading orders: {error}</p>
-        <Button onClick={() => fetchOrders(currentPage, ordersPerPage)}>Retry</Button>
+        <Button onClick={() => refetch()}>Retry</Button>
       </div>
     );
   }

@@ -5,7 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/formatters";
 import { calculatePricing } from "@/lib/pricing-utils";
-import { useAddressStore, useCartStore } from "@/lib/stores";
+import { useCartStore } from "@/lib/stores";
+import {
+  useAddresses,
+  useCreateAddress,
+  useUpdateAddress,
+  useDeleteAddress,
+  useSetDefaultAddress,
+} from "@/hooks/useAddressQueries";
 import { UserAddress } from "@/shared/types";
 import { CheckCircle2, Loader2, Package, Tag } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -40,17 +47,22 @@ export default function CheckoutPage() {
     validateCartStock,
   } = useCartStore();
   const {
-    addresses,
-    loading: addressesLoading,
-    error: addressesError,
-    updating,
-    fetchAddresses,
-    createAddress,
-    updateAddress,
-    deleteAddress,
-    setDefaultAddress,
-    getDefaultAddress,
-  } = useAddressStore();
+    data: addresses = [],
+    isLoading: addressesLoading,
+    error: addressesQueryError,
+  } = useAddresses();
+  const addressesError = addressesQueryError ? (addressesQueryError as Error).message : null;
+
+  const createAddressMutation = useCreateAddress();
+  const updateAddressMutation = useUpdateAddress();
+  const deleteAddressMutation = useDeleteAddress();
+  const setDefaultMutation = useSetDefaultAddress();
+
+  const updating =
+    (deleteAddressMutation.isPending ? deleteAddressMutation.variables : null) ??
+    (setDefaultMutation.isPending ? setDefaultMutation.variables : null) ??
+    (updateAddressMutation.isPending ? updateAddressMutation.variables?.id : null) ??
+    null;
 
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
@@ -91,21 +103,16 @@ export default function CheckoutPage() {
   const totalSavings = saleDiscount;
   const freeShippingGap = pricing.subtotal < 999 ? 999 - pricing.subtotal : 0;
 
-  // ── Fetch addresses ───────────────────────────────────────────────────────
-  useEffect(() => {
-    if (status === "authenticated") fetchAddresses();
-  }, [status, fetchAddresses]);
-
   // ── Auto-select default address ───────────────────────────────────────────
   useEffect(() => {
     if (!addressesLoading) {
       addressLoadedRef.current = true;
     }
-    const defaultAddress = getDefaultAddress();
+    const defaultAddress = addresses.find((a) => a.isDefault);
     if (defaultAddress && !selectedAddressId) {
       setSelectedAddressId(defaultAddress.id);
     }
-  }, [addresses, addressesLoading, selectedAddressId, getDefaultAddress]);
+  }, [addresses, addressesLoading, selectedAddressId]);
 
   // ── Validate stock ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -131,10 +138,10 @@ export default function CheckoutPage() {
   const handleAddressSubmit = async (data: AddressFormData) => {
     try {
       if (editingAddress) {
-        await updateAddress(editingAddress.id, data);
+        await updateAddressMutation.mutateAsync({ id: editingAddress.id, ...data });
         toast.success("Address updated");
       } else {
-        await createAddress(data);
+        await createAddressMutation.mutateAsync(data);
         toast.success("Address added");
       }
       setEditingAddress(null);
@@ -150,7 +157,7 @@ export default function CheckoutPage() {
         label: "Delete",
         onClick: async () => {
           try {
-            await deleteAddress(addressId);
+            await deleteAddressMutation.mutateAsync(addressId);
             toast.success("Address deleted");
             if (selectedAddressId === addressId) setSelectedAddressId("");
           } catch {
@@ -169,7 +176,7 @@ export default function CheckoutPage() {
 
   const handleSetDefault = async (id: string) => {
     try {
-      await setDefaultAddress(id);
+      await setDefaultMutation.mutateAsync(id);
       toast.success("Default address updated");
     } catch {
       toast.error("Failed to update default");

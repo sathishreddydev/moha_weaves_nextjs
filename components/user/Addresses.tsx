@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   MapPin,
@@ -15,7 +15,13 @@ import {
   Trash2,
   Share2,
 } from "lucide-react";
-import { useAddressStore } from "@/lib/stores/addressStore";
+import {
+  useAddresses,
+  useCreateAddress,
+  useUpdateAddress,
+  useDeleteAddress,
+  useSetDefaultAddress,
+} from "@/hooks/useAddressQueries";
 import AddressForm, { type AddressFormData } from "./AddressForm";
 import DeleteConfirmDialog from "./DeleteConfirmDialog";
 import { UserAddress } from "@/shared";
@@ -37,16 +43,26 @@ function AddressTypeIcon({ type }: { type?: string }) {
 
 export default function Addresses() {
   const {
-    addresses,
-    loading,
-    error,
-    fetchAddresses,
-    deleteAddress,
-    setDefaultAddress,
-    updating,
-    createAddress,
-    updateAddress,
-  } = useAddressStore();
+    data: addresses = [],
+    isLoading: loading,
+    error: queryError,
+    refetch,
+  } = useAddresses();
+
+  const error = queryError ? (queryError as Error).message : null;
+
+  const createAddressMutation = useCreateAddress();
+  const updateAddressMutation = useUpdateAddress();
+  const deleteAddressMutation = useDeleteAddress();
+  const setDefaultMutation = useSetDefaultAddress();
+
+  // Track which address is being mutated (for loading UI)
+  const updating =
+    (deleteAddressMutation.isPending ? deleteAddressMutation.variables : null) ??
+    (setDefaultMutation.isPending ? setDefaultMutation.variables : null) ??
+    (updateAddressMutation.isPending ? updateAddressMutation.variables?.id : null) ??
+    null;
+
   const [isAddFormOpen, setIsAddFormOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<UserAddress | null>(
     null,
@@ -74,7 +90,7 @@ export default function Addresses() {
 
   const handleConfirmDelete = async () => {
     if (addressToDelete) {
-      await deleteAddress(addressToDelete.id);
+      await deleteAddressMutation.mutateAsync(addressToDelete.id);
       setAddressToDelete(null);
       setDeleteConfirmOpen(false);
     }
@@ -86,7 +102,7 @@ export default function Addresses() {
   };
 
   const handleSetDefault = async (addressId: string) => {
-    await setDefaultAddress(addressId);
+    await setDefaultMutation.mutateAsync(addressId);
   };
 
   const handleAddAddress = () => {
@@ -102,13 +118,13 @@ export default function Addresses() {
   const handleFormSubmit = async (data: AddressFormData) => {
     try {
       if (editingAddress) {
-        await updateAddress(editingAddress.id, data);
+        await updateAddressMutation.mutateAsync({ id: editingAddress.id, ...data });
       } else {
-        await createAddress(data);
+        await createAddressMutation.mutateAsync(data);
       }
       handleCloseForm();
     } catch {
-      // Error handled by store — form stays open so user can retry
+      // Error handled by mutation — form stays open so user can retry
     }
   };
 
@@ -116,10 +132,6 @@ export default function Addresses() {
     setIsAddFormOpen(false);
     setEditingAddress(null);
   };
-
-  useEffect(() => {
-    fetchAddresses();
-  }, []);
 
   if (loading) {
     return (
@@ -134,7 +146,7 @@ export default function Addresses() {
     return (
       <div className="text-red-600 text-center">
         <p>Error loading addresses: {error}</p>
-        <Button onClick={fetchAddresses} className="mt-2">
+        <Button onClick={() => refetch()} className="mt-2">
           Retry
         </Button>
       </div>
@@ -153,7 +165,7 @@ export default function Addresses() {
           onClose={handleCloseForm}
           onSubmit={handleFormSubmit}
           editingAddress={editingAddress}
-          isLoading={updating !== null}
+          isLoading={createAddressMutation.isPending || updateAddressMutation.isPending}
         />
       ) : (
         <>
@@ -307,7 +319,7 @@ export default function Addresses() {
         onClose={handleCloseDeleteConfirm}
         onConfirm={handleConfirmDelete}
         isMobile={isResponsive}
-        isLoading={updating !== null}
+        isLoading={deleteAddressMutation.isPending}
         addressName={addressToDelete?.name}
       />
     </div>

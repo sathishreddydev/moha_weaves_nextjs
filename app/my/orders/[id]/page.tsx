@@ -19,6 +19,7 @@ import {
   useExchangeStatusListener,
   useRefundStatusListener,
 } from "@/hooks/useProductPurchasedListener";
+import { useOrderDetails, useInvalidateOrders } from "@/hooks/useOrderQueries";
 import {
   OrderWithItems,
   ShippingAddress as ShippingAddressType,
@@ -33,7 +34,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { toast } from "sonner";
 
 // ─── View state ───────────────────────────────────────────────────────────────
@@ -50,9 +51,17 @@ export default function OrderDetailsPage() {
 
   const orderId = (params as { id: string }).id ?? null;
 
-  const [order, setOrder] = useState<OrderWithItems | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // ─── React Query ────────────────────────────────────────────────────────────
+  const {
+    data: order,
+    isLoading: loading,
+    error: queryError,
+    refetch,
+  } = useOrderDetails(orderId);
+
+  const error = queryError ? (queryError as Error).message : null;
+  const { invalidateDetail, setOrderDetail } = useInvalidateOrders();
+
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [orderView, setOrderView] = useState<OrderView>("detail");
@@ -61,47 +70,36 @@ export default function OrderDetailsPage() {
   const [reviewedItemIds, setReviewedItemIds] = useState<Set<string>>(new Set());
   const [helpChatOpen, setHelpChatOpen] = useState(false);
 
-  const fetchOrderDetails = useCallback(async () => {
-    if (!orderId) return;
-    try {
-      setLoading(true);
-      setError(null);
+  // Bridge: useOrderItemStatusListenerDetail expects a React setState setter.
+  // We wrap queryClient.setQueryData to match that signature.
+  const cacheSetOrder: React.Dispatch<React.SetStateAction<OrderWithItems | null>> = useCallback(
+    (action) => {
+      if (!orderId) return;
+      setOrderDetail(orderId, (old) => {
+        const prev = old ?? null;
+        const next = typeof action === "function" ? action(prev) : action;
+        return next ?? undefined;
+      });
+    },
+    [orderId, setOrderDetail],
+  );
 
-      const response = await fetch(`/api/orders/${orderId}`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch order details");
-      }
-
-      const orderData = await response.json();
-      setOrder(orderData);
-      setLoading(false);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to fetch order details",
-      );
-      setLoading(false);
-    }
-  }, [orderId]);
-
-  useEffect(() => {
-    if (orderId) {
-      fetchOrderDetails();
-    }
-  }, [orderId, fetchOrderDetails]);
+  const handleRefetch = useCallback(() => {
+    if (orderId) invalidateDetail(orderId);
+  }, [orderId, invalidateDetail]);
 
   // Patch item status in state; refetch on delivery so eligibility/review buttons appear
-  useOrderItemStatusListenerDetail(orderId, setOrder, fetchOrderDetails);
+  useOrderItemStatusListenerDetail(orderId, cacheSetOrder, handleRefetch);
 
   // Return created → refetch so returnInfo panel appears immediately
-  useReturnCreatedListener(orderId, fetchOrderDetails);
+  useReturnCreatedListener(orderId, handleRefetch);
 
   // Exchange created → refetch so exchangeInfo panel appears immediately
-  useExchangeCreatedListener(orderId, fetchOrderDetails);
+  useExchangeCreatedListener(orderId, handleRefetch);
 
   // Return status updated → patch returnInfo.status in state directly (no refetch)
   const handleReturnStatusChange = useCallback(({ status }: { status: string }) => {
-    setOrder((prev) => {
+    cacheSetOrder((prev) => {
       if (!prev) return prev;
       return {
         ...prev,
@@ -112,13 +110,13 @@ export default function OrderDetailsPage() {
         ),
       };
     });
-  }, []);
+  }, [cacheSetOrder]);
 
   useReturnStatusListener(null, handleReturnStatusChange);
 
   // Exchange status updated → patch exchangeInfo.status in state directly (no refetch)
   const handleExchangeStatusChange = useCallback(({ status }: { status: string }) => {
-    setOrder((prev) => {
+    cacheSetOrder((prev) => {
       if (!prev) return prev;
       return {
         ...prev,
@@ -129,7 +127,7 @@ export default function OrderDetailsPage() {
         ),
       };
     });
-  }, []);
+  }, [cacheSetOrder]);
 
   useExchangeStatusListener(null, handleExchangeStatusChange);
 
@@ -151,7 +149,7 @@ export default function OrderDetailsPage() {
       initiatedAt?: string;
     }) => {
       if (orderId && oid !== orderId) return;
-      setOrder((prev) => {
+      cacheSetOrder((prev) => {
         if (!prev) return prev;
         return {
           ...prev,
@@ -175,7 +173,7 @@ export default function OrderDetailsPage() {
         };
       });
     },
-    [orderId],
+    [orderId, cacheSetOrder],
   );
 
   useRefundStatusListener(orderId, handleRefundStatusChange);
@@ -264,7 +262,7 @@ export default function OrderDetailsPage() {
         onSuccess={() => {
           setOrderView("detail");
           setPreSelectedReturnItemId(null);
-          fetchOrderDetails();
+          handleRefetch();
           toast.success("Return request submitted");
         }}
       />
@@ -284,7 +282,7 @@ export default function OrderDetailsPage() {
         onSuccess={() => {
           setOrderView("detail");
           setPreSelectedReturnItemId(null);
-          fetchOrderDetails();
+          handleRefetch();
           toast.success("Return request submitted");
         }}
       />
@@ -304,7 +302,7 @@ export default function OrderDetailsPage() {
         onSuccess={() => {
           setOrderView("detail");
           setExchangeItemId(null);
-          fetchOrderDetails();
+          handleRefetch();
           toast.success("Exchange request submitted");
         }}
         showBackButton
