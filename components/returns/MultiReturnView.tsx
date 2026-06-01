@@ -10,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   AlertCircle,
@@ -24,6 +23,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { OrderWithItems, ShippingAddress } from "@/shared";
+import { TextArea } from "../ui/textarea";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -67,11 +67,21 @@ function StepIndicator({ step }: { step: 1 | 2 }) {
         >
           {step > 1 ? <Check className="w-3 h-3" /> : "1"}
         </div>
-        <span className={["text-xs font-medium", step === 1 ? "text-gray-900" : "text-gray-400"].join(" ")}>
+        <span
+          className={[
+            "text-xs font-medium",
+            step === 1 ? "text-gray-900" : "text-gray-400",
+          ].join(" ")}
+        >
           Select Items
         </span>
       </div>
-      <div className={["h-px w-8 flex-shrink-0", step > 1 ? "bg-green-400" : "bg-gray-200"].join(" ")} />
+      <div
+        className={[
+          "h-px w-8 flex-shrink-0",
+          step > 1 ? "bg-green-400" : "bg-gray-200",
+        ].join(" ")}
+      />
       <div className="flex items-center gap-1.5">
         <div
           className={[
@@ -81,7 +91,12 @@ function StepIndicator({ step }: { step: 1 | 2 }) {
         >
           2
         </div>
-        <span className={["text-xs font-medium", step === 2 ? "text-gray-900" : "text-gray-400"].join(" ")}>
+        <span
+          className={[
+            "text-xs font-medium",
+            step === 2 ? "text-gray-900" : "text-gray-400",
+          ].join(" ")}
+        >
           Details
         </span>
       </div>
@@ -109,10 +124,13 @@ export default function MultiReturnView({
       ? [{ orderItemId: preSelectedItemId, quantity: 1 }]
       : [];
 
-  const [selectedItems, setSelectedItems] = useState<SelectedItem[]>(initialSelected);
+  const [selectedItems, setSelectedItems] =
+    useState<SelectedItem[]>(initialSelected);
   const [reason, setReason] = useState("");
   const [reasonDetails, setReasonDetails] = useState("");
-  const [resolution, setResolution] = useState<"refund" | "store_credit">("refund");
+  const [resolution, setResolution] = useState<"refund" | "store_credit">(
+    "refund",
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -141,13 +159,17 @@ export default function MultiReturnView({
 
   // ── Selection helpers ──────────────────────────────────────────────────────
 
-  const isSelected = (id: string) => selectedItems.some((s) => s.orderItemId === id);
+  const isSelected = (id: string) =>
+    selectedItems.some((s) => s.orderItemId === id);
 
   const toggleItem = (item: any) => {
     if (isSelected(item.id)) {
       setSelectedItems((prev) => prev.filter((s) => s.orderItemId !== item.id));
     } else {
-      setSelectedItems((prev) => [...prev, { orderItemId: item.id, quantity: 1 }]);
+      setSelectedItems((prev) => [
+        ...prev,
+        { orderItemId: item.id, quantity: 1 },
+      ]);
     }
   };
 
@@ -178,8 +200,14 @@ export default function MultiReturnView({
   // ── Submit ──────────────────────────────────────────────────────────────────
 
   const handleSubmit = async () => {
-    if (!reason) { setError("Please select a reason"); return; }
-    if (!reasonDetails.trim()) { setError("Please describe the issue"); return; }
+    if (!reason) {
+      setError("Please select a reason");
+      return;
+    }
+    if (!reasonDetails.trim()) {
+      setError("Please describe the issue");
+      return;
+    }
 
     setLoading(true);
     setError("");
@@ -230,7 +258,9 @@ export default function MultiReturnView({
       <div className="flex items-center justify-between">
         <StepIndicator step={step} />
         <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-gray-400 uppercase tracking-wide font-medium">Order</span>
+          <span className="text-[10px] text-gray-400 uppercase tracking-wide font-medium">
+            Order
+          </span>
           <span className="text-xs font-mono text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
             #{order.id}
           </span>
@@ -240,12 +270,16 @@ export default function MultiReturnView({
       {/* ── STEP 1: Select items ── */}
       {step === 1 && (
         <div className="space-y-3">
-          <p className="text-xs text-gray-500">Select the items you want to return</p>
+          <p className="text-xs text-gray-500">
+            Select the items you want to return
+          </p>
 
           {eligibleItems.length === 0 ? (
             <Card className="p-8 hover:border-slate-300 transition-colors bg-white flex flex-col items-center text-center">
               <RotateCcw className="w-10 h-10 text-gray-300 mb-3" />
-              <p className="text-sm font-medium text-gray-600">No items eligible for return</p>
+              <p className="text-sm font-medium text-gray-600">
+                No items eligible for return
+              </p>
               <p className="text-xs text-gray-400 mt-1">
                 Return window may have passed or items are non-returnable
               </p>
@@ -258,7 +292,9 @@ export default function MultiReturnView({
                 const maxQty = item.quantity;
                 const elig = item.returnEligibility;
                 const variant = item.variantId
-                  ? item.product?.variants?.find((v: any) => v.id === item.variantId)
+                  ? item.product?.variants?.find(
+                      (v: any) => v.id === item.variantId,
+                    )
                   : null;
 
                 return (
@@ -277,17 +313,25 @@ export default function MultiReturnView({
                       <div
                         className={[
                           "w-4 h-4 rounded border-2 flex items-center justify-center transition-colors",
-                          selected ? "bg-gray-900 border-gray-900" : "border-gray-300 bg-white",
+                          selected
+                            ? "bg-gray-900 border-gray-900"
+                            : "border-gray-300 bg-white",
                         ].join(" ")}
                       >
-                        {selected && <Check className="w-2.5 h-2.5 text-white" />}
+                        {selected && (
+                          <Check className="w-2.5 h-2.5 text-white" />
+                        )}
                       </div>
                     </div>
 
                     {/* Image */}
                     <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                       {item.product?.imageUrl ? (
-                        <img src={item.product.imageUrl} alt={item.product.name} className="w-full h-full object-cover" />
+                        <img
+                          src={item.product.imageUrl}
+                          alt={item.product.name}
+                          className="w-full h-full object-cover"
+                        />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <Package className="w-5 h-5 text-gray-400" />
@@ -322,24 +366,34 @@ export default function MultiReturnView({
                           className="flex items-center gap-2 mt-2"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <span className="text-[10px] text-gray-500">Return qty:</span>
+                          <span className="text-[10px] text-gray-500">
+                            Return qty:
+                          </span>
                           <div className="flex items-center gap-1">
                             <button
                               type="button"
-                              onClick={() => setQty(item.id, Math.max(1, qty - 1))}
+                              onClick={() =>
+                                setQty(item.id, Math.max(1, qty - 1))
+                              }
                               className="w-5 h-5 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-100"
                             >
                               <Minus className="w-2.5 h-2.5" />
                             </button>
-                            <span className="text-xs font-medium w-4 text-center">{qty}</span>
+                            <span className="text-xs font-medium w-4 text-center">
+                              {qty}
+                            </span>
                             <button
                               type="button"
-                              onClick={() => setQty(item.id, Math.min(maxQty, qty + 1))}
+                              onClick={() =>
+                                setQty(item.id, Math.min(maxQty, qty + 1))
+                              }
                               className="w-5 h-5 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-100"
                             >
                               <Plus className="w-2.5 h-2.5" />
                             </button>
-                            <span className="text-[10px] text-gray-400">of {maxQty}</span>
+                            <span className="text-[10px] text-gray-400">
+                              of {maxQty}
+                            </span>
                           </div>
                         </div>
                       )}
@@ -363,7 +417,11 @@ export default function MultiReturnView({
                 >
                   <div className="w-10 h-10 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
                     {item.product?.imageUrl ? (
-                      <img src={item.product.imageUrl} alt={item.product.name} className="w-full h-full object-cover" />
+                      <img
+                        src={item.product.imageUrl}
+                        alt={item.product.name}
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Package className="w-4 h-4 text-gray-400" />
@@ -396,12 +454,20 @@ export default function MultiReturnView({
             <div className="space-y-2 pt-1">
               {selectedItems.length > 0 && (
                 <p className="text-xs text-gray-500 text-center">
-                  {selectedItems.length} item{selectedItems.length > 1 ? "s" : ""} selected
+                  {selectedItems.length} item
+                  {selectedItems.length > 1 ? "s" : ""} selected
                   {" · "}
-                  <span className="font-medium text-gray-900">₹{selectedTotal.toFixed(2)}</span>
+                  <span className="font-medium text-gray-900">
+                    ₹{selectedTotal.toFixed(2)}
+                  </span>
                 </p>
               )}
-              <Button className="w-full" size="sm" onClick={handleContinue} disabled={selectedItems.length === 0}>
+              <Button
+                className="w-full"
+                size="sm"
+                onClick={handleContinue}
+                disabled={selectedItems.length === 0}
+              >
                 Continue →
               </Button>
             </div>
@@ -415,25 +481,36 @@ export default function MultiReturnView({
           {/* Selected items + pickup address summary */}
           <Card className="p-4 sm:p-5 hover:border-slate-300 transition-colors bg-white space-y-3">
             <p className="text-[10px] text-gray-400 uppercase tracking-wide font-medium">
-              Returning {selectedItems.length} item{selectedItems.length > 1 ? "s" : ""}
+              Returning {selectedItems.length} item
+              {selectedItems.length > 1 ? "s" : ""}
               {" · "}₹{selectedTotal.toFixed(2)}
             </p>
             {selectedItems.map((sel) => {
-              const item = order.items.find((i) => i.id === sel.orderItemId) as any;
+              const item = order.items.find(
+                (i) => i.id === sel.orderItemId,
+              ) as any;
               if (!item) return null;
               return (
                 <div key={sel.orderItemId} className="flex items-center gap-2">
                   <div className="w-8 h-8 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                     {item.product?.imageUrl ? (
-                      <img src={item.product.imageUrl} alt={item.product.name} className="w-full h-full object-cover" />
+                      <img
+                        src={item.product.imageUrl}
+                        alt={item.product.name}
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Package className="w-3.5 h-3.5 text-gray-400" />
                       </div>
                     )}
                   </div>
-                  <p className="text-xs text-gray-700 truncate flex-1">{item.product?.name}</p>
-                  <span className="text-[10px] text-gray-400 flex-shrink-0">Qty: {sel.quantity}</span>
+                  <p className="text-xs text-gray-700 truncate flex-1">
+                    {item.product?.name}
+                  </p>
+                  <span className="text-[10px] text-gray-400 flex-shrink-0">
+                    Qty: {sel.quantity}
+                  </span>
                 </div>
               );
             })}
@@ -446,7 +523,9 @@ export default function MultiReturnView({
                   <p className="text-[10px] text-gray-400 uppercase tracking-wide font-medium mb-0.5">
                     Pickup Address
                   </p>
-                  <p className="text-xs text-gray-700 leading-relaxed">{pickupAddress}</p>
+                  <p className="text-xs text-gray-700 leading-relaxed">
+                    {pickupAddress}
+                  </p>
                 </div>
               </div>
             )}
@@ -463,7 +542,11 @@ export default function MultiReturnView({
                 </SelectTrigger>
                 <SelectContent>
                   {REASONS.map((r) => (
-                    <SelectItem key={r.value} value={r.value} className="text-xs">
+                    <SelectItem
+                      key={r.value}
+                      value={r.value}
+                      className="text-xs"
+                    >
                       {r.label}
                     </SelectItem>
                   ))}
@@ -473,9 +556,8 @@ export default function MultiReturnView({
 
             {/* Details */}
             <div className="space-y-1.5">
-              <Label className="text-xs">Additional Details</Label>
-              <Textarea
-                placeholder="Please describe the issue with your item(s)..."
+              <TextArea
+                label="Please describe the issue with your item(s)..."
                 value={reasonDetails}
                 onChange={(e) => setReasonDetails(e.target.value)}
                 rows={3}
@@ -500,7 +582,9 @@ export default function MultiReturnView({
                 >
                   <div className="text-base mb-0.5">💳</div>
                   <div>Refund to original</div>
-                  <div className="text-[10px] text-gray-400 font-normal">5–7 business days</div>
+                  <div className="text-[10px] text-gray-400 font-normal">
+                    5–7 business days
+                  </div>
                 </button>
                 <button
                   type="button"
@@ -514,7 +598,9 @@ export default function MultiReturnView({
                 >
                   <div className="text-base mb-0.5">🎟️</div>
                   <div>Store credit</div>
-                  <div className="text-[10px] text-gray-400 font-normal">Instant coupon</div>
+                  <div className="text-[10px] text-gray-400 font-normal">
+                    Instant coupon
+                  </div>
                 </button>
               </div>
             </div>
@@ -529,7 +615,12 @@ export default function MultiReturnView({
           )}
 
           {/* Submit */}
-          <Button className="w-full" size="sm" onClick={handleSubmit} disabled={loading}>
+          <Button
+            className="w-full"
+            size="sm"
+            onClick={handleSubmit}
+            disabled={loading}
+          >
             {loading ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />

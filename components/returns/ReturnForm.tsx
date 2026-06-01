@@ -10,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   AlertCircle,
@@ -20,6 +19,7 @@ import {
   Package,
 } from "lucide-react";
 import { OrderWithItems, ShippingAddress } from "@/shared";
+import { TextArea } from "../ui/textarea";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -227,9 +227,8 @@ export default function ReturnForm({
 
         {/* Details */}
         <div className="space-y-1.5">
-          <Label className="text-xs">Additional Details</Label>
-          <Textarea
-            placeholder="Describe the issue with your item..."
+          <TextArea
+            label="Describe the issue with your item..."
             value={reasonDetails}
             onChange={(e) => setReasonDetails(e.target.value)}
             rows={3}

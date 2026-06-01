@@ -16,17 +16,18 @@ import { useRouter } from "next/navigation";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import ProfileSkeleton from "./ProfileSkeleton";
-import { useProfile, useUpdateProfile, type UserProfile } from "@/hooks/useProfileQuery";
+import {
+  useProfile,
+  useUpdateProfile,
+  type UserProfile,
+} from "@/hooks/useProfileQuery";
 
 export default function ProfileDetails() {
   const { user, logout } = useAuth();
   const router = useRouter();
 
   // ─── React Query ────────────────────────────────────────────────────────────
-  const {
-    data: profile,
-    isLoading: loading,
-  } = useProfile(!!user);
+  const { data: profile, isLoading: loading } = useProfile(!!user);
 
   const updateProfileMutation = useUpdateProfile();
 
@@ -172,13 +173,7 @@ export default function ProfileDetails() {
             {/* Name */}
             <div className="flex items-center justify-between py-4 border-b border-gray-50">
               <div className="flex items-center gap-4 flex-1">
-                <div className="text-gray-400">
-                  <User size={18} />
-                </div>
                 <div className="flex-1">
-                  <p className="text-xs text-gray-400 font-medium uppercase tracking-tight">
-                    Full Name
-                  </p>
                   {editing ? (
                     <Input
                       value={editName}
@@ -186,6 +181,8 @@ export default function ProfileDetails() {
                       placeholder="Enter your name"
                       className="mt-1 h-9"
                       disabled={saving}
+                      label="Full Name"
+                      icon={<User size={18} />}
                     />
                   ) : (
                     <p className="text-gray-700 font-medium">
@@ -199,13 +196,7 @@ export default function ProfileDetails() {
             {/* Email */}
             <div className="flex items-center justify-between py-4 border-b border-gray-50">
               <div className="flex items-center gap-4 flex-1">
-                <div className="text-gray-400">
-                  <Mail size={18} />
-                </div>
                 <div className="flex-1">
-                  <p className="text-xs text-gray-400 font-medium uppercase tracking-tight">
-                    Email
-                  </p>
                   {editing && !profile?.email ? (
                     <Input
                       type="email"
@@ -214,6 +205,8 @@ export default function ProfileDetails() {
                       placeholder="Enter your email"
                       className="mt-1 h-9"
                       disabled={saving}
+                      label="Email"
+                      icon={<Mail size={18} />}
                     />
                   ) : (
                     <div className="flex items-center gap-2">
@@ -234,18 +227,9 @@ export default function ProfileDetails() {
             {/* Phone */}
             <div className="flex items-center justify-between py-4">
               <div className="flex items-center gap-4 flex-1">
-                <div className="text-gray-400">
-                  <Phone size={18} />
-                </div>
                 <div className="flex-1">
-                  <p className="text-xs text-gray-400 font-medium uppercase tracking-tight">
-                    Phone
-                  </p>
                   {editing && !profile?.phone ? (
                     <div className="flex mt-1">
-                      <span className="inline-flex items-center px-2.5 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
-                        +91
-                      </span>
                       <Input
                         type="tel"
                         inputMode="numeric"
@@ -253,10 +237,11 @@ export default function ProfileDetails() {
                         onChange={(e) =>
                           setEditPhone(e.target.value.replace(/\D/g, ""))
                         }
-                        placeholder="Enter phone number"
                         maxLength={10}
                         className="rounded-l-none h-9"
                         disabled={saving}
+                        label="Phone Number"
+                        icon={<Phone size={18} />}
                       />
                     </div>
                   ) : (

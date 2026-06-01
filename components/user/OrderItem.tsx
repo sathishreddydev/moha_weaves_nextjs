@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { TextArea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -315,39 +315,24 @@ function InlineReviewPanel({
               {RATING_LABELS[displayRating]}
             </p>
           </div>
-
-          {/* Title */}
-          <div className="space-y-1">
-            <Label
-              htmlFor={`review-title-${item.id}`}
-              className="text-xs text-slate-600"
-            >
-              Title{" "}
-              <span className="text-slate-400 font-normal">(optional)</span>
-            </Label>
-            <Input
-              id={`review-title-${item.id}`}
-              placeholder="Summarise your experience"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              maxLength={100}
-              className="text-xs h-8"
-            />
-          </div>
+          <Input
+            id={`review-title-${item.id}`}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            maxLength={100}
+            className="text-xs h-8"
+            label="Summarise your experience (optional)"
+          />
 
           {/* Comment */}
           <div className="space-y-1">
-            <Label
-              htmlFor={`review-comment-${item.id}`}
-              className="text-xs text-slate-600"
-            >
-              Your Review *
-            </Label>
-            <Textarea
+           
+            <TextArea
+              required
               id={`review-comment-${item.id}`}
-              placeholder="Quality, fit, delivery — share what you think"
+              label="Quality, fit, delivery — share what you think"
               value={comment}
-              onChange={(e) => setComment(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setComment(e.target.value)}
               rows={3}
               maxLength={500}
               className="text-xs resize-none"

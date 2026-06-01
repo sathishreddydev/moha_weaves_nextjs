@@ -9,11 +9,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, ArrowLeft, CheckCircle2, Loader2, MapPin, RefreshCw, X } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowLeft,
+  CheckCircle2,
+  Loader2,
+  MapPin,
+  RefreshCw,
+  X,
+} from "lucide-react";
 import { OrderWithItems, ShippingAddress } from "@/shared";
 import { Card } from "@/components/ui/card";
+import { TextArea } from "../ui/textarea";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -50,7 +58,9 @@ export default function ExchangeForm({
   const [loading, setLoading] = useState(false);
   const [reason, setReason] = useState("");
   const [reasonDetails, setReasonDetails] = useState("");
-  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
+    null,
+  );
   const [error, setError] = useState("");
 
   const orderItem = order.items?.find((item) => item.id === orderItemId);
@@ -83,8 +93,14 @@ export default function ExchangeForm({
   // ── Submit ──────────────────────────────────────────────────────────────────
 
   const handleSubmit = async () => {
-    if (!reason) { setError("Please select a reason"); return; }
-    if (!reasonDetails.trim()) { setError("Please describe the issue"); return; }
+    if (!reason) {
+      setError("Please select a reason");
+      return;
+    }
+    if (!reasonDetails.trim()) {
+      setError("Please describe the issue");
+      return;
+    }
     if (hasVariants && !selectedVariantId) {
       setError("Please select the replacement size");
       return;
@@ -128,7 +144,13 @@ export default function ExchangeForm({
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className={showBackButton ? "space-y-4" : "mt-3 pt-3 border-t border-blue-100 space-y-3"}>
+    <div
+      className={
+        showBackButton
+          ? "space-y-4"
+          : "mt-3 pt-3 border-t border-blue-100 space-y-3"
+      }
+    >
       {/* Header */}
       {showBackButton ? (
         <button
@@ -139,7 +161,9 @@ export default function ExchangeForm({
           aria-label="Back to order"
         >
           <ArrowLeft className="w-5 h-5 text-gray-500 group-hover:text-gray-800 transition-colors" />
-          <h2 className="text-xl font-semibold text-gray-900">Exchange Request</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Exchange Request
+          </h2>
         </button>
       ) : (
         <div className="flex items-center justify-between">
@@ -166,7 +190,9 @@ export default function ExchangeForm({
           <Card className="p-4 sm:p-5 hover:border-slate-300 transition-colors bg-white space-y-3">
             {/* Order ID */}
             <div className="flex items-center gap-2">
-              <span className="text-[10px] text-gray-400 uppercase tracking-wide font-medium">Order</span>
+              <span className="text-[10px] text-gray-400 uppercase tracking-wide font-medium">
+                Order
+              </span>
               <span className="text-xs font-mono text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
                 #{order.id}
               </span>
@@ -197,7 +223,8 @@ export default function ExchangeForm({
                   {orderItem.product?.name || "Product"}
                 </p>
                 <p className="text-xs text-gray-500">
-                  ₹{parseFloat(orderItem.price).toFixed(2)} · Qty {orderItem.quantity}
+                  ₹{parseFloat(orderItem.price).toFixed(2)} · Qty{" "}
+                  {orderItem.quantity}
                 </p>
               </div>
             </div>
@@ -210,7 +237,9 @@ export default function ExchangeForm({
                   <p className="text-[10px] text-gray-400 uppercase tracking-wide font-medium mb-0.5">
                     Pickup Address
                   </p>
-                  <p className="text-xs text-gray-700 leading-relaxed">{pickupAddress}</p>
+                  <p className="text-xs text-gray-700 leading-relaxed">
+                    {pickupAddress}
+                  </p>
                 </div>
               </div>
             )}
@@ -266,7 +295,9 @@ export default function ExchangeForm({
                   >
                     {v.size}
                     {isOriginal && (
-                      <span className="ml-1 text-[10px] text-gray-400">(yours)</span>
+                      <span className="ml-1 text-[10px] text-gray-400">
+                        (yours)
+                      </span>
                     )}
                     {outOfStock && !isOriginal && (
                       <span className="ml-1 text-[10px] text-red-400">OOS</span>
@@ -298,18 +329,14 @@ export default function ExchangeForm({
           </Select>
         </div>
 
-        {/* Details */}
-        <div className="space-y-1.5">
-          <Label className="text-xs">Additional Details</Label>
-          <Textarea
-            placeholder="Describe the issue with your item..."
-            value={reasonDetails}
-            onChange={(e) => setReasonDetails(e.target.value)}
-            rows={2}
-            className="text-xs resize-none"
-            inputMode="text"
-          />
-        </div>
+        <TextArea
+          label="Describe the issue with your item..."
+          value={reasonDetails}
+          onChange={(e) => setReasonDetails(e.target.value)}
+          rows={2}
+          className="text-xs resize-none"
+          inputMode="text"
+        />
       </Card>
 
       {/* Error */}

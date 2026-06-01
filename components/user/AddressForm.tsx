@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { MobileInput } from "@/components/ui/mobile-input";
 import { useProfile, useUpdateProfile } from "@/hooks/useProfileQuery";
 import { UserAddress } from "@/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,18 +22,14 @@ import {
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-
-// ─── Schema ────────────────────────────────────────────────────────────────────
+import { Input } from "../ui/input";
 
 const addressSchema = z.object({
   name: z.string().min(2, "Name is required"),
   email: z.string().email("Enter a valid email address"),
   phone: z
     .string()
-    .regex(
-      /^(\+91[\-\s]?)?[6-9]\d{9}$/,
-      "Enter a valid 10-digit number starting with 6–9",
-    ),
+    .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit number starting with 6–9"),
   addressLine1: z
     .string()
     .min(5, "Address line 1 must be at least 5 characters"),
@@ -47,8 +42,6 @@ const addressSchema = z.object({
 });
 
 export type AddressFormData = z.infer<typeof addressSchema>;
-
-// ─── Types ─────────────────────────────────────────────────────────────────────
 
 interface PincodeInfo {
   available: boolean;
@@ -66,7 +59,6 @@ export interface AddressFormProps {
   isLoading?: boolean;
 }
 
-// ─── Constants ─────────────────────────────────────────────────────────────────
 
 const ADDRESS_TYPES = [
   { value: "home", label: "Home", icon: Home },
@@ -74,7 +66,6 @@ const ADDRESS_TYPES = [
   { value: "other", label: "Other", icon: Building2 },
 ] as const;
 
-// ─── Component ─────────────────────────────────────────────────────────────────
 
 export default function AddressForm({
   isOpen,
@@ -121,11 +112,25 @@ export default function AddressForm({
   // Reset form whenever the form opens or the editing target changes
   useEffect(() => {
     setSubmitError(null);
+
+    // Clean phone to 10 digits (strip +91, leading 0, spaces)
+    const cleanPhone = (raw: string | null | undefined) => {
+      if (!raw) return "";
+      const digits = raw.replace(/\D/g, "");
+      // If starts with 91 and is 12 digits, strip country code
+      if (digits.length === 12 && digits.startsWith("91"))
+        return digits.slice(2);
+      // If 11 digits with leading 0, strip it
+      if (digits.length === 11 && digits.startsWith("0"))
+        return digits.slice(1);
+      return digits.slice(0, 10);
+    };
+
     if (editingAddress) {
       form.reset({
         name: editingAddress.name,
         email: profile?.email || "",
-        phone: editingAddress.phone || profile?.phone || "",
+        phone: cleanPhone(editingAddress.phone) || cleanPhone(profile?.phone),
         addressLine1: editingAddress.addressLine1 ?? "",
         locality: editingAddress.locality,
         city: editingAddress.city,
@@ -148,7 +153,7 @@ export default function AddressForm({
       form.reset({
         name: "",
         email: profile?.email || "",
-        phone: profile?.phone || "",
+        phone: cleanPhone(profile?.phone),
         addressLine1: "",
         locality: "",
         city: "",
@@ -159,7 +164,7 @@ export default function AddressForm({
       });
       setPincodeInfo(null);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingAddress, isOpen, profile]);
 
   // ── Pincode lookup ──────────────────────────────────────────────────────────
@@ -194,7 +199,8 @@ export default function AddressForm({
           await updateProfile.mutateAsync({ email: data.email });
         } catch (err) {
           // If email update fails (e.g. already taken), show error but don't block address save
-          const msg = err instanceof Error ? err.message : "Failed to save email";
+          const msg =
+            err instanceof Error ? err.message : "Failed to save email";
           setSubmitError(msg);
           return;
         }
@@ -205,7 +211,9 @@ export default function AddressForm({
       onClose();
     } catch (err) {
       setSubmitError(
-        err instanceof Error ? err.message : "Failed to save address. Please try again.",
+        err instanceof Error
+          ? err.message
+          : "Failed to save address. Please try again.",
       );
     }
   };
@@ -256,11 +264,11 @@ export default function AddressForm({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <MobileInput
+            <Input
+              required
               id="name"
               label="Full Name"
               {...form.register("name")}
-              placeholder="Your Name"
               disabled={isLoading}
               error={form.formState.errors.name?.message}
               inputMode="text"
@@ -268,24 +276,30 @@ export default function AddressForm({
               type="text"
               icon={<User className="h-3.5 w-3.5 text-gray-400" />}
             />
-            <MobileInput
+            <Input
+              required
               id="phone"
               label="Phone"
-              {...form.register("phone")}
-              placeholder="10-digit mobile number"
+              {...form.register("phone", {
+                onChange: (e) => {
+                  const value = e.target.value.replace(/\D/g, "").slice(0, 10);
+                  form.setValue("phone", value);
+                },
+              })}
               disabled={isLoading}
               error={form.formState.errors.phone?.message}
               inputMode="tel"
               autoComplete="tel"
               type="tel"
+              maxLength={10}
               icon={<Phone className="h-3.5 w-3.5 text-gray-400" />}
             />
             <div className="sm:col-span-2">
-              <MobileInput
+              <Input
+                required
                 id="email"
                 label="Email"
                 {...form.register("email")}
-                placeholder="your@email.com"
                 disabled={isLoading || hasExistingEmail}
                 error={form.formState.errors.email?.message}
                 inputMode="email"
@@ -295,7 +309,9 @@ export default function AddressForm({
               />
               {hasExistingEmail && (
                 <p className="text-[11px] text-gray-500 mt-1">
-                  You cannot edit this email as you are logged in using this on the website. Please login with an updated email on website to auto-update it.
+                  You cannot edit this email as you are logged in using this on
+                  the website. Please login with an updated email on website to
+                  auto-update it.
                 </p>
               )}
             </div>
@@ -347,11 +363,11 @@ export default function AddressForm({
           </div>
 
           {/* Address Line 1 */}
-          <MobileInput
+          <Input
+            required
             id="addressLine1"
             label="Address Line 1"
             {...form.register("addressLine1")}
-            placeholder="House no., Building, Street"
             disabled={isLoading}
             error={form.formState.errors.addressLine1?.message}
             inputMode="text"
@@ -361,11 +377,11 @@ export default function AddressForm({
           />
 
           {/* Locality */}
-          <MobileInput
+          <Input
+            required
             id="locality"
             label="Locality / Area"
             {...form.register("locality")}
-            placeholder="Sector 15, Colony name"
             disabled={isLoading}
             error={form.formState.errors.locality?.message}
             inputMode="text"
@@ -376,7 +392,8 @@ export default function AddressForm({
 
           {/* Pincode */}
           <div>
-            <MobileInput
+            <Input
+              required
               id="pincode"
               label="Pincode"
               {...form.register("pincode", {
@@ -386,7 +403,6 @@ export default function AddressForm({
                   if (value.length === 6) checkPincode(value);
                 },
               })}
-              placeholder="6-digit pincode"
               type="text"
               disabled={isLoading}
               error={form.formState.errors.pincode?.message}
@@ -458,7 +474,7 @@ export default function AddressForm({
             onClick={() => form.setValue("isDefault", !isDefault)}
             disabled={isLoading}
             className={[
-              "w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all",
+              "w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all",
               isDefault
                 ? "border-gray-900 bg-gray-50"
                 : "border-gray-200 bg-white hover:border-gray-300",
@@ -514,5 +530,3 @@ export default function AddressForm({
     </div>
   );
 }
-
-
