@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { MobileInput } from "@/components/ui/mobile-input";
+import { useProfile, useUpdateProfile } from "@/hooks/useProfileQuery";
 import { UserAddress } from "@/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -14,6 +15,7 @@ import {
   Home,
   Loader2,
   Lock,
+  Mail,
   MapPin,
   Phone,
   User,
@@ -26,6 +28,7 @@ import { z } from "zod";
 
 const addressSchema = z.object({
   name: z.string().min(2, "Name is required"),
+  email: z.string().email("Enter a valid email address"),
   phone: z
     .string()
     .regex(
@@ -84,10 +87,18 @@ export default function AddressForm({
   const [pincodeLoading, setPincodeLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  // Fetch user profile for email & phone defaults
+  const { data: profile } = useProfile();
+  const updateProfile = useUpdateProfile();
+
+  // Whether the user already has an email saved in their profile
+  const hasExistingEmail = !!profile?.email;
+
   const form = useForm<AddressFormData>({
     resolver: zodResolver(addressSchema),
     defaultValues: {
       name: "",
+      email: "",
       phone: "",
       addressLine1: "",
       locality: "",
@@ -113,7 +124,8 @@ export default function AddressForm({
     if (editingAddress) {
       form.reset({
         name: editingAddress.name,
-        phone: editingAddress.phone,
+        email: profile?.email || "",
+        phone: editingAddress.phone || profile?.phone || "",
         addressLine1: editingAddress.addressLine1 ?? "",
         locality: editingAddress.locality,
         city: editingAddress.city,
@@ -135,7 +147,8 @@ export default function AddressForm({
     } else {
       form.reset({
         name: "",
-        phone: "",
+        email: profile?.email || "",
+        phone: profile?.phone || "",
         addressLine1: "",
         locality: "",
         city: "",
@@ -147,7 +160,7 @@ export default function AddressForm({
       setPincodeInfo(null);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editingAddress, isOpen]);
+  }, [editingAddress, isOpen, profile]);
 
   // ── Pincode lookup ──────────────────────────────────────────────────────────
 
@@ -175,6 +188,17 @@ export default function AddressForm({
   const handleSubmit = async (data: AddressFormData) => {
     setSubmitError(null);
     try {
+      // If user didn't have an email before, save it to their profile
+      if (!hasExistingEmail && data.email) {
+        try {
+          await updateProfile.mutateAsync({ email: data.email });
+        } catch (err) {
+          // If email update fails (e.g. already taken), show error but don't block address save
+          const msg = err instanceof Error ? err.message : "Failed to save email";
+          setSubmitError(msg);
+          return;
+        }
+      }
       await onSubmit(data);
       form.reset();
       setPincodeInfo(null);
@@ -256,6 +280,25 @@ export default function AddressForm({
               type="tel"
               icon={<Phone className="h-3.5 w-3.5 text-gray-400" />}
             />
+            <div className="sm:col-span-2">
+              <MobileInput
+                id="email"
+                label="Email"
+                {...form.register("email")}
+                placeholder="your@email.com"
+                disabled={isLoading || hasExistingEmail}
+                error={form.formState.errors.email?.message}
+                inputMode="email"
+                autoComplete="email"
+                type="email"
+                icon={<Mail className="h-3.5 w-3.5 text-gray-400" />}
+              />
+              {hasExistingEmail && (
+                <p className="text-[11px] text-gray-500 mt-1">
+                  You cannot edit this email as you are logged in using this on the website. Please login with an updated email on website to auto-update it.
+                </p>
+              )}
+            </div>
           </div>
         </div>
 

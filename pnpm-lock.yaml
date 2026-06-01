@@ -56,21 +56,6 @@ importers:
       '@tanstack/react-virtual':
         specifier: ^3.13.19
         version: 3.13.19(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@types/bcryptjs':
-        specifier: ^2.4.6
-        version: 2.4.6
-      '@types/jsonwebtoken':
-        specifier: ^9.0.10
-        version: 9.0.10
-      '@types/pg':
-        specifier: ^8.16.0
-        version: 8.16.0
-      '@types/redis':
-        specifier: ^4.0.10
-        version: 4.0.11(@opentelemetry/api@1.9.0)
-      autoprefixer:
-        specifier: ^10.4.24
-        version: 10.4.24(postcss@8.5.6)
       axios:
         specifier: ^1.7.2
         version: 1.13.5
@@ -86,9 +71,6 @@ importers:
       dotenv:
         specifier: ^17.3.1
         version: 17.3.1
-      drizzle-kit:
-        specifier: ^0.31.9
-        version: 0.31.9
       drizzle-orm:
         specifier: ^0.45.1
         version: 0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(pg@8.18.0)(postgres@3.4.8)
@@ -174,15 +156,33 @@ importers:
       '@next/bundle-analyzer':
         specifier: ^16.2.6
         version: 16.2.6
+      '@types/bcryptjs':
+        specifier: ^2.4.6
+        version: 2.4.6
+      '@types/jsonwebtoken':
+        specifier: ^9.0.10
+        version: 9.0.10
       '@types/node':
         specifier: ^20
         version: 20.19.33
+      '@types/pg':
+        specifier: ^8.16.0
+        version: 8.16.0
       '@types/react':
         specifier: ^18
         version: 18.3.28
       '@types/react-dom':
         specifier: ^18
         version: 18.3.7(@types/react@18.3.28)
+      '@types/redis':
+        specifier: ^4.0.10
+        version: 4.0.11(@opentelemetry/api@1.9.0)
+      autoprefixer:
+        specifier: ^10.4.24
+        version: 10.4.24(postcss@8.5.6)
+      drizzle-kit:
+        specifier: ^0.31.9
+        version: 0.31.9
       eslint:
         specifier: ^8
         version: 8.57.1
