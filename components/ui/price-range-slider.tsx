@@ -40,11 +40,22 @@ const PriceRangeSlider = React.forwardRef<
     }
 
     return (
-      <div className="space-y-4">
+      <div className="space-y-3">
+        {/* Price labels */}
+        <div className="flex justify-between text-xs text-gray-600">
+          <span className="font-medium bg-gray-100 px-2 py-0.5 rounded">
+            {formatPrice(localValue[0])}
+          </span>
+          <span className="font-medium bg-gray-100 px-2 py-0.5 rounded">
+            {formatPrice(localValue[1])}
+          </span>
+        </div>
+
+        {/* Slider */}
         <SliderPrimitive.Root
           ref={ref}
           className={cn(
-            "relative flex w-full touch-none select-none items-center",
+            "relative flex w-full touch-none select-none items-center py-2",
             className
           )}
           min={min}
@@ -54,22 +65,22 @@ const PriceRangeSlider = React.forwardRef<
           onValueChange={handleValueChange}
           {...props}
         >
-          <SliderPrimitive.Track className="relative h-2 w-full grow overflow-hidden rounded-full bg-gray-200">
+          {/* Track */}
+          <SliderPrimitive.Track className="relative h-[3px] w-full grow overflow-hidden rounded-full bg-gray-300">
             <SliderPrimitive.Range className="absolute h-full bg-gray-900" />
           </SliderPrimitive.Track>
-          <SliderPrimitive.Thumb className="block h-5 w-5 rounded-full border-2 border-gray-900 bg-white shadow-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-gray-50" />
-          <SliderPrimitive.Thumb className="block h-5 w-5 rounded-full border-2 border-gray-900 bg-white shadow-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-gray-50" />
+
+          {/* Thumb 1 — MUI style: solid circle with hover ring */}
+          <SliderPrimitive.Thumb className="block h-4 w-4 rounded-full bg-gray-900 shadow-md transition-all duration-150 focus-visible:outline-none hover:shadow-[0_0_0_8px_rgba(0,0,0,0.1)] focus-visible:shadow-[0_0_0_8px_rgba(0,0,0,0.1)] disabled:pointer-events-none disabled:opacity-50 cursor-grab active:cursor-grabbing active:scale-110" />
+
+          {/* Thumb 2 */}
+          <SliderPrimitive.Thumb className="block h-4 w-4 rounded-full bg-gray-900 shadow-md transition-all duration-150 focus-visible:outline-none hover:shadow-[0_0_0_8px_rgba(0,0,0,0.1)] focus-visible:shadow-[0_0_0_8px_rgba(0,0,0,0.1)] disabled:pointer-events-none disabled:opacity-50 cursor-grab active:cursor-grabbing active:scale-110" />
         </SliderPrimitive.Root>
-        
-        <div className="flex justify-between text-sm text-gray-600">
-          <span className="font-medium">{formatPrice(localValue[0])}</span>
-          <span className="font-medium">{formatPrice(localValue[1])}</span>
-        </div>
       </div>
     )
   }
 )
 
-PriceRangeSlider.displayName = SliderPrimitive.Root.displayName
+PriceRangeSlider.displayName = "PriceRangeSlider"
 
 export { PriceRangeSlider }

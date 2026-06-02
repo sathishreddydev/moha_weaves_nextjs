@@ -53,7 +53,7 @@ export default function Header() {
   };
 
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-  const profileRoute = isMobile ? "/my" : "/my/details";
+  const profileRoute = "/my";
 
   return (
     <div ref={swipeMenuRef}>

@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { useProfile, useUpdateProfile } from "@/hooks/useProfileQuery";
 import { UserAddress } from "@/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -118,9 +117,10 @@ export default function AddressForm({
   const city = form.watch("city");
   const state = form.watch("state");
 
-  // Pincode is valid when we have a successful lookup
+  // Pincode is valid when we have a successful lookup OR we're editing an existing address
   const isPincodeValid = pincodeInfo?.available === true;
   const isPincodeInvalid = pincodeInfo !== null && !pincodeInfo.available;
+  const showAddressFields = isPincodeValid || !!editingAddress;
 
   // Already the default — lock the toggle
   const isAlreadyDefault = !!editingAddress?.isDefault;
@@ -433,9 +433,6 @@ export default function AddressForm({
 
           {/* Address type */}
           <div>
-            <Label className="text-xs font-medium text-gray-500">
-              Address Type
-            </Label>
             <div className="flex gap-2 mt-1.5">
               {ADDRESS_TYPES.map(({ value, label, icon: Icon }) => {
                 const isSelected = selectedType === value;
@@ -501,21 +498,22 @@ export default function AddressForm({
               </p>
             )}
 
-            {isPincodeValid && city && state && (
+            {showAddressFields && city && state && (
               <div className="mt-2 grid grid-cols-2 gap-3">
                 <Input
                   id="city"
                   label="City / District"
                   {...form.register("city")}
                   type="text"
-                  disabled={isLoading}
+                  readOnly
                 />
                 <Input
                   id="state"
                   label="State"
-                  value={state || ""}
-                  disabled
+                  {...form.register("state")}
                   type="text"
+                  readOnly
+                  className="bg-gray-50"
                 />
               </div>
             )}
@@ -532,7 +530,7 @@ export default function AddressForm({
           </div>
 
           {/* Address Line 1 — only show after valid pincode */}
-          {isPincodeValid && (
+          {showAddressFields && (
             <Input
               required
               id="addressLine1"
@@ -543,17 +541,18 @@ export default function AddressForm({
               inputMode="text"
               autoComplete="address-line1"
               type="text"
-              icon={<MapPin className="h-3.5 w-3.5 text-gray-400" />}
+              icon={<Home className="h-3.5 w-3.5 text-gray-400" />}
             />
           )}
 
           {/* Locality / Area (Address Line 2) — only show after valid pincode */}
-          {isPincodeValid && (
+          {showAddressFields && (
             <div ref={localityContainerRef} className="relative">
               <Input
                 required
                 id="locality"
                 label="Apartment, Area, Sector, Village"
+                placeholder="Start typing for suggestions"
                 value={form.watch("locality")}
                 onChange={handleLocalityChange}
                 onKeyDown={handleLocalityKeyDown}
@@ -619,8 +618,7 @@ export default function AddressForm({
           )}
         </div>
 
-        {/* Hidden state for form submission (city is visible & editable above) */}
-        <input type="hidden" {...form.register("state")} />
+
 
         {/* Set as Default */}
         {isAlreadyDefault ? (
