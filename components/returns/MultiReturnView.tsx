@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import {
   AlertCircle,
@@ -528,17 +528,17 @@ export default function MultiReturnView({
           {/* Form fields */}
           <Card className="p-4 sm:p-5 hover:border-slate-300 transition-colors bg-white space-y-3">
             {/* Reason */}
-            <Select
-              label="Reason for Return"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              className="text-xs"
-            >
-              {REASONS.map((r) => (
-                <option key={r.value} value={r.value}>
-                  {r.label}
-                </option>
-              ))}
+            <Select value={reason} onValueChange={setReason}>
+              <SelectTrigger className="text-xs">
+                <SelectValue placeholder="Reason for Return" />
+              </SelectTrigger>
+              <SelectContent>
+                {REASONS.map((r) => (
+                  <SelectItem key={r.value} value={r.value} className="text-xs">
+                    {r.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
 
             {/* Details */}

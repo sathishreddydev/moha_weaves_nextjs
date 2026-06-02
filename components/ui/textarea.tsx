@@ -55,7 +55,7 @@ const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
                 "absolute left-5 top-0 z-10 origin-[0] -translate-y-1/2 bg-white px-1.5 text-xs text-gray-500 transition-all duration-200 pointer-events-none select-none",
                 // Notice the top-3.5 and -translate-y-0 below instead of top-1/2 -translate-y-1/2.
                 // This keeps the placeholder label perfectly aligned at the top of a multi-line box instead of floating in the middle!
-                "peer-placeholder-shown:top-3.5 peer-placeholder-shown:-translate-y-0 peer-placeholder-shown:text-sm",
+                "peer-placeholder-shown:top-3.5 peer-placeholder-shown:-translate-y-0 peer-placeholder-shown:text-xs",
                 "peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-xs peer-focus:text-black",
                 error && "text-red-500 peer-focus:text-red-500",
               )}

@@ -320,7 +320,7 @@ function InlineReviewPanel({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             maxLength={100}
-            className="text-xs h-8"
+            className="text-xs"
             label="Summarise your experience (optional)"
           />
 

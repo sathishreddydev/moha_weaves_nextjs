@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDate } from "@/lib/formatters";
 import { getStatusConfig } from "@/lib/orderStatus";
 import { OrderWithItems } from "@/shared";
@@ -385,16 +385,17 @@ export default function OrderHistory() {
 
           {/* Pagination */}
           <div className="flex items-center justify-end gap-2 pt-4">
-            <Select
-              value={ordersPerPage.toString()}
-              onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-              className="w-16 h-8 text-xs"
-            >
-              {pageSizeOptions.map((size) => (
-                <option key={size} value={size.toString()}>
-                  {size}
-                </option>
-              ))}
+            <Select value={ordersPerPage.toString()} onValueChange={(val) => handlePageSizeChange(Number(val))}>
+              <SelectTrigger className="w-16 h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {pageSizeOptions.map((size) => (
+                  <SelectItem key={size} value={size.toString()} className="text-xs">
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
 
             {totalPages > 1 && (

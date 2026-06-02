@@ -19,7 +19,7 @@ import {
   Phone,
   User,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Input } from "../ui/input";
@@ -32,8 +32,8 @@ const addressSchema = z.object({
     .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit number starting with 6–9"),
   addressLine1: z
     .string()
-    .min(5, "Address line 1 must be at least 5 characters"),
-  locality: z.string().min(2, "Locality is required"),
+    .min(5, "Flat, House No. must be at least 5 characters"),
+  locality: z.string().min(2, "Apartment, Area, Sector, Village is required"),
   city: z.string().min(2, "City is required"),
   state: z.string().min(2, "State is required"),
   pincode: z.string().regex(/^[1-9][0-9]{5}$/, "Enter a valid 6-digit pincode"),
@@ -51,6 +51,13 @@ interface PincodeInfo {
   message?: string;
 }
 
+interface PlaceSuggestion {
+  placeId: string;
+  description: string;
+  mainText: string;
+  secondaryText: string;
+}
+
 export interface AddressFormProps {
   isOpen: boolean;
   onClose: () => void;
@@ -59,13 +66,11 @@ export interface AddressFormProps {
   isLoading?: boolean;
 }
 
-
 const ADDRESS_TYPES = [
   { value: "home", label: "Home", icon: Home },
   { value: "work", label: "Work", icon: Briefcase },
   { value: "other", label: "Other", icon: Building2 },
 ] as const;
-
 
 export default function AddressForm({
   isOpen,
@@ -78,11 +83,18 @@ export default function AddressForm({
   const [pincodeLoading, setPincodeLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  // Google Places Autocomplete state
+  const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const suggestionsRef = useRef<HTMLUListElement>(null);
+  const localityContainerRef = useRef<HTMLDivElement>(null);
+
   // Fetch user profile for email & phone defaults
   const { data: profile } = useProfile();
   const updateProfile = useUpdateProfile();
-
-  // Whether the user already has an email saved in their profile
   const hasExistingEmail = !!profile?.email;
 
   const form = useForm<AddressFormData>({
@@ -106,21 +118,24 @@ export default function AddressForm({
   const city = form.watch("city");
   const state = form.watch("state");
 
-  // Already the default — lock the toggle so user can't accidentally un-default
+  // Pincode is valid when we have a successful lookup
+  const isPincodeValid = pincodeInfo?.available === true;
+  const isPincodeInvalid = pincodeInfo !== null && !pincodeInfo.available;
+
+  // Already the default — lock the toggle
   const isAlreadyDefault = !!editingAddress?.isDefault;
 
-  // Reset form whenever the form opens or the editing target changes
+  // Reset form whenever it opens or editing target changes
   useEffect(() => {
     setSubmitError(null);
+    setSuggestions([]);
+    setShowSuggestions(false);
 
-    // Clean phone to 10 digits (strip +91, leading 0, spaces)
     const cleanPhone = (raw: string | null | undefined) => {
       if (!raw) return "";
       const digits = raw.replace(/\D/g, "");
-      // If starts with 91 and is 12 digits, strip country code
       if (digits.length === 12 && digits.startsWith("91"))
         return digits.slice(2);
-      // If 11 digits with leading 0, strip it
       if (digits.length === 11 && digits.startsWith("0"))
         return digits.slice(1);
       return digits.slice(0, 10);
@@ -139,7 +154,6 @@ export default function AddressForm({
         addressType: editingAddress.addressType || "home",
         isDefault: editingAddress.isDefault,
       });
-      // Pre-populate pincode info so the serviceable banner shows immediately
       if (editingAddress.city && editingAddress.state) {
         setPincodeInfo({
           available: true,
@@ -167,6 +181,20 @@ export default function AddressForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingAddress, isOpen, profile]);
 
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        localityContainerRef.current &&
+        !localityContainerRef.current.contains(e.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   // ── Pincode lookup ──────────────────────────────────────────────────────────
 
   const checkPincode = async (pincode: string) => {
@@ -188,17 +216,97 @@ export default function AddressForm({
     }
   };
 
+  // ── Google Places Autocomplete for Locality ─────────────────────────────────
+
+  const fetchSuggestions = useCallback(
+    async (input: string) => {
+      if (input.length < 3 || !isPincodeValid) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+        return;
+      }
+
+      const currentPincode = form.getValues("pincode");
+      setSuggestionsLoading(true);
+      try {
+        // Pass pincode to restrict suggestions to that area only
+        const res = await fetch(
+          `/api/places/autocomplete?input=${encodeURIComponent(input)}&pincode=${encodeURIComponent(currentPincode)}`,
+        );
+        const data = await res.json();
+
+        if (data.suggestions && data.suggestions.length > 0) {
+          setSuggestions(data.suggestions);
+          setShowSuggestions(true);
+        } else {
+          setSuggestions([]);
+          setShowSuggestions(false);
+        }
+      } catch {
+        setSuggestions([]);
+      } finally {
+        setSuggestionsLoading(false);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isPincodeValid],
+  );
+
+  const handleLocalityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    form.setValue("locality", value, { shouldValidate: true });
+    setHighlightedIndex(-1);
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => fetchSuggestions(value), 400);
+  };
+
+  const handleSuggestionSelect = async (suggestion: PlaceSuggestion) => {
+    setShowSuggestions(false);
+    setSuggestions([]);
+
+    // Combine mainText + first part of secondaryText for full locality
+    // e.g. "Frontline Seven" + "Kokapet, Gandipet..." → "Frontline Seven, Kokapet"
+    const firstArea = suggestion.secondaryText?.split(",")[0]?.trim() || "";
+    const locality = firstArea
+      ? `${suggestion.mainText}, ${firstArea}`
+      : suggestion.mainText;
+
+    form.setValue("locality", locality, {
+      shouldValidate: true,
+    });
+  };
+
+  const handleLocalityKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions || suggestions.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightedIndex((prev) =>
+        prev < suggestions.length - 1 ? prev + 1 : 0,
+      );
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightedIndex((prev) =>
+        prev > 0 ? prev - 1 : suggestions.length - 1,
+      );
+    } else if (e.key === "Enter" && highlightedIndex >= 0) {
+      e.preventDefault();
+      handleSuggestionSelect(suggestions[highlightedIndex]);
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false);
+    }
+  };
+
   // ── Submit ──────────────────────────────────────────────────────────────────
 
   const handleSubmit = async (data: AddressFormData) => {
     setSubmitError(null);
     try {
-      // If user didn't have an email before, save it to their profile
       if (!hasExistingEmail && data.email) {
         try {
           await updateProfile.mutateAsync({ email: data.email });
         } catch (err) {
-          // If email update fails (e.g. already taken), show error but don't block address save
           const msg =
             err instanceof Error ? err.message : "Failed to save email";
           setSubmitError(msg);
@@ -217,8 +325,6 @@ export default function AddressForm({
       );
     }
   };
-
-  const isPincodeInvalid = pincodeInfo !== null && !pincodeInfo.available;
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -308,10 +414,8 @@ export default function AddressForm({
                 icon={<Mail className="h-3.5 w-3.5 text-gray-400" />}
               />
               {hasExistingEmail && (
-                <p className="text-[11px] text-gray-500 mt-1">
-                  You cannot edit this email as you are logged in using this on
-                  the website. Please login with an updated email on website to
-                  auto-update it.
+                <p className="text-[11px] text-gray-500 mt-1 ml-1">
+                  Email linked to your account and cannot be changed here.
                 </p>
               )}
             </div>
@@ -362,35 +466,7 @@ export default function AddressForm({
             </div>
           </div>
 
-          {/* Address Line 1 */}
-          <Input
-            required
-            id="addressLine1"
-            label="Address Line 1"
-            {...form.register("addressLine1")}
-            disabled={isLoading}
-            error={form.formState.errors.addressLine1?.message}
-            inputMode="text"
-            autoComplete="address-line1"
-            type="text"
-            icon={<MapPin className="h-3.5 w-3.5 text-gray-400" />}
-          />
-
-          {/* Locality */}
-          <Input
-            required
-            id="locality"
-            label="Locality / Area"
-            {...form.register("locality")}
-            disabled={isLoading}
-            error={form.formState.errors.locality?.message}
-            inputMode="text"
-            type="text"
-            autoComplete="address-line2"
-            icon={<MapPin className="h-3.5 w-3.5 text-gray-400" />}
-          />
-
-          {/* Pincode */}
+          {/* Pincode — ALWAYS visible first */}
           <div>
             <Input
               required
@@ -400,7 +476,14 @@ export default function AddressForm({
                 onChange: (e) => {
                   const value = e.target.value.replace(/\D/g, "").slice(0, 6);
                   form.setValue("pincode", value);
-                  if (value.length === 6) checkPincode(value);
+                  if (value.length === 6) {
+                    checkPincode(value);
+                  } else {
+                    // Reset if pincode is cleared/changed
+                    setPincodeInfo(null);
+                    form.setValue("city", "", { shouldValidate: false });
+                    form.setValue("state", "", { shouldValidate: false });
+                  }
                 },
               })}
               type="text"
@@ -408,6 +491,7 @@ export default function AddressForm({
               error={form.formState.errors.pincode?.message}
               inputMode="numeric"
               autoComplete="postal-code"
+              maxLength={6}
             />
 
             {pincodeLoading && (
@@ -417,43 +501,129 @@ export default function AddressForm({
               </p>
             )}
 
-            {pincodeInfo?.available && city && state && (
-              <div className="mt-2 flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
-                <Check className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-green-800 truncate">
-                    {city}, {state}
-                  </p>
-                  <p className="text-[11px] text-green-600">
-                    {pincodeInfo.deliveryDays
-                      ? `Delivery in ${pincodeInfo.deliveryDays} days`
-                      : "Delivery available"}
-                  </p>
-                </div>
-                <span className="text-[10px] text-green-600 bg-green-100 px-1.5 py-0.5 rounded font-medium">
-                  Serviceable
-                </span>
+            {isPincodeValid && city && state && (
+              <div className="mt-2 grid grid-cols-2 gap-3">
+                <Input
+                  id="city"
+                  label="City / District"
+                  {...form.register("city")}
+                  type="text"
+                  disabled={isLoading}
+                />
+                <Input
+                  id="state"
+                  label="State"
+                  value={state || ""}
+                  disabled
+                  type="text"
+                />
               </div>
             )}
 
-            {pincodeInfo && !pincodeInfo.available && (
+            {isPincodeInvalid && (
               <div className="mt-2 flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
                 <AlertCircle className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />
                 <p className="text-xs text-red-700">
-                  {pincodeInfo.message ?? "Delivery not available in this area"}
+                  {pincodeInfo?.message ??
+                    "Delivery not available in this area"}
                 </p>
               </div>
             )}
           </div>
+
+          {/* Address Line 1 — only show after valid pincode */}
+          {isPincodeValid && (
+            <Input
+              required
+              id="addressLine1"
+              label="Flat, House No."
+              {...form.register("addressLine1")}
+              disabled={isLoading}
+              error={form.formState.errors.addressLine1?.message}
+              inputMode="text"
+              autoComplete="address-line1"
+              type="text"
+              icon={<MapPin className="h-3.5 w-3.5 text-gray-400" />}
+            />
+          )}
+
+          {/* Locality / Area (Address Line 2) — only show after valid pincode */}
+          {isPincodeValid && (
+            <div ref={localityContainerRef} className="relative">
+              <Input
+                required
+                id="locality"
+                label="Apartment, Area, Sector, Village"
+                value={form.watch("locality")}
+                onChange={handleLocalityChange}
+                onKeyDown={handleLocalityKeyDown}
+                onFocus={() => {
+                  if (suggestions.length > 0) setShowSuggestions(true);
+                }}
+                disabled={isLoading}
+                error={form.formState.errors.locality?.message}
+                inputMode="text"
+                type="text"
+                autoComplete="off"
+                icon={
+                  suggestionsLoading ? (
+                    <Loader2 className="h-3.5 w-3.5 text-gray-400 animate-spin" />
+                  ) : (
+                    <MapPin className="h-3.5 w-3.5 text-gray-400" />
+                  )
+                }
+              />
+
+              {/* Google Places Suggestions Dropdown */}
+              {showSuggestions && suggestions.length > 0 && (
+                <ul
+                  ref={suggestionsRef}
+                  role="listbox"
+                  className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-52 overflow-y-auto"
+                >
+                  {suggestions.map((suggestion, index) => (
+                    <li
+                      key={suggestion.placeId}
+                      role="option"
+                      aria-selected={highlightedIndex === index}
+                      onClick={() => handleSuggestionSelect(suggestion)}
+                      className={[
+                        "flex items-start gap-3 px-4 py-2.5 cursor-pointer transition-colors",
+                        highlightedIndex === index
+                          ? "bg-gray-100"
+                          : "hover:bg-gray-50",
+                        index !== suggestions.length - 1
+                          ? "border-b border-gray-100"
+                          : "",
+                      ].join(" ")}
+                    >
+                      <MapPin className="h-3.5 w-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-gray-900 truncate">
+                          {suggestion.mainText}
+                        </p>
+                        <p className="text-[10px] text-gray-500 truncate">
+                          {suggestion.secondaryText}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                  <li className="px-4 py-1.5 border-t border-gray-100">
+                    <p className="text-[9px] text-gray-400 text-center">
+                      Powered by Google
+                    </p>
+                  </li>
+                </ul>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Hidden city / state — populated by pincode lookup */}
-        <input type="hidden" {...form.register("city")} />
+        {/* Hidden state for form submission (city is visible & editable above) */}
         <input type="hidden" {...form.register("state")} />
 
         {/* Set as Default */}
         {isAlreadyDefault ? (
-          // Already default — show locked state, no toggle
           <div className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-green-200 bg-green-50">
             <Lock className="h-4 w-4 text-green-600 flex-shrink-0" />
             <div className="text-left">
@@ -508,7 +678,7 @@ export default function AddressForm({
           </button>
         )}
 
-        {/* Save button — full width, no cancel (back arrow handles that) */}
+        {/* Save button */}
         <div className="pt-2">
           <Button
             type="submit"
