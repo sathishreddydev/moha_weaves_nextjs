@@ -63,7 +63,7 @@ const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
               {label}
               {required && (
                 <span
-                  className="text-red-500 ml-0.5 font-medium select-none"
+                  className="ml-0.5 font-medium select-none"
                   aria-hidden="true"
                 >
                   *

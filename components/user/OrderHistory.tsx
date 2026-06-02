@@ -1,13 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import { formatDate } from "@/lib/formatters";
 import { getStatusConfig } from "@/lib/orderStatus";
 import { OrderWithItems } from "@/shared";
@@ -40,14 +34,34 @@ const RESTORE_KEY = "orderHistory_restorePagination";
 const pageSizeOptions = [5, 10, 20, 50];
 
 const STATUS_PRIORITY = [
-  "pending", "confirmed", "processing", "shipped", "delivered",
-  "return_requested", "return_approved", "return_pickup_scheduled",
-  "return_picked_up", "return_in_transit", "return_received",
-  "return_inspected", "return_completed", "return_rejected", "return_cancelled",
-  "exchange_requested", "exchange_approved", "exchange_processing",
-  "exchange_pickup_scheduled", "exchange_picked_up", "exchange_in_transit",
-  "exchange_received", "exchange_inspected", "exchange_shipped",
-  "exchange_delivered", "exchange_completed", "exchange_cancelled", "cancelled",
+  "pending",
+  "confirmed",
+  "processing",
+  "shipped",
+  "delivered",
+  "return_requested",
+  "return_approved",
+  "return_pickup_scheduled",
+  "return_picked_up",
+  "return_in_transit",
+  "return_received",
+  "return_inspected",
+  "return_completed",
+  "return_rejected",
+  "return_cancelled",
+  "exchange_requested",
+  "exchange_approved",
+  "exchange_processing",
+  "exchange_pickup_scheduled",
+  "exchange_picked_up",
+  "exchange_in_transit",
+  "exchange_received",
+  "exchange_inspected",
+  "exchange_shipped",
+  "exchange_delivered",
+  "exchange_completed",
+  "exchange_cancelled",
+  "cancelled",
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -58,7 +72,10 @@ function deriveOrderStatus(items: OrderWithItems["items"]): string {
   for (const item of items) {
     const s = (item as any).currentStatus || item.status || "pending";
     const idx = STATUS_PRIORITY.indexOf(s);
-    if (idx > bestIdx) { bestIdx = idx; best = s; }
+    if (idx > bestIdx) {
+      bestIdx = idx;
+      best = s;
+    }
   }
   return best;
 }
@@ -122,22 +139,24 @@ export default function OrderHistory() {
   const totalPages = data?.totalPages ?? 0;
   const error = queryError ? (queryError as Error).message : null;
 
-  const { invalidateList, setOrderList, prefetchOrderDetail } = useInvalidateOrders();
+  const { invalidateList, setOrderList, prefetchOrderDetail } =
+    useInvalidateOrders();
 
   // Real-time socket listeners — optimistically update query cache.
   // useOrderItemStatusListenerList expects a React setState-style setter,
   // so we wrap the query cache update to match that signature.
-  const cacheSetOrders: React.Dispatch<React.SetStateAction<OrderWithItems[]>> = useCallback(
-    (action) => {
-      setOrderList(currentPage, ordersPerPage, (old) => {
-        if (!old) return old;
-        const prev = old.data;
-        const next = typeof action === "function" ? action(prev) : action;
-        return { ...old, data: next };
-      });
-    },
-    [setOrderList, currentPage, ordersPerPage],
-  );
+  const cacheSetOrders: React.Dispatch<React.SetStateAction<OrderWithItems[]>> =
+    useCallback(
+      (action) => {
+        setOrderList(currentPage, ordersPerPage, (old) => {
+          if (!old) return old;
+          const prev = old.data;
+          const next = typeof action === "function" ? action(prev) : action;
+          return { ...old, data: next };
+        });
+      },
+      [setOrderList, currentPage, ordersPerPage],
+    );
 
   useOrderItemStatusListenerList(cacheSetOrders);
 
@@ -207,7 +226,9 @@ export default function OrderHistory() {
         </div>
       ) : (
         <>
-          <div className={`space-y-4 transition-opacity duration-200 ${isFetching ? "opacity-50 pointer-events-none" : ""}`}>
+          <div
+            className={`space-y-4 transition-opacity duration-200 ${isFetching ? "opacity-50 pointer-events-none" : ""}`}
+          >
             {orders.map((order) => {
               const overallStatus = deriveOrderStatus(order.items);
               const overallCfg = getStatusConfig(overallStatus);
@@ -220,7 +241,11 @@ export default function OrderHistory() {
                   onMouseEnter={() => prefetchOrderDetail(order.id)}
                   onTouchStart={() => prefetchOrderDetail(order.id)}
                   onClick={() => {
-                    try { sessionStorage.setItem(RESTORE_KEY, "1"); } catch { /* ignore */ }
+                    try {
+                      sessionStorage.setItem(RESTORE_KEY, "1");
+                    } catch {
+                      /* ignore */
+                    }
                   }}
                   className="block bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow"
                 >
@@ -229,31 +254,55 @@ export default function OrderHistory() {
                     <div className="flex flex-wrap justify-between items-center gap-4">
                       <div className="flex gap-6 flex-wrap">
                         <div className="hidden sm:block">
-                          <p className="text-xs uppercase tracking-wider text-gray-500 font-bold mb-1">Order Placed</p>
+                          <p className="text-xs uppercase tracking-wider text-gray-500 font-bold mb-1">
+                            Order Placed
+                          </p>
                           <p className="text-xs font-semibold">
-                            {formatDate(order.createdAt, "en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                            {formatDate(order.createdAt, "en-IN", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs uppercase tracking-wider text-gray-500 font-bold mb-1">Total</p>
-                          <p className="text-xs font-semibold">₹{parseFloat(order.finalAmount).toFixed(2)}</p>
+                          <p className="text-xs uppercase tracking-wider text-gray-500 font-bold mb-1">
+                            Total
+                          </p>
+                          <p className="text-xs font-semibold">
+                            ₹{parseFloat(order.finalAmount).toFixed(2)}
+                          </p>
                         </div>
                         <div>
-                          <p className="text-xs uppercase tracking-wider text-gray-500 font-bold mb-1">Order #</p>
+                          <p className="text-xs uppercase tracking-wider text-gray-500 font-bold mb-1">
+                            Order #
+                          </p>
                           <p className="text-xs font-semibold sm:hidden">
-                            {order.id.length > 8 ? `…${order.id.slice(-8)}` : order.id}
+                            {order.id.length > 8
+                              ? `…${order.id.slice(-8)}`
+                              : order.id}
                           </p>
-                          <p className="text-xs font-semibold hidden sm:block">{order.id}</p>
+                          <p className="text-xs font-semibold hidden sm:block">
+                            {order.id}
+                          </p>
                         </div>
                         <div className="hidden sm:block">
-                          <p className="text-xs uppercase tracking-wider text-gray-500 font-bold">Shipping to:</p>
+                          <p className="text-xs uppercase tracking-wider text-gray-500 font-bold">
+                            Shipping to:
+                          </p>
                           <ShippingAddress address={order.shippingAddress} />
                         </div>
-                        <div className='hidden sm:block'>
-                          <p className="text-xs uppercase tracking-wider text-gray-500 font-bold mb-1">Status</p>
-                          <div className={`flex items-center gap-1 ${overallCfg.className}`}>
+                        <div className="hidden sm:block">
+                          <p className="text-xs uppercase tracking-wider text-gray-500 font-bold mb-1">
+                            Status
+                          </p>
+                          <div
+                            className={`flex items-center gap-1 ${overallCfg.className}`}
+                          >
                             <OverallIcon className="w-3 h-3" />
-                            <span className="text-xs font-semibold whitespace-nowrap">{overallCfg.label}</span>
+                            <span className="text-xs font-semibold whitespace-nowrap">
+                              {overallCfg.label}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -270,11 +319,14 @@ export default function OrderHistory() {
                   {/* Order items */}
                   <div className="p-3 space-y-4">
                     {order.items?.map((item) => {
-                      const currentStatus = (item as any).currentStatus || item.status || "pending";
+                      const currentStatus =
+                        (item as any).currentStatus || item.status || "pending";
                       const cfg = getStatusConfig(currentStatus);
                       const StatusIcon = cfg.Icon;
                       const selectedVariant = item.variantId
-                        ? item.product?.variants?.find((v: any) => v.id === item.variantId)
+                        ? item.product?.variants?.find(
+                            (v: any) => v.id === item.variantId,
+                          )
                         : item.product?.variants?.[0];
 
                       return (
@@ -299,15 +351,23 @@ export default function OrderHistory() {
                               <h4 className="text-xs font-medium text-gray-900 truncate">
                                 {item.product?.name || "Product"}
                               </h4>
-                              <div className={`flex items-center gap-1 flex-shrink-0 ${cfg.className}`}>
+                              <div
+                                className={`flex items-center gap-1 flex-shrink-0 ${cfg.className}`}
+                              >
                                 <StatusIcon className="w-3 h-3" />
-                                <span className="text-[10px] font-semibold whitespace-nowrap">{cfg.label}</span>
+                                <span className="text-[10px] font-semibold whitespace-nowrap">
+                                  {cfg.label}
+                                </span>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="text-[10px] text-gray-500">Qty: {item.quantity}</span>
+                              <span className="text-[10px] text-gray-500">
+                                Qty: {item.quantity}
+                              </span>
                               {selectedVariant?.size && (
-                                <span className="text-[10px] text-gray-500">Size: {selectedVariant.size}</span>
+                                <span className="text-[10px] text-gray-500">
+                                  Size: {selectedVariant.size}
+                                </span>
                               )}
                             </div>
                             <div className="text-xs font-medium text-gray-900">
@@ -327,16 +387,14 @@ export default function OrderHistory() {
           <div className="flex items-center justify-end gap-2 pt-4">
             <Select
               value={ordersPerPage.toString()}
-              onValueChange={(v) => handlePageSizeChange(Number(v))}
+              onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+              className="w-16 h-8 text-xs"
             >
-              <SelectTrigger className="w-16 h-8">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {pageSizeOptions.map((size) => (
-                  <SelectItem key={size} value={size.toString()}>{size}</SelectItem>
-                ))}
-              </SelectContent>
+              {pageSizeOptions.map((size) => (
+                <option key={size} value={size.toString()}>
+                  {size}
+                </option>
+              ))}
             </Select>
 
             {totalPages > 1 && (
@@ -353,7 +411,12 @@ export default function OrderHistory() {
 
                 {getPageNumbers().map((page, idx) =>
                   page === "..." ? (
-                    <span key={`ellipsis-${idx}`} className="text-xs text-gray-400 px-1">…</span>
+                    <span
+                      key={`ellipsis-${idx}`}
+                      className="text-xs text-gray-400 px-1"
+                    >
+                      …
+                    </span>
                   ) : (
                     <Button
                       key={page}
@@ -364,7 +427,7 @@ export default function OrderHistory() {
                     >
                       {page}
                     </Button>
-                  )
+                  ),
                 )}
 
                 <Button

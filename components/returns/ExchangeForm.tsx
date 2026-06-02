@@ -2,13 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import {
   AlertCircle,
@@ -313,21 +307,18 @@ export default function ExchangeForm({
         )}
 
         {/* Reason */}
-        <div className="space-y-1.5">
-          <Label className="text-xs">Reason for Exchange</Label>
-          <Select value={reason} onValueChange={setReason}>
-            <SelectTrigger className="text-xs h-8">
-              <SelectValue placeholder="Select a reason" />
-            </SelectTrigger>
-            <SelectContent>
-              {REASONS.map((r) => (
-                <SelectItem key={r.value} value={r.value} className="text-xs">
-                  {r.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Select
+          label="Reason for Exchange"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          className="text-xs"
+        >
+          {REASONS.map((r) => (
+            <option key={r.value} value={r.value}>
+              {r.label}
+            </option>
+          ))}
+        </Select>
 
         <TextArea
           label="Describe the issue with your item..."

@@ -3,13 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import {
   AlertCircle,
@@ -188,42 +182,33 @@ export default function ReturnForm({
       <Card className="p-4 sm:p-5 hover:border-slate-300 transition-colors bg-white space-y-3">
         {/* Quantity — only if ordered more than 1 */}
         {maxQuantity > 1 && (
-          <div className="space-y-1.5">
-            <Label className="text-xs">Quantity to Return</Label>
-            <Select
-              value={quantity.toString()}
-              onValueChange={(v) => setQuantity(parseInt(v))}
-            >
-              <SelectTrigger className="text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Array.from({ length: maxQuantity }, (_, i) => i + 1).map((qty) => (
-                  <SelectItem key={qty} value={qty.toString()} className="text-xs">
-                    {qty}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <Select
+            label="Quantity to Return"
+            value={quantity.toString()}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setQuantity(parseInt(e.target.value))}
+            className="text-xs"
+          >
+            {Array.from({ length: maxQuantity }, (_, i) => i + 1).map((qty) => (
+              <option key={qty} value={qty.toString()}>
+                {qty}
+              </option>
+            ))}
+          </Select>
         )}
 
         {/* Reason */}
-        <div className="space-y-1.5">
-          <Label className="text-xs">Reason for Return</Label>
-          <Select value={reason} onValueChange={setReason}>
-            <SelectTrigger className="text-xs">
-              <SelectValue placeholder="Select a reason" />
-            </SelectTrigger>
-            <SelectContent>
-              {REASONS.map((r) => (
-                <SelectItem key={r.value} value={r.value} className="text-xs">
-                  {r.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Select
+          label="Reason for Return"
+          value={reason}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setReason(e.target.value)}
+          className="text-xs"
+        >
+          {REASONS.map((r) => (
+            <option key={r.value} value={r.value}>
+              {r.label}
+            </option>
+          ))}
+        </Select>
 
         {/* Details */}
         <div className="space-y-1.5">
