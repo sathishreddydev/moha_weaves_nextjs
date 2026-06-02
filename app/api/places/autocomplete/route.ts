@@ -18,8 +18,9 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Step 1: Geocode the pincode to get center coordinates
+    // Step 1: Geocode the pincode to get center coordinates and viewport bounds
     let locationBias: { lat: number; lng: number } | null = null;
+    let radiusMeters = 5000; // Default 5km — typical Indian pincode area
 
     if (pincode && /^[1-9][0-9]{5}$/.test(pincode)) {
       const geocodeUrl = new URL(
@@ -36,49 +37,77 @@ export async function GET(request: NextRequest) {
       const geocodeData = await geocodeRes.json();
 
       if (geocodeData.status === "OK" && geocodeData.results?.length > 0) {
-        const location = geocodeData.results[0].geometry.location;
+        const result = geocodeData.results[0];
+        const location = result.geometry.location;
         locationBias = { lat: location.lat, lng: location.lng };
+
+        // Calculate radius from viewport bounds if available
+        // This gives us the actual geographic extent of the pincode area
+        if (result.geometry.viewport) {
+          const { northeast, southwest } = result.geometry.viewport;
+          // Haversine-based distance across the viewport diagonal, halved for radius
+          const dlat = Math.abs(northeast.lat - southwest.lat);
+          const dlng = Math.abs(northeast.lng - southwest.lng);
+          // Approximate: 1 degree lat ≈ 111km, 1 degree lng ≈ 85km (at ~20°N India avg)
+          const latDist = dlat * 111000;
+          const lngDist = dlng * 85000;
+          const diagonal = Math.sqrt(latDist * latDist + lngDist * lngDist);
+          // Use half the diagonal as radius, with a minimum of 3km and max of 8km
+          radiusMeters = Math.min(8000, Math.max(3000, Math.round(diagonal / 2)));
+        }
       }
     }
 
-    // Step 2: Call Places Autocomplete — DON'T append pincode to input text
+    // Step 2: Call Places Autocomplete restricted tightly to pincode area
     const url = new URL(
       "https://maps.googleapis.com/maps/api/place/autocomplete/json"
     );
-    url.searchParams.set("input", input); // Only user's typed text
+    url.searchParams.set("input", input);
     url.searchParams.set("key", GOOGLE_MAPS_API_KEY);
     url.searchParams.set("components", "country:in");
     url.searchParams.set("language", "en");
 
-    // Restrict results to the pincode area using location + radius + strictbounds
+    // Restrict results strictly to the pincode's geographic area
     if (locationBias) {
       url.searchParams.set(
         "location",
         `${locationBias.lat},${locationBias.lng}`
       );
-      url.searchParams.set("radius", "15000"); // 15km covers most pincode areas
-      url.searchParams.set("strictbounds", "true"); // ONLY results within this radius
+      url.searchParams.set("radius", String(radiusMeters));
+      url.searchParams.set("strictbounds", "true");
     }
 
     const res = await fetch(url.toString());
     const data = await res.json();
 
     if (data.status === "OK" && data.predictions) {
-      const suggestions = data.predictions.map(
-        (prediction: {
-          place_id: string;
-          description: string;
-          structured_formatting: {
-            main_text: string;
-            secondary_text: string;
-          };
-        }) => ({
-          placeId: prediction.place_id,
-          description: prediction.description,
-          mainText: prediction.structured_formatting.main_text,
-          secondaryText: prediction.structured_formatting.secondary_text,
-        })
-      );
+      // Filter out results that contain a different pincode in description
+      const suggestions = data.predictions
+        .map(
+          (prediction: {
+            place_id: string;
+            description: string;
+            structured_formatting: {
+              main_text: string;
+              secondary_text: string;
+            };
+          }) => ({
+            placeId: prediction.place_id,
+            description: prediction.description,
+            mainText: prediction.structured_formatting.main_text,
+            secondaryText: prediction.structured_formatting.secondary_text,
+          })
+        )
+        .filter(
+          (s: { description: string }) => {
+            // If description contains a 6-digit pincode that doesn't match, exclude it
+            const foundPincode = s.description.match(/\b[1-9][0-9]{5}\b/);
+            if (foundPincode && pincode && foundPincode[0] !== pincode) {
+              return false;
+            }
+            return true;
+          }
+        );
 
       return NextResponse.json({ suggestions });
     }

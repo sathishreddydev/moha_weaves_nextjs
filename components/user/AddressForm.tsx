@@ -117,13 +117,28 @@ export default function AddressForm({
   const city = form.watch("city");
   const state = form.watch("state");
 
-  // Pincode is valid when we have a successful lookup OR we're editing an existing address
+  // Pincode is valid when we have a successful lookup
   const isPincodeValid = pincodeInfo?.available === true;
   const isPincodeInvalid = pincodeInfo !== null && !pincodeInfo.available;
-  const showAddressFields = isPincodeValid || !!editingAddress;
+
+  // Show address fields only when pincode is verified OR editing an existing address (unless user explicitly invalidated it)
+  const showAddressFields =
+    isPincodeValid || (!!editingAddress && pincodeInfo?.available !== false);
 
   // Already the default — lock the toggle
   const isAlreadyDefault = !!editingAddress?.isDefault;
+
+  // Submit should be disabled when:
+  // - Loading/processing
+  // - Pincode explicitly invalid
+  // - Pincode not yet verified for new addresses
+  // - City/state missing (safeguard for edge cases)
+  const isSubmitDisabled =
+    isLoading ||
+    pincodeLoading ||
+    isPincodeInvalid ||
+    (!isPincodeValid && !editingAddress) ||
+    (!city && !state && !editingAddress);
 
   // Reset form whenever it opens or editing target changes
   useEffect(() => {
@@ -195,6 +210,16 @@ export default function AddressForm({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Cleanup debounce timer on unmount to prevent state updates after unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+      }
+    };
+  }, []);
+
   // ── Pincode lookup ──────────────────────────────────────────────────────────
 
   const checkPincode = async (pincode: string) => {
@@ -203,6 +228,13 @@ export default function AddressForm({
     setPincodeInfo(null);
     try {
       const res = await fetch(`/api/pincodes/${pincode}`);
+      if (!res.ok) {
+        setPincodeInfo({
+          available: false,
+          message: "Could not verify pincode. Please try again.",
+        });
+        return;
+      }
       const data: PincodeInfo = await res.json();
       setPincodeInfo(data);
       if (data.available && data.city && data.state) {
@@ -210,7 +242,10 @@ export default function AddressForm({
         form.setValue("state", data.state, { shouldValidate: true });
       }
     } catch {
-      setPincodeInfo({ available: false, message: "Could not check pincode" });
+      setPincodeInfo({
+        available: false,
+        message: "Network error. Could not check pincode.",
+      });
     } finally {
       setPincodeLoading(false);
     }
@@ -229,10 +264,14 @@ export default function AddressForm({
       const currentPincode = form.getValues("pincode");
       setSuggestionsLoading(true);
       try {
-        // Pass pincode to restrict suggestions to that area only
         const res = await fetch(
           `/api/places/autocomplete?input=${encodeURIComponent(input)}&pincode=${encodeURIComponent(currentPincode)}`,
         );
+        if (!res.ok) {
+          setSuggestions([]);
+          setShowSuggestions(false);
+          return;
+        }
         const data = await res.json();
 
         if (data.suggestions && data.suggestions.length > 0) {
@@ -244,6 +283,7 @@ export default function AddressForm({
         }
       } catch {
         setSuggestions([]);
+        setShowSuggestions(false);
       } finally {
         setSuggestionsLoading(false);
       }
@@ -261,12 +301,11 @@ export default function AddressForm({
     debounceRef.current = setTimeout(() => fetchSuggestions(value), 400);
   };
 
-  const handleSuggestionSelect = async (suggestion: PlaceSuggestion) => {
+  const handleSuggestionSelect = (suggestion: PlaceSuggestion) => {
     setShowSuggestions(false);
     setSuggestions([]);
 
     // Combine mainText + first part of secondaryText for full locality
-    // e.g. "Frontline Seven" + "Kokapet, Gandipet..." → "Frontline Seven, Kokapet"
     const firstArea = suggestion.secondaryText?.split(",")[0]?.trim() || "";
     const locality = firstArea
       ? `${suggestion.mainText}, ${firstArea}`
@@ -316,7 +355,6 @@ export default function AddressForm({
       await onSubmit(data);
       form.reset();
       setPincodeInfo(null);
-      onClose();
     } catch (err) {
       setSubmitError(
         err instanceof Error
@@ -329,6 +367,9 @@ export default function AddressForm({
   // ── Render ──────────────────────────────────────────────────────────────────
 
   if (!isOpen) return null;
+
+  // Unique ID for the listbox (accessibility)
+  const listboxId = "locality-suggestions-listbox";
 
   return (
     <div className="space-y-4">
@@ -348,7 +389,10 @@ export default function AddressForm({
 
       {/* Submit error banner */}
       {submitError && (
-        <div className="flex items-center gap-2 px-3 py-2.5 bg-red-50 border border-red-200 rounded-lg">
+        <div
+          role="alert"
+          className="flex items-center gap-2 px-3 py-2.5 bg-red-50 border border-red-200 rounded-lg"
+        >
           <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
           <p className="text-xs text-red-700">{submitError}</p>
         </div>
@@ -359,6 +403,7 @@ export default function AddressForm({
         id="address-form"
         onSubmit={form.handleSubmit(handleSubmit)}
         className="space-y-4"
+        noValidate
       >
         {/* ── Section 1: Receiver Details ─────────────────────────────────── */}
         <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-3 space-y-3">
@@ -394,6 +439,7 @@ export default function AddressForm({
               })}
               disabled={isLoading}
               error={form.formState.errors.phone?.message}
+              helperText="10-digit number starting with 6–9"
               inputMode="tel"
               autoComplete="tel"
               type="tel"
@@ -408,16 +454,16 @@ export default function AddressForm({
                 {...form.register("email")}
                 disabled={isLoading || hasExistingEmail}
                 error={form.formState.errors.email?.message}
+                helperText={
+                  hasExistingEmail
+                    ? "Linked to your account — cannot be changed here"
+                    : "Used for order confirmations and updates"
+                }
                 inputMode="email"
                 autoComplete="email"
                 type="email"
                 icon={<Mail className="h-3.5 w-3.5 text-gray-400" />}
               />
-              {hasExistingEmail && (
-                <p className="text-[11px] text-gray-500 mt-1 ml-1">
-                  Email linked to your account and cannot be changed here.
-                </p>
-              )}
             </div>
           </div>
         </div>
@@ -486,6 +532,13 @@ export default function AddressForm({
               type="text"
               disabled={isLoading}
               error={form.formState.errors.pincode?.message}
+              helperText={
+                !pincodeInfo &&
+                !pincodeLoading &&
+                !form.formState.errors.pincode
+                  ? "Enter 6-digit pincode to check delivery"
+                  : undefined
+              }
               inputMode="numeric"
               autoComplete="postal-code"
               maxLength={6}
@@ -503,23 +556,27 @@ export default function AddressForm({
                 <Input
                   id="city"
                   label="City / District"
-                  {...form.register("city")}
+                  value={city}
                   type="text"
-                  readOnly
+                  disabled
+                  className="bg-gray-50"
                 />
                 <Input
                   id="state"
                   label="State"
-                  {...form.register("state")}
+                  value={state}
                   type="text"
-                  readOnly
+                  disabled
                   className="bg-gray-50"
                 />
               </div>
             )}
 
             {isPincodeInvalid && (
-              <div className="mt-2 flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
+              <div
+                role="alert"
+                className="mt-2 flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg"
+              >
                 <AlertCircle className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />
                 <p className="text-xs text-red-700">
                   {pincodeInfo?.message ??
@@ -545,7 +602,7 @@ export default function AddressForm({
             />
           )}
 
-          {/* Locality / Area (Address Line 2) — only show after valid pincode */}
+          {/* Locality / Area — only show after valid pincode */}
           {showAddressFields && (
             <div ref={localityContainerRef} className="relative">
               <Input
@@ -564,6 +621,15 @@ export default function AddressForm({
                 inputMode="text"
                 type="text"
                 autoComplete="off"
+                role="combobox"
+                aria-expanded={showSuggestions && suggestions.length > 0}
+                aria-controls={listboxId}
+                aria-activedescendant={
+                  highlightedIndex >= 0
+                    ? `suggestion-${suggestions[highlightedIndex]?.placeId}`
+                    : undefined
+                }
+                aria-autocomplete="list"
                 icon={
                   suggestionsLoading ? (
                     <Loader2 className="h-3.5 w-3.5 text-gray-400 animate-spin" />
@@ -576,13 +642,16 @@ export default function AddressForm({
               {/* Google Places Suggestions Dropdown */}
               {showSuggestions && suggestions.length > 0 && (
                 <ul
+                  id={listboxId}
                   ref={suggestionsRef}
                   role="listbox"
+                  aria-label="Address suggestions"
                   className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-52 overflow-y-auto"
                 >
                   {suggestions.map((suggestion, index) => (
                     <li
                       key={suggestion.placeId}
+                      id={`suggestion-${suggestion.placeId}`}
                       role="option"
                       aria-selected={highlightedIndex === index}
                       onClick={() => handleSuggestionSelect(suggestion)}
@@ -607,7 +676,10 @@ export default function AddressForm({
                       </div>
                     </li>
                   ))}
-                  <li className="px-4 py-1.5 border-t border-gray-100">
+                  <li
+                    aria-hidden="true"
+                    className="px-4 py-1.5 border-t border-gray-100"
+                  >
                     <p className="text-[9px] text-gray-400 text-center">
                       Powered by Google
                     </p>
@@ -617,8 +689,6 @@ export default function AddressForm({
             </div>
           )}
         </div>
-
-
 
         {/* Set as Default */}
         {isAlreadyDefault ? (
@@ -641,6 +711,7 @@ export default function AddressForm({
             type="button"
             onClick={() => form.setValue("isDefault", !isDefault)}
             disabled={isLoading}
+            aria-pressed={isDefault}
             className={[
               "w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all",
               isDefault
@@ -650,6 +721,7 @@ export default function AddressForm({
           >
             <div className="flex items-center gap-3">
               <div
+                aria-hidden="true"
                 className={[
                   "w-4 h-4 rounded border-2 flex items-center justify-center transition-colors",
                   isDefault
@@ -680,7 +752,7 @@ export default function AddressForm({
         <div className="pt-2">
           <Button
             type="submit"
-            disabled={isLoading || isPincodeInvalid || pincodeLoading}
+            disabled={isSubmitDisabled}
             className="w-full"
             size="sm"
           >
