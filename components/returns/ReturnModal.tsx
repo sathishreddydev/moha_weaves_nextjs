@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { TextArea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RotateCcw, RefreshCw, AlertCircle, CheckCircle2 } from "lucide-react";
 import { OrderWithItems } from "@/shared";
@@ -379,7 +379,7 @@ export default function ReturnModal({
         <Label htmlFor="return-details" className="text-xs">
           Additional Details
         </Label>
-        <Textarea
+        <TextArea
           id="return-details"
           placeholder="Please provide more details about your request..."
           value={reasonDetails}
