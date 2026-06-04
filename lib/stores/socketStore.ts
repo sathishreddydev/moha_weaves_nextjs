@@ -23,7 +23,6 @@ export const useSocketStore = create<SocketStore>((set) => ({
   isConnected: false,
 
   connect: () => {
-    AuthTokenManager.syncTokenFromSession();
     const token = AuthTokenManager.getAccessToken();
     const socketInstance = socketService.connect(token || undefined);
 
