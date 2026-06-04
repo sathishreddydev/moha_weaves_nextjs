@@ -25,11 +25,11 @@ interface MobileCartViewProps {
   hasStockIssues: boolean;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   removeFromCart: (itemId: string) => Promise<void>;
-  clearCart: () => Promise<void>;
   calculateTotal: () => number;
   isGuest: boolean;
   relatedProducts?: ProductWithDetails[];
   categoryName?: string;
+  onCheckout?: () => void;
 }
 
 const FREE_SHIPPING_THRESHOLD = 999;
@@ -42,11 +42,11 @@ export default function MobileCartView({
   hasStockIssues,
   updateQuantity,
   removeFromCart,
-  clearCart,
   calculateTotal,
   isGuest,
   relatedProducts = [],
   categoryName = "all",
+  onCheckout,
 }: MobileCartViewProps) {
   const [showSummary, setShowSummary] = useState(false);
   const router = useRouter();
@@ -349,7 +349,15 @@ export default function MobileCartView({
           {/* Checkout Button */}
           {isGuest ? (
             <Button asChild className="w-full h-12 text-sm font-medium">
-              <Link href={items.length > 0 ? "/login?redirect=/checkout" : "/login?redirect=/cart"}>Sign in to Checkout</Link>
+              <Link href="/login?redirect=/cart">Sign in to Checkout</Link>
+            </Button>
+          ) : onCheckout ? (
+            <Button
+              onClick={onCheckout}
+              disabled={checkoutDisabled}
+              className="w-full h-12 text-sm font-medium"
+            >
+              Checkout
             </Button>
           ) : (
             <Button

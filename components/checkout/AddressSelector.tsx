@@ -98,7 +98,7 @@ export function AddressRow({
         <p className="text-xs text-gray-500 mt-0.5">{address.phone}</p>
       </div>
 
-      {/* Three-dots menu — stopPropagation so clicking it doesn't select the address */}
+      {/* Three-dots menu */}
       <div onClick={(e) => e.stopPropagation()}>
         {isUpdating ? (
           <div className="h-8 w-8 flex items-center justify-center">

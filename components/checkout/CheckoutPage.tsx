@@ -30,7 +30,6 @@ import DesktopCheckoutView from "./DesktopCheckoutView";
 import MobileCheckoutView from "./MobileCheckoutView";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type CheckoutView = "checkout" | "address-select" | "address-form";
 
 interface AppliedCoupon {
   id: string;
@@ -76,9 +75,8 @@ export default function CheckoutPage() {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [orderTotal, setOrderTotal] = useState<number>(0);
   const [orderItemCount, setOrderItemCount] = useState<number>(0);
-  const [checkoutView, setCheckoutView] = useState<CheckoutView>("checkout");
-  const [editingAddress, setEditingAddress] = useState<UserAddress | null>(null);
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
+  const [editingAddress, setEditingAddress] = useState<UserAddress | null>(null);
   const [notes] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   const addressLoadedRef = useRef(false);
@@ -158,26 +156,18 @@ export default function CheckoutPage() {
   };
 
   const handleDeleteAddress = async (addressId: string) => {
-    toast("Delete this address?", {
-      action: {
-        label: "Delete",
-        onClick: async () => {
-          try {
-            await deleteAddressMutation.mutateAsync(addressId);
-            toast.success("Address deleted");
-            if (selectedAddressId === addressId) setSelectedAddressId("");
-          } catch {
-            toast.error("Failed to delete address");
-          }
-        },
-      },
-      cancel: { label: "Cancel", onClick: () => {} },
-    });
+    // Delete directly without toast confirmation since it may be triggered from within a panel
+    try {
+      await deleteAddressMutation.mutateAsync(addressId);
+      toast.success("Address deleted");
+      if (selectedAddressId === addressId) setSelectedAddressId("");
+    } catch {
+      toast.error("Failed to delete address");
+    }
   };
 
   const handleSelectAddress = (id: string) => {
     setSelectedAddressId(id);
-    setCheckoutView("checkout");
   };
 
   const handleSetDefault = async (id: string) => {
@@ -327,7 +317,6 @@ export default function CheckoutPage() {
     addressesLoading,
     addressesError,
     selectedAddressId,
-    checkoutView,
     editingAddress,
     updating,
     hasStockIssues,
@@ -340,7 +329,6 @@ export default function CheckoutPage() {
     appliedCoupon,
     payBlockedReason,
     razorpayProps,
-    onSetCheckoutView: setCheckoutView,
     onSelectAddress: handleSelectAddress,
     onEditAddress: (addr: UserAddress) => setEditingAddress(addr),
     onDeleteAddress: handleDeleteAddress,
@@ -356,7 +344,7 @@ export default function CheckoutPage() {
     <div className="max-w-6xl mx-auto">
       {/* Desktop */}
       <div className="hidden lg:block">
-        <DesktopCheckoutView {...sharedProps} onGoToCart={() => router.push("/cart")} />
+        <DesktopCheckoutView {...sharedProps} />
       </div>
 
       {/* Mobile */}

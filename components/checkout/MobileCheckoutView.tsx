@@ -1,12 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { Separator } from "@/components/ui/separator";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
+import { StickyPanel } from "@/components/ui/StickyPanel";
 import { formatPrice } from "@/lib/formatters";
 import { CartItemWithProduct, UserAddress } from "@/shared/types";
 import {
@@ -16,6 +12,7 @@ import {
   Loader2,
   MapPin,
   Tag,
+  Trash2,
   Truck,
 } from "lucide-react";
 import Image from "next/image";
@@ -38,7 +35,6 @@ interface MobileCheckoutViewProps {
   addressesLoading: boolean;
   addressesError: string | null;
   selectedAddressId: string;
-  checkoutView: "checkout" | "address-select" | "address-form";
   editingAddress: UserAddress | null;
   updating: string | null;
   hasStockIssues: boolean;
@@ -51,7 +47,6 @@ interface MobileCheckoutViewProps {
   appliedCoupon: AppliedCoupon | null;
   payBlockedReason: string | null;
   razorpayProps: any;
-  onSetCheckoutView: (view: "checkout" | "address-select" | "address-form") => void;
   onSelectAddress: (id: string) => void;
   onEditAddress: (addr: UserAddress) => void;
   onDeleteAddress: (id: string) => void;
@@ -68,7 +63,6 @@ export default function MobileCheckoutView({
   addressesLoading,
   addressesError,
   selectedAddressId,
-  checkoutView,
   editingAddress,
   updating,
   hasStockIssues,
@@ -81,9 +75,7 @@ export default function MobileCheckoutView({
   appliedCoupon,
   payBlockedReason,
   razorpayProps,
-  onSetCheckoutView,
   onSelectAddress,
-  onEditAddress,
   onDeleteAddress,
   onSetDefault,
   onAddressSubmit,
@@ -91,13 +83,48 @@ export default function MobileCheckoutView({
   onCouponApplied,
   onCouponRemoved,
 }: MobileCheckoutViewProps) {
-  const isAddressFormOpen = checkoutView === "address-form";
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [panelView, setPanelView] = useState<"list" | "form" | "confirm-delete">("list");
+  const [deletingAddressId, setDeletingAddressId] = useState<string | null>(null);
 
-  // When drawer closes, go back to the previous view
-  const handleDrawerClose = () => {
+  const openAddressList = () => {
+    setPanelView("list");
+    setPanelOpen(true);
+  };
+
+  const openAddressForm = (addr?: UserAddress) => {
+    onSetEditingAddress(addr || null);
+    setPanelView("form");
+    setPanelOpen(true);
+  };
+
+  const openDeleteConfirm = (addressId: string) => {
+    setDeletingAddressId(addressId);
+    setPanelView("confirm-delete");
+  };
+
+  const handleConfirmDelete = () => {
+    if (deletingAddressId) {
+      onDeleteAddress(deletingAddressId);
+    }
+    setDeletingAddressId(null);
+    setPanelView("list");
+  };
+
+  const closePanel = () => {
+    setPanelOpen(false);
     onSetEditingAddress(null);
-    // If we came from address-select, go back there; otherwise go to checkout
-    onSetCheckoutView("address-select");
+    setDeletingAddressId(null);
+  };
+
+  const handleSelectAddress = (id: string) => {
+    onSelectAddress(id);
+    closePanel();
+  };
+
+  const handleAddressSubmit = async (data: AddressFormData) => {
+    await onAddressSubmit(data);
+    setPanelView("list");
   };
 
   // ── Order items (compact) ───────────────────────────────────────────────
@@ -213,96 +240,6 @@ export default function MobileCheckoutView({
     </div>
   );
 
-  // ── Address Form Drawer (shared across all views) ───────────────────────
-  const AddressFormDrawer = () => (
-    <Drawer
-      open={isAddressFormOpen}
-      onOpenChange={(open) => {
-        if (!open) handleDrawerClose();
-      }}
-      handleOnly
-    >
-      <DrawerContent className="max-h-[90dvh] flex flex-col">
-        <DrawerHeader className="flex-shrink-0 border-b border-gray-100">
-          <DrawerTitle>
-            {editingAddress ? "Edit Address" : "Add New Address"}
-          </DrawerTitle>
-        </DrawerHeader>
-        <div
-          className="flex-1 overflow-y-auto overscroll-contain px-4 pb-8 pt-2"
-          // Prevent touch-move from propagating to the drawer (prevents dismiss while scrolling form)
-          onTouchMove={(e) => e.stopPropagation()}
-        >
-          <AddressForm
-            isOpen={isAddressFormOpen}
-            onClose={handleDrawerClose}
-            onSubmit={onAddressSubmit}
-            editingAddress={editingAddress}
-            isLoading={updating !== null}
-            hideHeader
-          />
-        </div>
-      </DrawerContent>
-    </Drawer>
-  );
-
-  // ── Full-screen address list view ───────────────────────────────────────
-  if (checkoutView === "address-select") {
-    return (
-      <div className="min-h-screen pb-8 px-4">
-        {hasStockIssues && (
-          <div className="mb-4 py-3 px-4 bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg">
-            Some items have stock issues. Resolve them in your cart first.
-          </div>
-        )}
-
-        <div className="space-y-4">
-          <button
-            type="button"
-            onClick={() => onSetCheckoutView("checkout")}
-            className="flex items-center gap-2 group"
-            aria-label="Back to checkout"
-          >
-            <ArrowLeft className="w-4 h-4 text-gray-400 group-hover:text-gray-700 transition-colors" />
-            <span className="text-sm text-gray-600 group-hover:text-gray-900">
-              Back to checkout
-            </span>
-          </button>
-
-          <h2 className="text-lg font-semibold text-gray-900">
-            Select Delivery Address
-          </h2>
-
-          {addressesError && (
-            <div className="px-3 py-2 bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg">
-              {addressesError}
-            </div>
-          )}
-
-          <AddressListView
-            addresses={addresses}
-            selectedAddressId={selectedAddressId}
-            onSelectAddress={onSelectAddress}
-            onAddNew={() => {
-              onSetEditingAddress(null);
-              onSetCheckoutView("address-form");
-            }}
-            onEditAddress={(addr) => {
-              onSetEditingAddress(addr);
-              onSetCheckoutView("address-form");
-            }}
-            onDeleteAddress={onDeleteAddress}
-            onSetDefault={onSetDefault}
-            updatingId={updating || undefined}
-          />
-        </div>
-
-        {/* Drawer for address form */}
-        <AddressFormDrawer />
-      </div>
-    );
-  }
-
   // ── Main mobile checkout ────────────────────────────────────────────────
   return (
     <>
@@ -322,44 +259,36 @@ export default function MobileCheckoutView({
             Delivery
           </h2>
 
-          <div className="space-y-3">
-            {addressesError && (
-              <div className="px-3 py-2 bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg">
-                {addressesError}
-              </div>
-            )}
+          {addressesError && (
+            <div className="px-3 py-2 bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg mb-3">
+              {addressesError}
+            </div>
+          )}
 
-            {addressesLoading ? (
-              <div className="flex items-center gap-2 py-6 text-gray-400 text-sm">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading addresses…
-              </div>
-            ) : (
-              <AddressSelector
-                addresses={addresses}
-                selectedAddressId={selectedAddressId}
-                onSelectAddress={onSelectAddress}
-                onChangeRequest={() => onSetCheckoutView("address-select")}
-                onAddNew={() => {
-                  onSetEditingAddress(null);
-                  onSetCheckoutView("address-form");
-                }}
-                onEditAddress={(addr) => {
-                  onSetEditingAddress(addr);
-                  onSetCheckoutView("address-form");
-                }}
-                onDeleteAddress={onDeleteAddress}
-                onSetDefault={onSetDefault}
-                updatingId={updating || undefined}
-              />
-            )}
+          {addressesLoading ? (
+            <div className="flex items-center gap-2 py-6 text-gray-400 text-sm">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading addresses…
+            </div>
+          ) : (
+            <AddressSelector
+              addresses={addresses}
+              selectedAddressId={selectedAddressId}
+              onSelectAddress={handleSelectAddress}
+              onChangeRequest={openAddressList}
+              onAddNew={() => openAddressForm()}
+              onEditAddress={(addr) => openAddressForm(addr)}
+              onDeleteAddress={onDeleteAddress}
+              onSetDefault={onSetDefault}
+              updatingId={updating || undefined}
+            />
+          )}
 
-            {!selectedAddressId && !addressesLoading && addresses.length > 0 && (
-              <p className="text-xs text-gray-500">
-                Please select a delivery address
-              </p>
-            )}
-          </div>
+          {!selectedAddressId && !addressesLoading && addresses.length > 0 && (
+            <p className="text-xs text-gray-500 mt-2">
+              Please select a delivery address
+            </p>
+          )}
         </section>
 
         <Separator />
@@ -404,8 +333,112 @@ export default function MobileCheckoutView({
         </div>
       </div>
 
-      {/* Drawer for address form */}
-      <AddressFormDrawer />
+      {/* Address StickyPanel */}
+      <StickyPanel
+        isOpen={panelOpen}
+        onClose={closePanel}
+        title={
+          panelView === "form" ? (
+            <span className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPanelView("list")}
+                className="p-1 -ml-1 rounded hover:bg-gray-100 transition-colors"
+                aria-label="Back to address list"
+              >
+                <ArrowLeft className="h-4 w-4 text-gray-500" />
+              </button>
+              {editingAddress ? "Edit Address" : "Add New Address"}
+            </span>
+          ) : panelView === "confirm-delete" ? (
+            <span className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPanelView("list")}
+                className="p-1 -ml-1 rounded hover:bg-gray-100 transition-colors"
+                aria-label="Back to address list"
+              >
+                <ArrowLeft className="h-4 w-4 text-gray-500" />
+              </button>
+              Delete Address
+            </span>
+          ) : "Select Address"
+        }
+        icon={panelView === "list" ? <MapPin className="h-4 w-4" /> : undefined}
+        isMobile
+        footer={
+          panelView === "confirm-delete" ? (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                className="w-full px-4 py-3 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          ) : panelView === "form" ? (
+            <div>
+              <button
+                type="submit"
+                form="address-form"
+                className="w-full px-4 py-3 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {editingAddress ? "Update Address" : "Save Address"}
+              </button>
+            </div>
+          ) : undefined
+        }
+      >
+        {panelView === "list" ? (
+          <AddressListView
+            addresses={addresses}
+            selectedAddressId={selectedAddressId}
+            onSelectAddress={handleSelectAddress}
+            onAddNew={() => openAddressForm()}
+            onEditAddress={(addr) => openAddressForm(addr)}
+            onDeleteAddress={openDeleteConfirm}
+            onSetDefault={onSetDefault}
+            updatingId={updating || undefined}
+          />
+        ) : panelView === "confirm-delete" ? (
+          <div className="flex flex-col py-4 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                <Trash2 className="h-4 w-4 text-red-500" />
+              </div>
+              <p className="text-sm font-medium text-gray-900">Delete this address?</p>
+            </div>
+            {(() => {
+              const addr = addresses.find((a) => a.id === deletingAddressId);
+              if (!addr) return null;
+              return (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                  <p className="text-xs font-semibold text-gray-900">{addr.name}</p>
+                  <p className="text-xs text-gray-600 mt-0.5">
+                    {addr.addressLine1 ? `${addr.addressLine1}, ` : ""}
+                    {addr.locality}, {addr.city}
+                    {addr.state ? `, ${addr.state}` : ""} — {addr.pincode}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">{addr.phone}</p>
+                </div>
+              );
+            })()}
+            <p className="text-xs text-gray-500">
+              This action cannot be undone.
+            </p>
+          </div>
+        ) : (
+          <AddressForm
+            isOpen
+            onClose={() => setPanelView("list")}
+            onSubmit={handleAddressSubmit}
+            editingAddress={editingAddress}
+            isLoading={updating !== null}
+            hideHeader
+          />
+        )}
+      </StickyPanel>
     </>
   );
 }

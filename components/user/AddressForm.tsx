@@ -753,24 +753,26 @@ export default function AddressForm({
           </button>
         )}
 
-        {/* Save button */}
-        <div className="pt-2">
-          <Button
-            type="submit"
-            disabled={isSubmitDisabled}
-            className="w-full"
-            size="sm"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Saving…
-              </>
-            ) : (
-              <>{editingAddress ? "Update Address" : "Save Address"}</>
-            )}
-          </Button>
-        </div>
+        {/* Save button is rendered externally via panel footer when hideHeader is true */}
+        {!hideHeader && (
+          <div className="pt-2">
+            <Button
+              type="submit"
+              disabled={isSubmitDisabled}
+              className="w-full"
+              size="sm"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Saving…
+                </>
+              ) : (
+                <>{editingAddress ? "Update Address" : "Save Address"}</>
+              )}
+            </Button>
+          </div>
+        )}
       </form>
     </div>
   );
