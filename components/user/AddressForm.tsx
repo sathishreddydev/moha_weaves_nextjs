@@ -63,6 +63,8 @@ export interface AddressFormProps {
   onSubmit: (data: AddressFormData) => Promise<void>;
   editingAddress?: UserAddress | null;
   isLoading?: boolean;
+  /** When true, hides the back-button header (used inside drawer which has its own title) */
+  hideHeader?: boolean;
 }
 
 const ADDRESS_TYPES = [
@@ -77,6 +79,7 @@ export default function AddressForm({
   onSubmit,
   editingAddress,
   isLoading = false,
+  hideHeader = false,
 }: AddressFormProps) {
   const [pincodeInfo, setPincodeInfo] = useState<PincodeInfo | null>(null);
   const [pincodeLoading, setPincodeLoading] = useState(false);
@@ -373,19 +376,21 @@ export default function AddressForm({
 
   return (
     <div className="space-y-4">
-      {/* Header with back button */}
-      <button
-        type="button"
-        onClick={onClose}
-        disabled={isLoading}
-        className="flex items-center gap-3 cursor-pointer disabled:opacity-50 group -ml-1 py-1"
-        aria-label="Go back to addresses"
-      >
-        <ArrowLeft className="w-5 h-5 text-gray-500 group-hover:text-gray-800 transition-colors" />
-        <h1 className="text-xl font-semibold text-gray-900">
-          {editingAddress ? "Edit Address" : "Add New Address"}
-        </h1>
-      </button>
+      {/* Header with back button — hidden when inside a drawer */}
+      {!hideHeader && (
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={isLoading}
+          className="flex items-center gap-3 cursor-pointer disabled:opacity-50 group -ml-1 py-1"
+          aria-label="Go back to addresses"
+        >
+          <ArrowLeft className="w-5 h-5 text-gray-500 group-hover:text-gray-800 transition-colors" />
+          <h1 className="text-xl font-semibold text-gray-900">
+            {editingAddress ? "Edit Address" : "Add New Address"}
+          </h1>
+        </button>
+      )}
 
       {/* Submit error banner */}
       {submitError && (

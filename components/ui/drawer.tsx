@@ -5,12 +5,24 @@ import { Drawer as DrawerPrimitive } from "vaul"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Drawer component optimized for mobile.
+ *
+ * Key props passed to vaul:
+ * - `repositionInputs={false}` — prevents the drawer from jumping when the
+ *   mobile virtual keyboard opens. Without this, typing in inputs causes the
+ *   drawer to resize/reposition erratically on iOS & Android.
+ * - `handleOnly` — when true, only the drag handle dismisses the drawer
+ *   (prevents conflicts with scrolling form content).
+ */
 const Drawer = ({
   shouldScaleBackground = false,
+  repositionInputs = false,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Root>) => (
   <DrawerPrimitive.Root
     shouldScaleBackground={shouldScaleBackground}
+    repositionInputs={repositionInputs}
     {...props}
   />
 )
@@ -46,8 +58,12 @@ const DrawerContent = React.forwardRef<
         "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-background",
         className
       )}
+      // Prevent iOS rubber-band scroll from dismissing the drawer
+      onPointerDownOutside={(e) => e.preventDefault()}
       {...props}
     >
+      {/* Drag handle — visible grab indicator */}
+      <div className="mx-auto mt-3 mb-1 h-1.5 w-12 flex-shrink-0 rounded-full bg-muted" />
       {children}
     </DrawerPrimitive.Content>
   </DrawerPortal>

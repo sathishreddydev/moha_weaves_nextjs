@@ -1,6 +1,12 @@
 "use client";
 
 import { Separator } from "@/components/ui/separator";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import { formatPrice } from "@/lib/formatters";
 import { CartItemWithProduct, UserAddress } from "@/shared/types";
 import {
@@ -85,73 +91,14 @@ export default function MobileCheckoutView({
   onCouponApplied,
   onCouponRemoved,
 }: MobileCheckoutViewProps) {
-  const isMobileAddressView =
-    checkoutView === "address-select" || checkoutView === "address-form";
+  const isAddressFormOpen = checkoutView === "address-form";
 
-  // ── Address full-screen content ─────────────────────────────────────────
-  const addressFullScreenContent = (() => {
-    if (checkoutView === "address-form") {
-      return (
-        <AddressForm
-          isOpen
-          onClose={() => {
-            onSetEditingAddress(null);
-            onSetCheckoutView("address-select");
-          }}
-          onSubmit={onAddressSubmit}
-          editingAddress={editingAddress}
-          isLoading={updating !== null}
-        />
-      );
-    }
-
-    if (checkoutView === "address-select") {
-      return (
-        <div className="space-y-4">
-          <button
-            type="button"
-            onClick={() => onSetCheckoutView("checkout")}
-            className="flex items-center gap-2 group"
-            aria-label="Back to checkout"
-          >
-            <ArrowLeft className="w-4 h-4 text-gray-400 group-hover:text-gray-700 transition-colors" />
-            <span className="text-sm text-gray-600 group-hover:text-gray-900">
-              Back to checkout
-            </span>
-          </button>
-
-          <h2 className="text-lg font-semibold text-gray-900">
-            Select Delivery Address
-          </h2>
-
-          {addressesError && (
-            <div className="px-3 py-2 bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg">
-              {addressesError}
-            </div>
-          )}
-
-          <AddressListView
-            addresses={addresses}
-            selectedAddressId={selectedAddressId}
-            onSelectAddress={onSelectAddress}
-            onAddNew={() => {
-              onSetEditingAddress(null);
-              onSetCheckoutView("address-form");
-            }}
-            onEditAddress={(addr) => {
-              onSetEditingAddress(addr);
-              onSetCheckoutView("address-form");
-            }}
-            onDeleteAddress={onDeleteAddress}
-            onSetDefault={onSetDefault}
-            updatingId={updating || undefined}
-          />
-        </div>
-      );
-    }
-
-    return null;
-  })();
+  // When drawer closes, go back to the previous view
+  const handleDrawerClose = () => {
+    onSetEditingAddress(null);
+    // If we came from address-select, go back there; otherwise go to checkout
+    onSetCheckoutView("address-select");
+  };
 
   // ── Order items (compact) ───────────────────────────────────────────────
   const OrderItemsList = () => (
@@ -266,8 +213,41 @@ export default function MobileCheckoutView({
     </div>
   );
 
-  // ── Full-screen address takeover ────────────────────────────────────────
-  if (isMobileAddressView) {
+  // ── Address Form Drawer (shared across all views) ───────────────────────
+  const AddressFormDrawer = () => (
+    <Drawer
+      open={isAddressFormOpen}
+      onOpenChange={(open) => {
+        if (!open) handleDrawerClose();
+      }}
+      handleOnly
+    >
+      <DrawerContent className="max-h-[90dvh] flex flex-col">
+        <DrawerHeader className="flex-shrink-0 border-b border-gray-100">
+          <DrawerTitle>
+            {editingAddress ? "Edit Address" : "Add New Address"}
+          </DrawerTitle>
+        </DrawerHeader>
+        <div
+          className="flex-1 overflow-y-auto overscroll-contain px-4 pb-8 pt-2"
+          // Prevent touch-move from propagating to the drawer (prevents dismiss while scrolling form)
+          onTouchMove={(e) => e.stopPropagation()}
+        >
+          <AddressForm
+            isOpen={isAddressFormOpen}
+            onClose={handleDrawerClose}
+            onSubmit={onAddressSubmit}
+            editingAddress={editingAddress}
+            isLoading={updating !== null}
+            hideHeader
+          />
+        </div>
+      </DrawerContent>
+    </Drawer>
+  );
+
+  // ── Full-screen address list view ───────────────────────────────────────
+  if (checkoutView === "address-select") {
     return (
       <div className="min-h-screen pb-8 px-4">
         {hasStockIssues && (
@@ -275,7 +255,50 @@ export default function MobileCheckoutView({
             Some items have stock issues. Resolve them in your cart first.
           </div>
         )}
-        {addressFullScreenContent}
+
+        <div className="space-y-4">
+          <button
+            type="button"
+            onClick={() => onSetCheckoutView("checkout")}
+            className="flex items-center gap-2 group"
+            aria-label="Back to checkout"
+          >
+            <ArrowLeft className="w-4 h-4 text-gray-400 group-hover:text-gray-700 transition-colors" />
+            <span className="text-sm text-gray-600 group-hover:text-gray-900">
+              Back to checkout
+            </span>
+          </button>
+
+          <h2 className="text-lg font-semibold text-gray-900">
+            Select Delivery Address
+          </h2>
+
+          {addressesError && (
+            <div className="px-3 py-2 bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg">
+              {addressesError}
+            </div>
+          )}
+
+          <AddressListView
+            addresses={addresses}
+            selectedAddressId={selectedAddressId}
+            onSelectAddress={onSelectAddress}
+            onAddNew={() => {
+              onSetEditingAddress(null);
+              onSetCheckoutView("address-form");
+            }}
+            onEditAddress={(addr) => {
+              onSetEditingAddress(addr);
+              onSetCheckoutView("address-form");
+            }}
+            onDeleteAddress={onDeleteAddress}
+            onSetDefault={onSetDefault}
+            updatingId={updating || undefined}
+          />
+        </div>
+
+        {/* Drawer for address form */}
+        <AddressFormDrawer />
       </div>
     );
   }
@@ -380,6 +403,9 @@ export default function MobileCheckoutView({
           <RazorpayPayment {...razorpayProps} />
         </div>
       </div>
+
+      {/* Drawer for address form */}
+      <AddressFormDrawer />
     </>
   );
 }
