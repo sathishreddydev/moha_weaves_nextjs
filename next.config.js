@@ -18,6 +18,11 @@ const nextConfig = {
         pathname: "/**",
       },
       {
+        protocol: "https",
+        hostname: "admin.urumibymounika.com",
+        pathname: "/**",
+      },
+      {
         protocol: "http",
         hostname: "103.127.146.58",
         pathname: "/**",
@@ -57,7 +62,7 @@ const nextConfig = {
               "media-src 'self' https://res.cloudinary.com",
 
               // API calls
-              "connect-src 'self' https://api.razorpay.com https://*.razorpay.com http://103.127.146.58:5000 ws://103.127.146.58:5000 ws://localhost:3000 http://localhost:3000 ws://localhost:5000 ws: wss:",
+              "connect-src 'self' https://api.razorpay.com https://*.razorpay.com https://admin.urumibymounika.com wss://admin.urumibymounika.com http://103.127.146.58:5000 ws://103.127.146.58:5000 ws://localhost:3000 http://localhost:3000 ws://localhost:5000 ws: wss:",
 
               // Razorpay payment popup
               "frame-src 'self' https://checkout.razorpay.com https://api.razorpay.com",
