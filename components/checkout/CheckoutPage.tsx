@@ -149,7 +149,6 @@ export default function CheckoutPage() {
         toast.success("Address added");
       }
       setEditingAddress(null);
-      setCheckoutView("address-select");
     } catch {
       toast.error("Failed to save address");
     }
