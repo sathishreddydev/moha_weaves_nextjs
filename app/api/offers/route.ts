@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { sales, categories } from "@/shared";
-import { and, desc, eq, gte, lte, or, not } from "drizzle-orm";
+import { categories, sales } from "@/shared";
+import { desc, eq, gte, lte, not, or } from "drizzle-orm";
+import { NextResponse } from "next/server";
+import { getActiveOffers } from "./offersService";
 
 export async function GET() {
   try {
@@ -26,21 +27,10 @@ export async function GET() {
       createdAt: sales.createdAt,
     };
 
-    // ✅ Fetch active offers with SQL filtering (no JS post-filter)
-    const activeSales = await db
-      .select(selectFields)
-      .from(sales)
-      .leftJoin(categories, eq(categories.id, sales.categoryId))
-      .where(
-        and(
-          eq(sales.isActive, true),
-          lte(sales.validFrom, now),
-          gte(sales.validUntil, now)
-        )
-      )
-      .orderBy(desc(sales.isFeatured), desc(sales.createdAt));
+    // Active offers via shared service
+    const activeOffers = await getActiveOffers();
 
-    // ✅ Fetch inactive offers separately
+    // Inactive offers still needed for the full API response (admin UI etc.)
     const inactiveSales = await db
       .select(selectFields)
       .from(sales)
@@ -49,100 +39,37 @@ export async function GET() {
         or(
           not(eq(sales.isActive, true)),
           gte(sales.validFrom, now),
-          lte(sales.validUntil, now)
-        )
+          lte(sales.validUntil, now),
+        ),
       )
       .orderBy(desc(sales.createdAt));
 
-    // ✅ Pick best offer (featured already sorted)
-    const currentOffer = activeSales?.[0] || null;
-
-    // ✅ Formatter
-    const formatOffer = (offer: any) => {
-      // Build the destination link for the offer
-      let link: string | null = null;
-      if (offer.categoryId && offer.categoryName) {
-        // Category-scoped offer → go to that category pre-filtered to on-sale items
-        link = `/collections/${offer.categoryName.toLowerCase()}?onSale=true`;
-      } else if (offer.offerType === "flash_sale" || offer.offerType === "percentage" || offer.offerType === "flat") {
-        // Sitewide offer → go to all collections filtered to on-sale items
-        link = `/collections?onSale=true`;
-      }
-      // product-level offers without a category get no link (handled per-product)
-
-      return {
-        id: offer.id,
-        title: formatOfferTitle(offer),
-        description: offer.description || formatOfferDescription(offer),
-        backgroundColor: offer.bgColor || "#1f2937",
-        textColor: "#ffffff",
-        link,
-        isActive: offer.isActive,
-        isFeatured: offer.isFeatured,
-        validFrom: offer.validFrom,
-        validUntil: offer.validUntil,
-      };
-    };
-
-    const formattedOffer = currentOffer
-      ? formatOffer(currentOffer)
-      : null;
+    const formatInactive = (offer: any) => ({
+      id: offer.id,
+      title: offer.name || "Special Offer!",
+      description: offer.description || "",
+      backgroundColor: offer.bgColor || "#1f2937",
+      textColor: "#ffffff",
+      link: null,
+      isActive: offer.isActive,
+      isFeatured: offer.isFeatured,
+      validFrom: offer.validFrom,
+      validUntil: offer.validUntil,
+    });
 
     return NextResponse.json({
-      // ✅ single banner
-      offer: formattedOffer,
-
-      // ✅ lists
-      activeOffers: activeSales.map(formatOffer),
-      inactiveOffers: inactiveSales.map(formatOffer),
-
-      hasOffer: Boolean(formattedOffer),
-      totalActiveOffers: activeSales.length,
-      totalOffers: activeSales.length + inactiveSales.length,
+      offer: activeOffers[0] ?? null,
+      activeOffers,
+      inactiveOffers: inactiveSales.map(formatInactive),
+      hasOffer: activeOffers.length > 0,
+      totalActiveOffers: activeOffers.length,
+      totalOffers: activeOffers.length + inactiveSales.length,
     });
   } catch (error) {
     console.error("Error fetching offers:", error);
-
     return NextResponse.json(
       { message: "Failed to fetch offers" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-
-function formatOfferTitle(sale: any): string {
-  switch (sale.offerType) {
-    case 'percentage':
-      return `🎉 ${sale.discountValue}% OFF!`;
-    case 'flat':
-      return `✨ Flat ₹${sale.discountValue} OFF!`;
-    case 'flash_sale':
-      return `⚡ Flash Sale!`;
-    case 'category':
-      return `🛍️ ${sale.categoryName || 'Category'} Sale!`;
-    default:
-      return sale.name || 'Special Offer!';
-  }
-}
-
-function formatOfferDescription(sale: any): string {
-  switch (sale.offerType) {
-    case 'percentage':
-      return sale.minOrderAmount
-        ? `Get ${sale.discountValue}% off on orders above ₹${sale.minOrderAmount}`
-        : `Get ${sale.discountValue}% off on selected items`;
-    case 'flat':
-      return sale.minOrderAmount
-        ? `Flat ₹${sale.discountValue} off on orders above ₹${sale.minOrderAmount}`
-        : `Flat ₹${sale.discountValue} off on selected items`;
-    case 'flash_sale':
-      return `Limited time offer - Don't miss out!`;
-    case 'category':
-      return sale.categoryName
-        ? `Special discounts on ${sale.categoryName}`
-        : `Special discounts on selected categories`;
-    default:
-      return 'Special discounts available';
-  }
-}
-

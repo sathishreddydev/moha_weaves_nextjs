@@ -5,6 +5,7 @@ import Link from "next/link";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useOffersBanner } from "@/hooks/use-offers-banner";
 import { useSocketStore } from "@/lib/stores/socketStore";
+import { useInitialOffers } from "@/components/providers";
 
 interface Offer {
   id: string;
@@ -24,11 +25,12 @@ interface OffersResponse {
 }
 
 export default function OffersBanner() {
-  const [offers, setOffers] = useState<Offer[]>([]);
+  const serverOffers = useInitialOffers();
+
+  // Pre-seed from server data — no loading flash on first render
+  const [offers, setOffers] = useState<Offer[]>(serverOffers);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
   const [isClosed, setIsClosed] = useState(false);
-  // Fix #1: measure banner height and expose as CSS variable so Header always sits below it
   const bannerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -44,14 +46,18 @@ export default function OffersBanner() {
     return () => ro.disconnect();
   }, [offers, currentIndex]);
 
-  // Fix #4: use a ref for lastScrollY to avoid re-registering the listener on every scroll
   const lastScrollY = useRef(0);
-
   const { setHasOfferData, setBannerVisible } = useOffersBanner();
   const [localVisible, setLocalVisible] = useState(true);
   const { socket } = useSocketStore();
 
-  // Fetch offers
+  // Sync hasOfferData with the seeded initial state on mount
+  useEffect(() => {
+    setHasOfferData(serverOffers.length > 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Re-fetch from API when socket fires offer_event or product_event
   const fetchOffers = useCallback(async () => {
     try {
       const res = await fetch("/api/offers");
@@ -61,32 +67,26 @@ export default function OffersBanner() {
         setOffers(data.activeOffers);
         setHasOfferData(true);
       } else {
+        setOffers([]);
         setHasOfferData(false);
       }
     } catch {
-      setHasOfferData(false);
-    } finally {
-      setIsLoading(false);
+      // keep existing offers on network error
     }
   }, [setHasOfferData]);
 
-  useEffect(() => {
-    fetchOffers();
-  }, [fetchOffers]);
-
-  // Re-fetch offers when admin updates products/sales
+  // Socket-driven re-fetch only — no initial fetch needed
   useEffect(() => {
     if (!socket) return;
-    const handler = () => fetchOffers();
-    socket.on("product_event", handler);
-    socket.on("offer_event", handler);
+    socket.on("product_event", fetchOffers);
+    socket.on("offer_event", fetchOffers);
     return () => {
-      socket.off("product_event", handler);
-      socket.off("offer_event", handler);
+      socket.off("product_event", fetchOffers);
+      socket.off("offer_event", fetchOffers);
     };
   }, [socket, fetchOffers]);
 
-  // Fix #5: smooth fade transition — pause auto-rotate while fading
+  // Smooth fade transition
   const [fading, setFading] = useState(false);
   const offersRef = useRef<Offer[]>(offers);
   offersRef.current = offers;
@@ -118,42 +118,37 @@ export default function OffersBanner() {
     goTo((currentIndexRef.current - 1 + len) % len);
   }, [goTo]);
 
-  // Auto-rotate every 4s — only when not fading
+  // Auto-rotate every 4s
   useEffect(() => {
     if (offers.length <= 1 || fading) return;
     const interval = setInterval(goNext, 4000);
     return () => clearInterval(interval);
   }, [offers.length, fading, goNext]);
 
-  // Fix #4: scroll handler uses ref, registered once
+  // Scroll hide/show
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
       const shouldShow =
         currentScrollY < lastScrollY.current || currentScrollY <= 50;
-
       setLocalVisible(shouldShow);
       setBannerVisible(shouldShow);
       lastScrollY.current = currentScrollY;
     };
-
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [setBannerVisible]); // stable — only registers once
+  }, [setBannerVisible]);
 
-  // Fix #3: close hides banner but doesn't permanently kill it
   const handleClose = () => {
     setIsClosed(true);
     setLocalVisible(false);
     setBannerVisible(false);
     setHasOfferData(false);
-    // Reset the CSS variable so the header snaps back to top-0
     document.documentElement.style.setProperty("--banner-height", "0px");
   };
 
-  if (isLoading || offers.length === 0 || isClosed) return null;
+  if (offers.length === 0 || isClosed) return null;
 
-  // Guard against index going out of bounds during fade transitions or re-fetches
   const safeIndex = currentIndex >= offers.length ? 0 : currentIndex;
   const offer = offers[safeIndex];
   if (!offer) return null;
@@ -161,7 +156,6 @@ export default function OffersBanner() {
   const hasMultiple = offers.length > 1;
 
   return (
-    // Fix #1: use min-h instead of fixed height so wrapping text doesn't overlap header
     <div
       ref={bannerRef}
       className={`fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ${
@@ -177,7 +171,6 @@ export default function OffersBanner() {
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
 
-          {/* Fix #2: prev arrow — only shown when multiple offers */}
           <div className="flex items-center gap-1 flex-shrink-0">
             {hasMultiple && (
               <button
@@ -191,7 +184,6 @@ export default function OffersBanner() {
             )}
           </div>
 
-          {/* Offer content — Fix #5: fade transition */}
           <div
             className={`flex-1 flex items-center justify-center gap-2 transition-opacity duration-200 ${
               fading ? "opacity-0" : "opacity-100"
@@ -216,7 +208,6 @@ export default function OffersBanner() {
               </div>
             )}
 
-            {/* Fix #2: dot indicators */}
             {hasMultiple && (
               <div className="hidden sm:flex items-center gap-1 ml-3">
                 {offers.map((_, i) => (
@@ -236,7 +227,6 @@ export default function OffersBanner() {
               </div>
             )}
 
-            {/* Mobile: numeric counter */}
             {hasMultiple && (
               <span
                 className="sm:hidden text-xs opacity-70 ml-2"
@@ -247,7 +237,6 @@ export default function OffersBanner() {
             )}
           </div>
 
-          {/* Right: next arrow + close */}
           <div className="flex items-center gap-1 flex-shrink-0">
             {hasMultiple && (
               <button

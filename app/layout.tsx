@@ -7,6 +7,7 @@ import OffersBanner from "@/components/layout/OffersBanner";
 import { Providers } from "@/components/providers";
 import { OffersBannerProvider } from "@/hooks/use-offers-banner";
 import { getFiltersData, FiltersData } from "@/app/api/filters/filterService";
+import { getActiveOffers, Offer } from "@/app/api/offers/offersService";
 import type { Metadata, Viewport } from "next";
 import { getServerSession } from "next-auth/next";
 import { Inter } from "next/font/google";
@@ -74,17 +75,18 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Fetch session and filters in parallel on the server —
-  // both are ready before a single byte of HTML is sent to the browser.
-  const [session, filters] = await Promise.all([
+  // Fetch session, filters, and offers in parallel on the server —
+  // all three are ready before a single byte of HTML is sent to the browser.
+  const [session, filters, initialOffers] = await Promise.all([
     getServerSession(authOptions),
     getFiltersData().catch(() => ({ categories: [], colors: [], fabrics: [] } as FiltersData)),
+    getActiveOffers().catch(() => [] as Offer[]),
   ]);
 
   return (
     <html lang="en">
       <body className={inter.className}>
-        <Providers session={session} filters={filters}>
+        <Providers session={session} filters={filters} initialOffers={initialOffers}>
           <OffersBannerProvider>
             {/* <GlobalSwipeNavigation> */}
               <OffersBanner />
