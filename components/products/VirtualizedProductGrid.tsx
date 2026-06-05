@@ -28,16 +28,8 @@ function getColumns(containerWidth: number): number {
   return 2; // default
 }
 
-/** Gap between grid items in px (matches gap-4 = 16px) */
 const GAP = 16;
 
-/**
- * Virtualized product grid with infinite scroll.
- *
- * Uses @tanstack/react-virtual's window virtualizer to only render visible rows
- * while scrolling with the page (no nested scroll container).
- * IntersectionObserver on a sentinel element triggers loading more products.
- */
 export default function VirtualizedProductGrid({
   products,
   hasMore,

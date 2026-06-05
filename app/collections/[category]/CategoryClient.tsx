@@ -78,9 +78,16 @@ export default function CategoryClient({
     socket.on("offer_event", handleProductEvent);
     return () => { socket.off("product_event", handleProductEvent); socket.off("offer_event", handleProductEvent); };
   }, [socket, router]);
-
-  // ── State ──────────────────────────────────────────────────────────────────
   const [showFilters, setShowFilters] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 640px)");
+    const handleChange = (e: MediaQueryListEvent) => {
+      if (e.matches) setShowFilters(false);
+    };
+    mq.addEventListener("change", handleChange);
+    return () => mq.removeEventListener("change", handleChange);
+  }, []);
   const [currentFilters, setCurrentFilters] = useState<ProductFilters>(initialFilters);
   const [displayedProducts, setDisplayedProducts] = useState<ProductWithDetails[]>(initialProducts || []);
   const [totalCount, setTotalCount] = useState(initialCount || 0);
@@ -269,7 +276,7 @@ export default function CategoryClient({
             <h1 className="text-xl font-light text-gray-900 uppercase tracking-[0.1em]">
               {currentCategory?.name || categoryName.charAt(0).toUpperCase() + categoryName.slice(1)}
             </h1>
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="bg-white rounded-lg shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-900">Filters</h3>
                 <Button

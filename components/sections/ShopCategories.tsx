@@ -3,6 +3,7 @@
 import { Card } from "@/components/ui/card";
 import { useFilterStore } from "@/lib/stores/fillterStore";
 import { ArrowRight } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
 export default function ShopCategories() {
@@ -31,42 +32,32 @@ export default function ShopCategories() {
         </Link>
       </div>
 
-      {loadingCategories ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="animate-pulse aspect-square bg-gray-200 rounded-lg" />
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {categories?.slice(0, 8).map((category) => {
-            const categoryUrl = `/collections/${encodeURIComponent(category.name)}`;
-            return (
-              <Link key={category.id} href={categoryUrl}>
-                <Card
-                  className="group relative aspect-square overflow-hidden hover-elevate cursor-pointer"
-                  data-testid={`card-category-${category.id}`}
-                >
-                  <img
-                    src={
-                      category?.imageUrl ||
-                      "https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=400&h=400&fit=crop"
-                    }
-                    alt={category.name}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-4">
-                    <h3 className="font-serif text-lg font-medium text-white">
-                      {category.name}
-                    </h3>
-                  </div>
-                </Card>
-              </Link>
-            );
-          })}
-        </div>
-      )}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {categories?.slice(0, 8).map((category) => {
+          const categoryUrl = `/collections/${encodeURIComponent(category.name)}`;
+          return (
+            <Link key={category.id} href={categoryUrl}>
+              <Card
+                className="group relative aspect-square overflow-hidden hover-elevate cursor-pointer rounded-none"
+                data-testid={`card-category-${category.id}`}
+              >
+                <Image
+                  src={category?.imageUrl || ""}
+                  alt={category.name}
+                  fill
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  <h3 className="font-serif text-lg font-medium text-white">
+                    {category.name}
+                  </h3>
+                </div>
+              </Card>
+            </Link>
+          );
+        })}
+      </div>
     </section>
   );
 }

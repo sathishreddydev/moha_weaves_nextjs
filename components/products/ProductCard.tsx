@@ -61,7 +61,7 @@ export default function ProductCard({
     <div className={`flex flex-col gap-1 md:gap-2 ${className}`}>
       {/* Image container */}
       <div
-        className={`relative aspect-[3/4] overflow-hidden bg-stone-100 rounded-sm ${
+        className={`relative aspect-[3/4] overflow-hidden bg-stone-100 ${
           outOfStock
             ? "cursor-not-allowed"
             : disabled

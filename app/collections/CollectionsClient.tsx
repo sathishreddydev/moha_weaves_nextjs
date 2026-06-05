@@ -81,8 +81,16 @@ export default function CollectionsClient({
     };
   }, [isSocketConnected, router]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── State ──────────────────────────────────────────────────────────────────
   const [showFilters, setShowFilters] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 640px)");
+    const handleChange = (e: MediaQueryListEvent) => {
+      if (e.matches) setShowFilters(false);
+    };
+    mq.addEventListener("change", handleChange);
+    return () => mq.removeEventListener("change", handleChange);
+  }, []);
   const [currentFilters, setCurrentFilters] =
     useState<ProductFilters>(initialFilters);
   const [displayedProducts, setDisplayedProducts] = useState<
@@ -317,7 +325,7 @@ export default function CollectionsClient({
             <h1 className="text-xl font-light text-gray-900 uppercase tracking-[0.1em]">
               Collections
             </h1>
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="bg-white rounded-lg shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-light text-gray-900">Filters</h3>
                 <Button
