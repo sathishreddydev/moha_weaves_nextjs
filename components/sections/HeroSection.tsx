@@ -13,7 +13,7 @@ export default function HeroSection() {
   const router = useRouter();
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
-  const { categories: categoriesData, loading, error } = useFilterStore();
+  const { categories: categoriesData } = useFilterStore();
 
   useEffect(() => {
     if (isPaused || !categoriesData || categoriesData.length === 0) return;
@@ -82,26 +82,8 @@ export default function HeroSection() {
     }
   };
 
-  // Loading state
-  if (loading) {
-    return (
-      <section className="relative h-[70vh] w-full bg-zinc-950 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />
-        <div className="relative z-10 h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center">
-          <div className="max-w-4xl">
-            <div className="animate-pulse">
-              <div className="h-4 bg-gray-700 rounded w-32 mb-6"></div>
-              <div className="h-20 bg-gray-700 rounded w-96 mb-4"></div>
-              <div className="h-12 bg-gray-700 rounded w-64"></div>
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  // Error state
-  if (error || !categoriesData || categoriesData.length === 0) {
+  // Empty state — no categories configured yet
+  if (!categoriesData || categoriesData.length === 0) {
     return (
       <section className="relative h-[70vh] w-full bg-zinc-950 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />

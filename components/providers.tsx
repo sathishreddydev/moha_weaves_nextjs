@@ -4,9 +4,17 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '@/auth'
 import { SocketInitializer } from '@/components/SocketInitializer'
 import { FilterInitializer } from '@/components/FilterInitializer'
-import { useState } from 'react'
+import { useFilterStore } from '@/lib/stores/fillterStore'
+import type { FiltersData } from '@/app/api/filters/filterService'
+import { useState, useRef } from 'react'
 
-export function Providers({ children, session }: { children: React.ReactNode; session?: any }) {
+interface ProvidersProps {
+  children: React.ReactNode
+  session?: any
+  filters?: FiltersData
+}
+
+export function Providers({ children, session, filters }: ProvidersProps) {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
@@ -15,6 +23,23 @@ export function Providers({ children, session }: { children: React.ReactNode; se
       },
     },
   }))
+
+  // Seed the filter store with server-fetched data exactly once,
+  // before any child component renders. This means HeroSection,
+  // MegaMenu, and all other consumers get real data on their very
+  // first render — the loading state is never shown.
+  const seeded = useRef(false)
+  if (!seeded.current && filters) {
+    useFilterStore.setState({
+      categories: filters.categories,
+      colors: filters.colors,
+      fabrics: filters.fabrics,
+      isHydrated: true,
+      loading: false,
+      error: null,
+    })
+    seeded.current = true
+  }
 
   return (
     <QueryClientProvider client={queryClient}>

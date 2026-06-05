@@ -2,13 +2,12 @@
 
 import { useFilterStore } from "@/lib/stores/fillterStore";
 import { cn } from "@/lib/utils";
-import { ArrowDown, ArrowRight, ChevronDown, ImageIcon } from "lucide-react";
+import { ArrowRight, ChevronDown, ImageIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../ui/button";
-import { getProductUrl } from "@/lib/utils/productUrl";
 
 interface MegaMenuProps {
   className?: string;
@@ -23,7 +22,7 @@ export default function MegaMenu({
 }: MegaMenuProps) {
   const [isMounted, setIsMounted] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const { categories, loading, error } = useFilterStore();
+  const { categories } = useFilterStore();
   const router = useRouter();
 
   // Ensure component is mounted before adding interactivity
@@ -43,27 +42,6 @@ export default function MegaMenu({
       }
     };
   }, []);
-
-  // Show loading state
-  if (loading && categories.length === 0) {
-    return (
-      <nav className={cn("hidden lg:flex items-center space-x-6", className)}>
-        <div className="flex items-center space-x-6">
-          <div className="h-4 w-20 bg-slate-200 animate-pulse rounded"></div>
-          <div className="h-4 w-24 bg-slate-200 animate-pulse rounded"></div>
-        </div>
-      </nav>
-    );
-  }
-
-  // Show error state
-  if (error) {
-    return (
-      <nav className={cn("hidden lg:flex items-center space-x-6", className)}>
-        <div className="text-red-500 text-sm">Error loading menu</div>
-      </nav>
-    );
-  }
 
   return (
     <>

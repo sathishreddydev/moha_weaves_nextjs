@@ -25,7 +25,6 @@ import React, {
   useEffect,
   useState,
   useCallback,
-  Suspense,
 } from "react";
 import Image from "next/image";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -81,7 +80,7 @@ export default function MobileSidebar({
   onLinkClick,
 }: MobileSidebarProps) {
   const router = useRouter();
-  const { categories, loading } = useFilterStore();
+  const { categories } = useFilterStore();
   const { socket } = useSocketStore();
   const queryClient = useQueryClient();
   const [mobileSearch, setMobileSearch] = useState("");
@@ -197,65 +196,40 @@ export default function MobileSidebar({
                 Collections
               </h3>
               <div className="pb-4">
-                <Suspense
-                  fallback={
-                    <div className="grid grid-cols-3 gap-4">
-                      {[1, 2, 3, 4, 5, 6].map((item) => (
-                        <div key={item} className="animate-pulse text-center">
-                          <div className="w-28 h-28 rounded-lg overflow-hidden bg-gray-200 mb-2 mx-auto"></div>
-                          <div className="h-3 bg-gray-200 rounded mx-auto w-16"></div>
-                        </div>
-                      ))}
-                    </div>
-                  }
-                >
-                  <div className="grid grid-cols-3 gap-4" role="list">
-                    {loading
-                      ? // Loading state for categories
-                        [1, 2, 3, 4, 5, 6].map((item) => (
-                          <div
-                            key={item}
-                            className="animate-pulse text-center"
-                            role="listitem"
-                          >
-                            <div className="w-28 h-28 rounded-lg overflow-hidden bg-gray-200 mb-2 mx-auto"></div>
-                            <div className="h-3 bg-gray-200 rounded mx-auto w-16"></div>
-                          </div>
-                        ))
-                      : categories.slice(0, 6).map((category) => (
-                          <Link
-                            key={category.id}
-                            href={`/collections/${encodeURIComponent(category.name)}`}
-                            className="group text-center transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-gray-500 focus:ring-offset-1 rounded-lg"
-                            onClick={handleMobileLinkClick}
-                            role="listitem"
-                            aria-label={`Browse ${category.name} collection`}
-                          >
-                            <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-gray-100 mb-2 mx-auto group-hover:scale-105 transition-transform duration-200 will-change-transform">
-                              {category.imageUrl ? (
-                                <Image
-                                  src={category.imageUrl}
-                                  alt={category.name}
-                                  fill
-                                  sizes="96px"
-                                  className="object-cover"
-                                  loading="lazy"
-                                />
-                              ) : (
-                                <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                                  <span className="text-gray-700 text-xs font-medium">
-                                    {category.name.slice(0, 2)}
-                                  </span>
-                                </div>
-                              )}
+                <div className="grid grid-cols-3 gap-4" role="list">
+                    {categories.slice(0, 6).map((category) => (
+                      <Link
+                        key={category.id}
+                        href={`/collections/${encodeURIComponent(category.name)}`}
+                        className="group text-center transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-gray-500 focus:ring-offset-1 rounded-lg"
+                        onClick={handleMobileLinkClick}
+                        role="listitem"
+                        aria-label={`Browse ${category.name} collection`}
+                      >
+                        <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-gray-100 mb-2 mx-auto group-hover:scale-105 transition-transform duration-200 will-change-transform">
+                          {category.imageUrl ? (
+                            <Image
+                              src={category.imageUrl}
+                              alt={category.name}
+                              fill
+                              sizes="96px"
+                              className="object-cover"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                              <span className="text-gray-700 text-xs font-medium">
+                                {category.name.slice(0, 2)}
+                              </span>
                             </div>
-                            <h5 className="text-xs font-medium text-gray-900 group-hover:text-gray-700 transition-colors">
-                              {category.name}
-                            </h5>
-                          </Link>
-                        ))}
+                          )}
+                        </div>
+                        <h5 className="text-xs font-medium text-gray-900 group-hover:text-gray-700 transition-colors">
+                          {category.name}
+                        </h5>
+                      </Link>
+                    ))}
                   </div>
-                </Suspense>
                 <div className="mt-6">
                   <Button
                     variant="outline"
