@@ -10,7 +10,7 @@ export default function HomeContent() {
       <OrganizationSchema />
       {/* Visually hidden h1 for SEO — the hero section provides the visual heading */}
       <h1 className="sr-only">
-        Moha Weaves - Handcrafted Sarees & Premium Indian Ethnic Wear
+        Urumi - Premium Designer Fashion for Men & Women
       </h1>
 
       {/* Hero is full-bleed — no max-width constraint */}

@@ -23,7 +23,7 @@ export default function ProductStructuredData({
       {
         "@type": "Product",
         name: product.name, 
-        description: product.description || `Beautiful ${product.name} from Mohaweaves`,
+        description: product.description || `Beautiful ${product.name} from Urumi`,
         url: absoluteUrl,
         image: product.images?.length > 0 
           ? product.images.map((img: string) => ({
@@ -35,7 +35,7 @@ export default function ProductStructuredData({
         sku: product.sku || String(product.id),
         brand: {
           "@type": "Brand",
-          name: "Mohaweaves",
+          name: "Urumi",
           url: baseUrl,
           logo: `${baseUrl}/logo.png`
         },
@@ -47,7 +47,7 @@ export default function ProductStructuredData({
           availability: product.totalStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
           seller: {
             "@type": "Organization",
-            name: "Mohaweaves",
+            name: "Urumi",
             url: baseUrl
           },
           priceValidUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // YYYY-MM-DD format

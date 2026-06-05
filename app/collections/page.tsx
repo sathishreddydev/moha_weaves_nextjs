@@ -50,8 +50,8 @@ export async function generateMetadata({
 
   const title =
     titleParts.length > 0
-      ? `${titleParts.join(" | ")} - Premium Indian Ethnic Wear | Mohaweaves`
-      : "Collections - Premium Indian Ethnic Wear | Mohaweaves";
+      ? `${titleParts.join(" | ")} - Premium Indian Ethnic Wear | Urumi`
+      : "Collections - Premium Indian Ethnic Wear | Urumi";
 
   const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
 

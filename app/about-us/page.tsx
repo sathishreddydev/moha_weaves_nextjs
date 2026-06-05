@@ -5,9 +5,9 @@ import Image from "next/image";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "About Us - Moha Weaves",
+  title: "About Us - Urumi",
   description:
-    "Learn about Moha Weaves and our commitment to preserving India's textile heritage.",
+    "Learn about Urumi and our commitment to preserving India's textile heritage.",
 };
 
 export default function AboutUsPage() {
@@ -17,7 +17,7 @@ export default function AboutUsPage() {
         {/* Header */}
         <header className="border-b border-slate-100 pb-8">
           <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
-            About Moha Weaves
+            About Urumi
           </h1>
           <p className="text-slate-500 text-xs leading-relaxed max-w-xl">
             Celebrating India&apos;s textile heritage through handcrafted sarees that
@@ -33,7 +33,7 @@ export default function AboutUsPage() {
                 Our Story
               </h2>
               <p className="text-xs text-gray-700 leading-relaxed mb-4">
-                Founded in 2020, Moha Weaves was born from a passion for
+                Founded in 2020, Urumi was born from a passion for
                 preserving India&apos;s centuries-old textile traditions. We work
                 directly with skilled artisans across India to bring authentic
                 handcrafted sarees to contemporary fashion enthusiasts.

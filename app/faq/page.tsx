@@ -87,7 +87,7 @@ const faqData: FAQCategory[] = [
       },
       {
         q: "Can I get a refund in the form of store credit?",
-        a: "Absolutely. You can opt for 'Moha Credit' which is issued instantly after the quality check and is valid for 12 months on any future purchase.",
+        a: "Absolutely. You can opt for 'Urumi Credit' which is issued instantly after the quality check and is valid for 12 months on any future purchase.",
       },
     ],
   },
@@ -202,7 +202,7 @@ export default function FAQsPage() {
             Frequently Asked Questions
           </h1>
           <p className="text-slate-500 text-xs leading-relaxed">
-            A comprehensive guide to Moha Weaves services. From order tracking
+            A comprehensive guide to Urumi services. From order tracking
             to artisanal care, find everything you need to know below.
           </p>
         </header>
@@ -290,7 +290,7 @@ export default function FAQsPage() {
               <p className="text-xs font-bold uppercase tracking-wider mb-1">
                 Email Care
               </p>
-              <p className="text-[11px] text-slate-500">care@mohaweaves.com</p>
+              <p className="text-[11px] text-slate-500">care@Urumi.com</p>
             </div>
             <div className="group cursor-pointer">
               <div className="w-12 h-12 border border-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-slate-900 group-hover:text-white transition-all">

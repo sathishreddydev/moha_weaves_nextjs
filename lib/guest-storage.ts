@@ -129,7 +129,7 @@ export const guestStorage = {
     get: (): GuestCartItem[] => {
       if (typeof window === 'undefined') return [];
       try {
-        const cart = localStorage.getItem('mohaweavs_guest_cart');
+        const cart = localStorage.getItem('urumi_guest_cart');
         return cart ? JSON.parse(cart) : [];
       } catch (error) {
         return [];
@@ -139,7 +139,7 @@ export const guestStorage = {
     set: (items: GuestCartItem[]): void => {
       if (typeof window === 'undefined') return;
       try {
-        localStorage.setItem('mohaweavs_guest_cart', JSON.stringify(items));
+        localStorage.setItem('urumi_guest_cart', JSON.stringify(items));
       } catch (error) {
       }
     },
@@ -187,7 +187,7 @@ export const guestStorage = {
     
     clear: (): void => {
       if (typeof window === 'undefined') return;
-      localStorage.removeItem('mohaweavs_guest_cart');
+      localStorage.removeItem('urumi_guest_cart');
     },
     
     getCount: (): number => {
@@ -200,7 +200,7 @@ export const guestStorage = {
     get: (): (string | GuestWishlistItem)[] => {
       if (typeof window === 'undefined') return [];
       try {
-        const wishlist = localStorage.getItem('mohaweavs_guest_wishlist');
+        const wishlist = localStorage.getItem('urumi_guest_wishlist');
         return wishlist ? JSON.parse(wishlist) : [];
       } catch (error) {
         return [];
@@ -210,7 +210,7 @@ export const guestStorage = {
     set: (items: (string | GuestWishlistItem)[]): void => {
       if (typeof window === 'undefined') return;
       try {
-        localStorage.setItem('mohaweavs_guest_wishlist', JSON.stringify(items));
+        localStorage.setItem('urumi_guest_wishlist', JSON.stringify(items));
       } catch (error) {
       }
     },
@@ -263,7 +263,7 @@ export const guestStorage = {
     
     clear: (): void => {
       if (typeof window === 'undefined') return;
-      localStorage.removeItem('mohaweavs_guest_wishlist');
+      localStorage.removeItem('urumi_guest_wishlist');
     },
     
     getCount: (): number => {

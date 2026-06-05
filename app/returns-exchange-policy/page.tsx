@@ -20,7 +20,7 @@ export default function ReturnsPolicyPage() {
             Returns & Exchanges
           </h1>
           <p className="text-slate-500 text-xs leading-relaxed">
-            Every Moha Weaves creation is a labor of love. If your piece isn't
+            Every Urumi creation is a labor of love. If your piece isn't
             perfect for you, we offer a streamlined return and exchange process
             to ensure your satisfaction.
           </p>
@@ -88,7 +88,7 @@ export default function ReturnsPolicyPage() {
             <div className="space-y-6">
               {[
                 "Items must be returned in their original condition: unworn, unwashed, and undamaged.",
-                "The original 'Moha' security tag must be intact and attached to the garment.",
+                "The original 'Urumi' security tag must be intact and attached to the garment.",
                 "All original packaging, including dust bags and hangers, must be included.",
                 "Invoices and authenticity cards must be returned with the product.",
                 "Exchanges are subject to stock availability at the time of processing.",
@@ -223,7 +223,7 @@ export default function ReturnsPolicyPage() {
           </p>
           <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8">
             <a
-              href="mailto:care@mohaweaves.com"
+              href="mailto:care@urumibymounika.com"
               className="inline-block px-10 py-4 bg-slate-900 text-white text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-slate-800 transition-colors"
             >
               Email Care Team

@@ -164,14 +164,14 @@ function generatePDFInvoice(
   // ── HEADER ─────────────────────────────────────────────────────────────────
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
-  doc.text("Moha Weaves", pageW / 2, y, { align: "center" });
+  doc.text("Urumi", pageW / 2, y, { align: "center" });
   y += 5;
 
   doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(100, 100, 100);
   doc.text(
-    "Handcrafted Weaves | support@mohaweaves.com",
+    "Premium Fashion | support@urumibymounika.com",
     pageW / 2,
     y,
     { align: "center" }
@@ -482,13 +482,13 @@ function generatePDFInvoice(
   doc.setFont("helvetica", "normal");
   doc.setTextColor(140, 140, 140);
   doc.text(
-    "Thank you for shopping with Moha Weaves! This is a computer-generated invoice.",
+    "Thank you for shopping with Urumi! This is a computer-generated invoice.",
     pageW / 2,
     footerY - 4,
     { align: "center" }
   );
   doc.text(
-    "For queries, contact support@mohaweaves.com",
+    "For queries, contact support@urumibymounika.com",
     pageW / 2,
     footerY,
     { align: "center" }

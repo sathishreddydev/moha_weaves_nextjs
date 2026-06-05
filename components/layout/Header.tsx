@@ -78,7 +78,7 @@ export default function Header() {
               <Menu className="w-6 h-6" />
             </button>
             <Link href="/" className="text-xl font-bold text-primary-600">
-              Moha
+              Urumi
             </Link>
             <MegaMenu
               activeMegaMenu={activeMegaMenu}

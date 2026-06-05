@@ -16,12 +16,12 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXTAUTH_URL || 'http://localhost:3000'),
   title: {
-    default: "Moha Weaves - Handcrafted Sarees & Premium Indian Ethnic Wear",
-    template: "%s | Moha Weaves",
+    default: "Urumi - Premium Designer Fashion for Men & Women",
+    template: "%s | Urumi",
   },
   description:
-    "Discover exquisite handcrafted sarees celebrating India's rich textile heritage. Shop our collection of traditional and contemporary sarees.",
-  keywords: ["sarees", "handcrafted", "ethnic wear", "indian fashion", "traditional clothing", "moha weaves", "indian sarees online"],
+    "Discover premium designer fashion for men and women at Urumi. Shop our curated collection of clothing, accessories, and lifestyle products.",
+  keywords: ["fashion", "designer clothing", "men fashion", "women fashion", "D2C", "urumi", "indian fashion online"],
   icons: {
     icon: "/favicon.png",
     shortcut: "/favicon.png",
@@ -30,19 +30,19 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    title: "Mohaweaves",
+    title: "Urumi",
     statusBarStyle: "default",
   },
   openGraph: {
-    title: "Moha Weaves - Handcrafted Sarees",
-    description: "Discover exquisite handcrafted sarees celebrating India's rich textile heritage",
+    title: "Urumi - Premium Designer Fashion",
+    description: "Discover premium designer fashion for men and women at Urumi",
     type: "website",
     locale: "en_IN",
-    siteName: "Mohaweaves",
+    siteName: "Urumi",
   },
   twitter: {
     card: "summary_large_image",
-    site: "@mohaweaves",
+    site: "@urumifashion",
   },
   robots: {
     index: true,

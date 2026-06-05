@@ -39,9 +39,9 @@ export async function generateMetadata({
 
   const categoryName = decodeURIComponent(resolvedParams.category);
 
-  const title = `${categoryName.charAt(0).toUpperCase() + categoryName.slice(1)} Collection - Premium Indian Ethnic Wear | Mohaweaves`;
+  const title = `${categoryName.charAt(0).toUpperCase() + categoryName.slice(1)} Collection - Premium Indian Ethnic Wear | Urumi`;
 
-  const description = `Discover premium ${categoryName} at Mohaweaves. Beautiful Indian ethnic wear crafted with traditional artistry.`;
+  const description = `Discover premium ${categoryName} at Urumi. Beautiful Indian ethnic wear crafted with traditional artistry.`;
 
   // Get base URL from environment
   const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
@@ -59,7 +59,7 @@ export async function generateMetadata({
       url: canonical,
       type: "website",
       locale: "en_IN",
-      siteName: "Mohaweaves",
+      siteName: "Urumi",
     },
   };
 }

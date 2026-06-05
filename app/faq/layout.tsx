@@ -2,9 +2,9 @@ import { Metadata } from "next";
 import FAQSchema from "@/components/seo/FAQSchema";
 
 export const metadata: Metadata = {
-  title: "FAQ - Frequently Asked Questions | Moha Weaves",
+  title: "FAQ - Frequently Asked Questions | Urumi",
   description:
-    "Find answers to common questions about orders, shipping, returns, exchanges, refunds, and more at Moha Weaves.",
+    "Find answers to common questions about orders, shipping, returns, exchanges, refunds, and more at Urumi.",
   alternates: {
     canonical: "/faq",
   },
@@ -21,7 +21,7 @@ const allFaqs = [
   { question: "Is there a time limit for returns?", answer: "Yes, all return or exchange requests must be initiated within 7 days of delivery. The product must be unworn with all tags and security seals intact." },
   { question: "Are sale items eligible for returns?", answer: "Items purchased during a 'Final Sale' or 'Clearance' are eligible for size exchanges or store credit only, unless received in a damaged condition." },
   { question: "When will I receive my refund for a returned item?", answer: "Once your return reaches our warehouse and passes the quality audit (usually 2 business days), we initiate the refund. It takes 7-10 days to appear in your bank statement." },
-  { question: "Can I get a refund in the form of store credit?", answer: "Absolutely. You can opt for 'Moha Credit' which is issued instantly after the quality check and is valid for 12 months on any future purchase." },
+  { question: "Can I get a refund in the form of store credit?", answer: "Absolutely. You can opt for 'Urumi Credit' which is issued instantly after the quality check and is valid for 12 months on any future purchase." },
   { question: "What should I do if my package is tampered with?", answer: "Do not accept delivery of a tampered package. If you have already accepted it, please record an unboxing video and contact us within 24 hours." },
   { question: "My tracking says 'Delivered' but I haven't received it.", answer: "Please check with your building security or concierge first. If it's still missing, notify us within 24 hours so we can escalate a claim with our courier partner." },
   { question: "Do you offer a warranty on your garments?", answer: "We take pride in our quality. We offer a 6-month repair warranty on manufacturing defects like seam stress or hardware failure. This does not cover natural wear and tear or improper washing." },

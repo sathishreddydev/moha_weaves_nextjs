@@ -341,7 +341,7 @@ export default function LiveChat({
           };
         }
         return {
-          text: "Hi there! 👋 Welcome to Moha Weaves support! I'm here to help with orders, returns, products — you name it. What can I assist you with today?",
+          text: "Hi there! 👋 Welcome to Urumi support! I'm here to help with orders, returns, products — you name it. What can I assist you with today?",
         };
       }
 

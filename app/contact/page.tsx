@@ -68,10 +68,10 @@ export default function ContactPage() {
               We respond within 24 hours.
             </p>
             <p className="text-xs font-bold text-slate-900 mb-4">
-              care@mohaweaves.com
+              care@urumibymounika.com
             </p>
             <a
-              href="mailto:care@mohaweaves.com"
+              href="mailto:care@urumibymounika.com"
               className="inline-flex items-center gap-2 text-xs font-bold text-slate-900 hover:gap-3 transition-all"
             >
               Send Email <ArrowRight className="w-3.5 h-3.5" />
@@ -104,7 +104,7 @@ export default function ContactPage() {
               <MapPin className="w-4 h-4 text-slate-400" /> Our Location
             </h2>
             <p className="text-xs text-slate-600 leading-relaxed mb-2">
-              Moha Weaves Atelier, <br />
+              Urumi Atelier, <br />
               Indiranagar, 2nd Stage, <br />
               Bangalore, Karnataka — 560038
             </p>

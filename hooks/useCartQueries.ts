@@ -415,7 +415,7 @@ export function useCartCount() {
     if (status === "authenticated") return;
 
     const handler = (e: StorageEvent) => {
-      if (e.key === "mohaweavs_guest_cart") {
+      if (e.key === "urumi_guest_cart") {
         setGuestCount(guestStorage.cart.getCount());
       }
     };

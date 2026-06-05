@@ -33,7 +33,7 @@ export default function StructuredData({ products, filters, currentUrl }: Struct
             "@type": "Product",
             position: index + 1,
             name: product.name,
-            description: product.description || `Beautiful ${product.name} from Mohaweaves`,
+            description: product.description || `Beautiful ${product.name} from Urumi`,
             image: product.images?.[0] || "",
             offers: {
               "@type": "Offer",
@@ -43,7 +43,7 @@ export default function StructuredData({ products, filters, currentUrl }: Struct
             },
             brand: {
               "@type": "Brand",
-              name: "Mohaweaves"
+              name: "Urumi"
             },
             category: product.category?.name || "Indian Ethnic Wear",
             color: product.color?.name,

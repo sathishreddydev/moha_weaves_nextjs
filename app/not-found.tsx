@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Home, ShoppingBag, Search, ArrowLeft } from "lucide-react";
 
 export const metadata = {
-  title: "Page Not Found - Moha Weaves",
+  title: "Page Not Found - Urumi",
   description:
     "The page you're looking for doesn't exist. Explore our collection of premium fashion and lifestyle products.",
 };

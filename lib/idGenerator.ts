@@ -18,7 +18,7 @@ export class IdGenerator {
                     maxSeq: sql<number>`MAX(CAST(SUBSTRING(${orders.id}, 13) AS INTEGER))`,
                 })
                 .from(orders)
-                .where(sql`${orders.id} LIKE 'MOHAORD%'`);
+                .where(sql`${orders.id} LIKE 'URUORD%'`);
 
 
             return maxSeq + 1;
@@ -34,7 +34,7 @@ export class IdGenerator {
         const sequence = await this.getNextOrderSequence();
         const year = new Date().getFullYear().toString().slice(-2);
         const sequenceStr = sequence.toString().padStart(5, "0");
-        return `MOHAORD${year}${sequenceStr}`;
+        return `URUORD${year}${sequenceStr}`;
     }
 
     // Get next item sequence for an order
@@ -58,14 +58,14 @@ export class IdGenerator {
     static async generateItemId(orderId: string): Promise<string> {
         const sequence = await this.getNextItemSequence(orderId);
         const sequenceStr = sequence.toString().padStart(2, "0");
-        return `MOHAITM${sequenceStr}`;
+        return `URUITM${sequenceStr}`;
     }
 
     // Alternative: Generate item ID based on order ID
     static generateItemIdFromOrder(orderId: string, itemIndex: number): string {
-        const orderSuffix = orderId.replace("MOHAORD", "");
+        const orderSuffix = orderId.replace("URUORD", "");
         const itemIndexStr = (itemIndex + 1).toString().padStart(2, "0");
-        return `MOHAITM${orderSuffix}${itemIndexStr}`;
+        return `URUITM${orderSuffix}${itemIndexStr}`;
     }
 
     // Helper to convert display ID to URL-safe ID (now returns same since it's already URL-safe)

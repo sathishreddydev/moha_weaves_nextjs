@@ -26,7 +26,7 @@ export async function generateMetadata({
 
   if (!product) {
     return {
-      title: "Product Not Found | Mohaweaves",
+      title: "Product Not Found | Urumi",
       description: "The product you're looking for is not available.",
     };
   }
@@ -34,15 +34,15 @@ export async function generateMetadata({
   // Use SEO data from product if available, otherwise generate
   const title =
     product.seoTitle ||
-    `${product.name} - ${categoryName.charAt(0).toUpperCase() + categoryName.slice(1)} | Mohaweaves`;
+    `${product.name} - ${categoryName.charAt(0).toUpperCase() + categoryName.slice(1)} | Urumi`;
 
   const description =
     product.seoDescription ||
-    `Shop ${product.name} from Mohaweaves ${categoryName} collection. ${product.description || "Premium quality Indian ethnic wear with traditional craftsmanship."}`;
+    `Shop ${product.name} from Urumi ${categoryName} collection. ${product.description || "Premium quality Indian ethnic wear with traditional craftsmanship."}`;
 
   const keywords =
     product.seoKeywords ||
-    `${product.name}, ${categoryName}, indian ethnic wear, Mohaweaves, ${product.category?.name || "traditional clothing"}, ${product.color?.name || ""}, ${product.fabric?.name || ""}`;
+    `${product.name}, ${categoryName}, indian ethnic wear, Urumi, ${product.category?.name || "traditional clothing"}, ${product.color?.name || ""}, ${product.fabric?.name || ""}`;
 
   // Get base URL from environment
   const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
@@ -59,7 +59,7 @@ export async function generateMetadata({
       type: "website",
       url: canonical,
       locale: "en_IN",
-      siteName: "Mohaweaves",
+      siteName: "Urumi",
       images:
         product.images && product.images.length > 0
           ? [

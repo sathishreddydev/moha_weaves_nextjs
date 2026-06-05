@@ -19,8 +19,8 @@ export function useAuth() {
   const hasMergedRef = useRef(false);
 
   const mergeGuestData = useCallback(async () => {
-    const guestCart = localStorage.getItem('mohaweavs_guest_cart');
-    const guestWishlist = localStorage.getItem('mohaweavs_guest_wishlist');
+    const guestCart = localStorage.getItem('urumi_guest_cart');
+    const guestWishlist = localStorage.getItem('urumi_guest_wishlist');
 
     // Merge guest cart after successful login
     if (guestCart) {
@@ -29,7 +29,7 @@ export function useAuth() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ guestCartItems: JSON.parse(guestCart) })
       });
-      localStorage.removeItem('mohaweavs_guest_cart');
+      localStorage.removeItem('urumi_guest_cart');
     }
 
     // Merge guest wishlist after successful login
@@ -46,7 +46,7 @@ export function useAuth() {
           body: JSON.stringify({ guestWishlistItems: productIds })
         });
       }
-      localStorage.removeItem('mohaweavs_guest_wishlist');
+      localStorage.removeItem('urumi_guest_wishlist');
     }
 
     // Invalidate React Query caches to trigger fresh fetches
@@ -57,8 +57,8 @@ export function useAuth() {
   // Auto-merge guest data on any login method (Google redirect, OTP, credentials)
   useEffect(() => {
     if (status === 'authenticated' && !hasMergedRef.current) {
-      const guestCart = localStorage.getItem('mohaweavs_guest_cart');
-      const guestWishlist = localStorage.getItem('mohaweavs_guest_wishlist');
+      const guestCart = localStorage.getItem('urumi_guest_cart');
+      const guestWishlist = localStorage.getItem('urumi_guest_wishlist');
       if (guestCart || guestWishlist) {
         hasMergedRef.current = true;
         mergeGuestData();

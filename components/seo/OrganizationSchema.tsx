@@ -7,7 +7,7 @@ export default function OrganizationSchema() {
       {
         "@type": "Organization",
         "@id": `${baseUrl}/#organization`,
-        name: "Moha Weaves",
+        name: "Urumi",
         url: baseUrl,
         logo: {
           "@type": "ImageObject",
@@ -15,7 +15,7 @@ export default function OrganizationSchema() {
           width: 512,
           height: 512,
         },
-        description: "Discover exquisite handcrafted sarees and premium Indian ethnic wear at Mohaweaves.",
+        description: "Discover exquisite handcrafted sarees and premium Indian ethnic wear at Urumi.",
         address: {
           "@type": "PostalAddress",
           addressLocality: "Hyderabad",
@@ -26,18 +26,18 @@ export default function OrganizationSchema() {
           "@type": "ContactPoint",
           telephone: "+91-74984-76544",
           contactType: "customer service",
-          email: "care@mohaweaves.com",
+          email: "care@Urumi.com",
           availableLanguage: ["English", "Hindi", "Telugu"],
         },
         sameAs: [
-          "https://www.instagram.com/moha_weaves/",
+          "https://www.instagram.com/urumifashion/",
         ],
       },
       {
         "@type": "WebSite",
         "@id": `${baseUrl}/#website`,
         url: baseUrl,
-        name: "Moha Weaves",
+        name: "Urumi",
         publisher: {
           "@id": `${baseUrl}/#organization`,
         },

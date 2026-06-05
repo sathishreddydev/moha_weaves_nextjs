@@ -12,7 +12,7 @@ export default function TermsPage() {
     },
     {
       heading: "Intellectual Property",
-      body: "All content on this site, including designs, text, and graphics, is the exclusive property of Moha Weaves and protected by international copyright laws.",
+      body: "All content on this site, including designs, text, and graphics, is the exclusive property of Urumi and protected by international copyright laws.",
     },
   ];
   return <LegalPage title="Terms of Service" content={termsContent} />;

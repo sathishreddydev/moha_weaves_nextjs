@@ -8,7 +8,7 @@ export default function Footer() {
         {/* Brand Anchor */}
         <div className="flex flex-col md:flex-row justify-between items-baseline mb-16 gap-8">
           <h2 className="text-6xl md:text-8xl font-light tracking-tighter uppercase opacity-10">
-            Moha
+            Urumi
           </h2>
 
           <div className="flex items-center gap-4 group cursor-pointer">
@@ -130,7 +130,7 @@ export default function Footer() {
               <div>
                 <Link
                   scroll={true}
-                  href="https://www.instagram.com/moha_weaves/"
+                  href="https://www.instagram.com/urumifashion/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-block text-[10px] font-bold uppercase tracking-widest text-slate-700 border-b border-transparent hover:border-slate-900 transition-all pb-1"
@@ -166,7 +166,7 @@ export default function Footer() {
           </p>
           <div className="flex gap-12 items-center">
             <span className="text-[9px] text-slate-500 uppercase tracking-widest">
-              © 2026 Moha Weaves
+              © 2026 Urumi
             </span>
             <div className="flex gap-6">
               <Link

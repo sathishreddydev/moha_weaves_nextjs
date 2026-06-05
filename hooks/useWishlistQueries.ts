@@ -449,7 +449,7 @@ export function useWishlistCount() {
     if (status === "authenticated") return;
 
     const handler = (e: StorageEvent) => {
-      if (e.key === "mohaweavs_guest_wishlist") {
+      if (e.key === "urumi_guest_wishlist") {
         setGuestCount(guestStorage.wishlist.getCount());
       }
     };

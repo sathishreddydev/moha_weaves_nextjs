@@ -202,8 +202,8 @@ export default function RazorpayPayment({
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
         amount: razorpayAmount,
         currency,
-        name: "Moha Weaves",
-        description: "Purchase from Moha Weaves",
+        name: "Urumi",
+        description: "Purchase from Urumi",
         order_id: razorpayOrderId,
         handler: async (paymentResponse: any) => {
           await handlePaymentSuccess(paymentResponse);

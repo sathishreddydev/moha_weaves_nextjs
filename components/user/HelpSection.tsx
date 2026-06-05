@@ -28,13 +28,13 @@ export default function HelpSection() {
       title: "Payment Issues",
       description: "Help with payment and billing",
       icon: "💳",
-      action: () => window.open("mailto:support@mohaweaves.com?subject=Payment Issue")
+      action: () => window.open("mailto:support@urumibymounika.com?subject=Payment Issue")
     },
     {
       title: "Account Help",
       description: "Login, profile, and security assistance",
       icon: "🔐",
-      action: () => window.open("mailto:support@mohaweaves.com?subject=Account Help")
+      action: () => window.open("mailto:support@urumibymounika.com?subject=Account Help")
     }
   ];
 
@@ -89,7 +89,7 @@ export default function HelpSection() {
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <a
-                    href="mailto:support@mohaweaves.com"
+                    href="mailto:support@urumibymounika.com"
                     className="flex items-center gap-3 p-4 border rounded-lg hover:border-primary-600 hover:bg-primary-50 transition-all duration-200 group"
                   >
                     <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center group-bg-primary-200 transition-colors">
@@ -97,7 +97,7 @@ export default function HelpSection() {
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">Email</p>
-                      <p className="text-sm text-gray-600">support@mohaweaves.com</p>
+                      <p className="text-sm text-gray-600">support@urumibymounika.com</p>
                     </div>
                   </a>
 

@@ -272,7 +272,7 @@ export default function LoginPage() {
           <div className="absolute right-8 top-4 w-10 h-10 rounded-full bg-teal-300/30" />
           <h1 className="z-10 text-center px-4">
             <span className="text-base font-medium text-white/90 block">Login to your</span>
-            <span className="text-2xl font-bold text-white block mt-1">Moha Weaves</span>
+            <span className="text-2xl font-bold text-white block mt-1">Urumi</span>
             <span className="text-base font-medium text-white/90 block mt-1">Account</span>
           </h1>
         </div>
@@ -291,8 +291,8 @@ export default function LoginPage() {
           <div className="absolute left-16 top-16 w-28 h-28 rounded-full bg-pink-300/30" />
           <div className="flex items-center justify-center h-full relative z-10">
             <div className="text-center text-white">
-              <h1 className="text-5xl font-bold mb-4">Moha Weaves</h1>
-              <p className="text-lg text-white/80">Handcrafted with love</p>
+              <h1 className="text-5xl font-bold mb-4">Urumi</h1>
+              <p className="text-lg text-white/80">Fashion for Everyone</p>
             </div>
           </div>
         </div>
@@ -300,7 +300,7 @@ export default function LoginPage() {
         <div className="w-1/2 flex items-center justify-center bg-white">
           <div className="w-full max-w-[380px] px-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-8">
-              Login to your Moha Weaves Account
+              Login to your Urumi Account
             </h2>
             {loginContent}
           </div>
