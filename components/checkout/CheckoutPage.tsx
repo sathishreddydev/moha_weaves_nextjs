@@ -340,7 +340,7 @@ export default function CheckoutPage() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-5xl mx-auto">
       {/* Desktop */}
       <div className="hidden lg:block">
         <DesktopCheckoutView {...sharedProps} />

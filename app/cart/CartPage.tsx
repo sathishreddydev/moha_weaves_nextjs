@@ -181,7 +181,7 @@ export default function CartPage() {
   // ── Empty cart ──────────────────────────────────────────────────────────
   if (items.length === 0) {
     return (
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <div className="text-center py-16">
           <ShoppingBag className="h-12 w-12 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500 mb-4">Your cart is empty</p>
@@ -196,7 +196,7 @@ export default function CartPage() {
   const canProceedToCheckout = !hasStockIssues && items.length > 0 && !isGuest;
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="max-w-5xl mx-auto">
       {/* Mobile top bar — back button + title */}
       <div className="sm:hidden flex items-center gap-3 mb-5">
         <button

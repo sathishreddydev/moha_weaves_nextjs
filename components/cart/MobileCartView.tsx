@@ -333,7 +333,7 @@ export default function MobileCartView({
                   {formatPrice(total)}
                 </span>
               </div>
-              <p className="text-[11px] text-gray-400">
+              <p className="text-[11px] text-gray-500">
                 Tax included. Shipping calculated at checkout.
               </p>
             </div>
@@ -372,6 +372,12 @@ export default function MobileCartView({
               )}
             </Button>
           )}
+          <Link
+            href="/collections"
+            className="block text-center text-sm text-gray-600 underline underline-offset-4 hover:text-gray-900 transition-colors"
+          >
+            Continue shopping
+          </Link>
         </div>
       </div>
 

@@ -129,7 +129,7 @@ export default function DesktopCheckoutView({
 
   // ── Order items ─────────────────────────────────────────────────────────
   const OrderItemsList = () => (
-    <div className="space-y-4">
+    <div className="space-y-0">
       {items.map((item: CartItemWithProduct) => {
         const img = item.product.images?.[0] || item.product.imageUrl;
         const variant = item.product.variants?.find(
@@ -142,7 +142,7 @@ export default function DesktopCheckoutView({
             : orig;
         const hasDiscount = effectivePrice < orig;
         return (
-          <div key={item.id} className="flex items-center gap-4">
+          <div key={item.id} className="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
             <div className="relative flex-shrink-0">
               <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden">
                 {img ? (
@@ -196,8 +196,8 @@ export default function DesktopCheckoutView({
       </div>
       {totalSavings > 0 && (
         <div className="flex justify-between">
-          <span className="text-gray-500">Discount</span>
-          <span className="text-gray-900 font-medium tabular-nums">
+          <span className="text-green-600">Discount</span>
+          <span className="text-green-600 font-medium tabular-nums">
             -{formatPrice(totalSavings)}
           </span>
         </div>
@@ -207,7 +207,7 @@ export default function DesktopCheckoutView({
           <Truck className="h-3.5 w-3.5" />
           Shipping
         </span>
-        <span className="text-gray-900 font-medium tabular-nums">
+        <span className={`font-medium tabular-nums ${shipping === 0 ? "text-green-600" : "text-gray-900"}`}>
           {shipping === 0 ? "Free" : formatPrice(shipping)}
         </span>
       </div>
@@ -227,13 +227,13 @@ export default function DesktopCheckoutView({
           Add {formatPrice(freeShippingGap)} more for free shipping
         </p>
       )}
-      <div className="flex justify-between items-center pt-1">
+      <div className="flex justify-between items-center pt-1 border-t border-gray-200 mt-2">
         <span className="text-sm font-semibold text-gray-900">Total</span>
         <span className="text-lg font-semibold text-gray-900 tabular-nums">
           {formatPrice(total)}
         </span>
       </div>
-      <p className="text-xs text-gray-400">
+      <p className="text-xs text-gray-500">
         Tax included. Shipping calculated at checkout.
       </p>
     </div>
@@ -245,14 +245,13 @@ export default function DesktopCheckoutView({
       {hasStockIssues && (
         <div className="mb-6 px-4 py-3 bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-          Some items in your cart are out of stock. Please update your cart
-          before proceeding.
+          Some items are unavailable. Please update your cart before proceeding.
         </div>
       )}
 
-      <div className="grid grid-cols-12 gap-0">
-        {/* LEFT COLUMN */}
-        <div className="col-span-7 pr-12 border-r border-gray-200">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+        {/* LEFT COLUMN — Delivery */}
+        <div className="lg:col-span-2">
           <div className="space-y-8">
             <section>
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-4">
@@ -294,31 +293,37 @@ export default function DesktopCheckoutView({
           </div>
         </div>
 
-        {/* RIGHT COLUMN */}
-        <div className="col-span-5 pl-12">
+        {/* RIGHT COLUMN — Order Summary */}
+        <div className="lg:col-span-1">
           <div
             className="sticky space-y-6"
             style={{
               top: "calc(var(--banner-height, 0px) + var(--header-height, 74px) + 1.5rem)",
             }}
           >
-            <div>
-              <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">
-                Order Summary ({items.length})
-              </h2>
-              <div className="max-h-[280px] overflow-y-auto pr-1">
-                <OrderItemsList />
+            <div className="bg-gray-50 rounded-lg p-6 space-y-6">
+              <div>
+                <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">
+                  Order Summary ({items.length})
+                </h2>
+                <div className="max-h-[280px] overflow-y-auto pr-1 divide-y divide-gray-100">
+                  <OrderItemsList />
+                </div>
+              </div>
+
+              <div className="border-t border-gray-200 pt-4">
+                <CouponInput
+                  orderAmount={subtotal}
+                  onCouponApplied={onCouponApplied}
+                  onCouponRemoved={onCouponRemoved}
+                  appliedCoupon={appliedCoupon}
+                />
+              </div>
+
+              <div className="pt-4">
+                <PriceSummary />
               </div>
             </div>
-
-            <CouponInput
-              orderAmount={subtotal}
-              onCouponApplied={onCouponApplied}
-              onCouponRemoved={onCouponRemoved}
-              appliedCoupon={appliedCoupon}
-            />
-
-            <PriceSummary />
 
             <div className="space-y-3">
               <RazorpayPayment {...razorpayProps} />

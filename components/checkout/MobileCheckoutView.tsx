@@ -128,7 +128,7 @@ export default function MobileCheckoutView({
 
   // ── Order items (compact) ───────────────────────────────────────────────
   const OrderItemsList = () => (
-    <div className="space-y-4">
+    <div className="space-y-0">
       {items.map((item: CartItemWithProduct) => {
         const img = item.product.images?.[0] || item.product.imageUrl;
         const variant = item.product.variants?.find(
@@ -141,7 +141,7 @@ export default function MobileCheckoutView({
             : orig;
         const hasDiscount = effectivePrice < orig;
         return (
-          <div key={item.id} className="flex items-center gap-4">
+          <div key={item.id} className="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
             <div className="relative flex-shrink-0">
               <div className="w-14 h-14 bg-gray-100 rounded-lg overflow-hidden">
                 {img ? (
@@ -195,8 +195,8 @@ export default function MobileCheckoutView({
       </div>
       {totalSavings > 0 && (
         <div className="flex justify-between">
-          <span className="text-gray-500">Discount</span>
-          <span className="text-gray-900 font-medium tabular-nums">
+          <span className="text-green-600">Discount</span>
+          <span className="text-green-600 font-medium tabular-nums">
             -{formatPrice(totalSavings)}
           </span>
         </div>
@@ -206,7 +206,7 @@ export default function MobileCheckoutView({
           <Truck className="h-3.5 w-3.5" />
           Shipping
         </span>
-        <span className="text-gray-900 font-medium tabular-nums">
+        <span className={`font-medium tabular-nums ${shipping === 0 ? "text-green-600" : "text-gray-900"}`}>
           {shipping === 0 ? "Free" : formatPrice(shipping)}
         </span>
       </div>
@@ -226,13 +226,13 @@ export default function MobileCheckoutView({
           Add {formatPrice(freeShippingGap)} more for free shipping
         </p>
       )}
-      <div className="flex justify-between items-center pt-1">
+      <div className="flex justify-between items-center pt-1 border-t border-gray-200 mt-2">
         <span className="text-sm font-semibold text-gray-900">Total</span>
         <span className="text-lg font-semibold text-gray-900 tabular-nums">
           {formatPrice(total)}
         </span>
       </div>
-      <p className="text-xs text-gray-400">
+      <p className="text-xs text-gray-500">
         Tax included. Shipping calculated at checkout.
       </p>
     </div>
@@ -246,7 +246,7 @@ export default function MobileCheckoutView({
         {hasStockIssues && (
           <div className="py-3 px-4 bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-            Some items are out of stock. Update your cart before proceeding.
+            Some items are unavailable. Please update your cart before proceeding.
           </div>
         )}
 
@@ -291,25 +291,27 @@ export default function MobileCheckoutView({
 
 
         {/* Order items */}
-        <section>
+        <section className="bg-gray-50 rounded-lg p-4">
           <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">
-            Order Items ({items.length})
+            Order Summary ({items.length})
           </h2>
-          <OrderItemsList />
+          <div className="divide-y divide-gray-100">
+            <OrderItemsList />
+          </div>
+
+          <div className="border-t border-gray-200 mt-4 pt-4">
+            <CouponInput
+              orderAmount={subtotal}
+              onCouponApplied={onCouponApplied}
+              onCouponRemoved={onCouponRemoved}
+              appliedCoupon={appliedCoupon}
+            />
+          </div>
+
+          <div className="mt-4">
+            <PriceSummary />
+          </div>
         </section>
-
-
-        {/* Coupon */}
-        <CouponInput
-          orderAmount={subtotal}
-          onCouponApplied={onCouponApplied}
-          onCouponRemoved={onCouponRemoved}
-          appliedCoupon={appliedCoupon}
-        />
-
-
-        {/* Price summary */}
-        <PriceSummary />
 
         {/* Spacer for fixed pay bar */}
         <div className="h-28" />
@@ -318,13 +320,13 @@ export default function MobileCheckoutView({
       {/* Fixed pay bar */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
         <div className="px-4 pt-3 pb-5 space-y-2 max-w-lg mx-auto">
+          <RazorpayPayment {...razorpayProps} />
           {payBlockedReason && (
             <p className="text-xs text-gray-500 text-center flex items-center justify-center gap-1">
               <AlertTriangle className="h-3 w-3 flex-shrink-0" />
               {payBlockedReason}
             </p>
           )}
-          <RazorpayPayment {...razorpayProps} />
         </div>
       </div>
 
@@ -367,7 +369,7 @@ export default function MobileCheckoutView({
               <button
                 type="button"
                 onClick={handleConfirmDelete}
-                className="w-full px-4 py-3 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
               >
                 Delete
               </button>
@@ -377,7 +379,7 @@ export default function MobileCheckoutView({
               <button
                 type="submit"
                 form="address-form"
-                className="w-full px-4 py-3 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-5 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {editingAddress ? "Update Address" : "Save Address"}
               </button>
