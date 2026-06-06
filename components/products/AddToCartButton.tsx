@@ -57,8 +57,7 @@ export default function AddToCartButton({ productId, onlineStock, variantId }: A
       <Button
         onClick={handleAddToCart}
         disabled={isUpdating || isOutOfStock}
-        className="w-full"
-        size="lg"
+        className="w-full h-10"
       >
         {isUpdating ? 'Adding to Cart...' : 'Add to Cart'}
       </Button>

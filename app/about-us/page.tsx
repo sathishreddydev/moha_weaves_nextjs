@@ -143,10 +143,10 @@ export default function AboutUsPage() {
             craftsmanship.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" variant="default">
+            <Button className="h-10" variant="default">
               <Link href="/collections"> Explore Collection</Link>
             </Button>
-            <Button size="lg" variant="outline">
+            <Button className="h-10" variant="outline">
               <Link href="/contact">Contact Us</Link>
             </Button>
           </div>

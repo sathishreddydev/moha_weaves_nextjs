@@ -134,8 +134,7 @@ export default function CartControls({
     return (
       <Button
         disabled
-        className="flex-1 bg-gray-300 text-gray-600 h-12 sm:h-auto text-base sm:text-sm"
-        size="lg"
+        className="flex-1 bg-gray-300 text-gray-600 h-10 text-sm"
       >
         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-600 mr-2"></div>
         Loading...
@@ -173,7 +172,7 @@ export default function CartControls({
           <Button
             onClick={handleCheckout}
             disabled={updating === product.id || cartQuantity === 0}
-            className="w-full active:scale-95 transition-transform"
+            className="w-full h-10 active:scale-95 transition-transform"
           >
             <ShoppingCart className="h-4 w-4 mr-2" />
             {isLoggedIn ? "Checkout" : "View Cart"}
@@ -189,8 +188,7 @@ export default function CartControls({
     <Button
       onClick={handleAddToCart}
       disabled={availableStock <= 0 || updating === product.id}
-      size="lg"
-      className="w-full active:scale-95 transition-transform"
+      className="w-full h-10 active:scale-95 transition-transform"
     >
       <ShoppingBag className="h-5 w-5 mr-2" />
       {updating === product.id

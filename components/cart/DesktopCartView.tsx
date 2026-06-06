@@ -368,7 +368,7 @@ export default function DesktopCartView({
 
               <div className="mt-6 space-y-3">
                 {isGuest ? (
-                  <Button asChild className="w-full h-12 text-sm font-medium">
+                  <Button asChild className="w-full h-10 text-sm font-medium">
                     <Link href="/login?redirect=/cart">
                       Sign in to Checkout
                     </Link>
@@ -377,7 +377,7 @@ export default function DesktopCartView({
                   <Button
                     onClick={onCheckout}
                     disabled={checkoutDisabled}
-                    className="w-full h-12 text-sm font-medium"
+                    className="w-full h-10 text-sm font-medium"
                   >
                     Checkout
                   </Button>
@@ -385,7 +385,7 @@ export default function DesktopCartView({
                   <Button
                     asChild={!checkoutDisabled}
                     disabled={checkoutDisabled}
-                    className="w-full h-12 text-sm font-medium"
+                    className="w-full h-10 text-sm font-medium"
                   >
                     {checkoutDisabled ? (
                       <span>Checkout</span>

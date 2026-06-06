@@ -335,8 +335,7 @@ export default function RazorpayPayment({
       <Button
         onClick={handlePayment}
         disabled={disabled || isLoading}
-        size="lg"
-        className="w-full"
+        className="w-full h-10"
       >
         {isLoading ? (
           <>

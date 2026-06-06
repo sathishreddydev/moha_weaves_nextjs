@@ -425,7 +425,7 @@ export default function CollectionsClient({
                   {/* Sticky footer */}
                   <div className="flex-shrink-0 px-5 py-4 border-t border-gray-100 bg-white">
                     <Button
-                      className="w-full h-11 text-sm font-medium"
+                      className="w-full h-10 text-sm font-medium"
                       onClick={() => setShowFilters(false)}
                     >
                       Apply Filters

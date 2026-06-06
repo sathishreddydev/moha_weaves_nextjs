@@ -266,14 +266,14 @@ export default function CheckoutPage() {
           <div className="flex flex-col gap-3 pt-2">
             <Button
               onClick={() => router.push("/my/orders")}
-              className="w-full h-12"
+              className="w-full h-10"
             >
               View My Orders
             </Button>
             <Button
               variant="outline"
               onClick={() => router.push("/")}
-              className="w-full h-12"
+              className="w-full h-10"
             >
               Continue Shopping
             </Button>
