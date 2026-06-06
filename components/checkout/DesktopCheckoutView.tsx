@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Separator } from "@/components/ui/separator";
 import { StickyPanel } from "@/components/ui/StickyPanel";
 import { formatPrice } from "@/lib/formatters";
 import { CartItemWithProduct, UserAddress } from "@/shared/types";
@@ -228,7 +227,6 @@ export default function DesktopCheckoutView({
           Add {formatPrice(freeShippingGap)} more for free shipping
         </p>
       )}
-      <Separator />
       <div className="flex justify-between items-center pt-1">
         <span className="text-sm font-semibold text-gray-900">Total</span>
         <span className="text-lg font-semibold text-gray-900 tabular-nums">
@@ -313,16 +311,12 @@ export default function DesktopCheckoutView({
               </div>
             </div>
 
-            <Separator />
-
             <CouponInput
               orderAmount={subtotal}
               onCouponApplied={onCouponApplied}
               onCouponRemoved={onCouponRemoved}
               appliedCoupon={appliedCoupon}
             />
-
-            <Separator />
 
             <PriceSummary />
 

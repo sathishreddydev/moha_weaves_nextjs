@@ -21,7 +21,7 @@ import { syncGuestCart } from "@/lib/guest-cart-sync";
 import { ProductWithDetails } from "@/shared";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ShoppingBag } from "lucide-react";
+import { ArrowLeft, ShoppingBag } from "lucide-react";
 
 export default function CartPage() {
   const { status } = useAuth();
@@ -197,12 +197,31 @@ export default function CartPage() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      {/* Stepper */}
-      <CartStepper
-        currentStep={currentStep}
-        onStepChange={setCurrentStep}
-        canProceedToCheckout={canProceedToCheckout}
-      />
+      {/* Mobile top bar — back button + title */}
+      <div className="sm:hidden flex items-center gap-3 mb-5">
+        <button
+          onClick={() => {
+            if (currentStep === "checkout") setCurrentStep("bag");
+            else window.history.back();
+          }}
+          className="h-9 w-9 flex items-center justify-center rounded-full border border-gray-200 hover:bg-gray-50 transition-colors"
+          aria-label="Go back"
+        >
+          <ArrowLeft className="h-4 w-4 text-gray-700" />
+        </button>
+        <h1 className="text-base font-medium text-gray-900">
+          {currentStep === "checkout" ? "Checkout" : "My Bag"}
+        </h1>
+      </div>
+
+      {/* Stepper — desktop only */}
+      <div className="hidden sm:block">
+        <CartStepper
+          currentStep={currentStep}
+          onStepChange={setCurrentStep}
+          canProceedToCheckout={canProceedToCheckout}
+        />
+      </div>
 
       {/* Error */}
       {error && (
