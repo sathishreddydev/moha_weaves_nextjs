@@ -218,7 +218,7 @@ export default function MobileCartView({
 
                   {/* Quantity + Remove */}
                   <div className="flex items-center justify-between mt-3">
-                    <div className="flex items-center border border-gray-300 rounded">
+                    <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
                       <button
                         onClick={() =>
                           updateQuantity(item.id, item.quantity - 1)

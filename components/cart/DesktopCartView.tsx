@@ -243,7 +243,7 @@ export default function DesktopCartView({
 
                   {/* Quantity */}
                   <div className="flex justify-center">
-                    <div className="flex items-center border border-gray-300 rounded">
+                    <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
                       <button
                         onClick={() =>
                           updateQuantity(item.id, item.quantity - 1)

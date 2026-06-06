@@ -348,7 +348,7 @@ export default function DesktopCheckoutView({
               <button
                 type="button"
                 onClick={() => setPanelView("list")}
-                className="p-1 -ml-1 rounded hover:bg-gray-100 transition-colors"
+                className="p-1 -ml-1 rounded-lg hover:bg-gray-100 transition-colors"
                 aria-label="Back to address list"
               >
                 <ArrowLeft className="h-4 w-4 text-gray-500" />
@@ -360,7 +360,7 @@ export default function DesktopCheckoutView({
               <button
                 type="button"
                 onClick={() => setPanelView("list")}
-                className="p-1 -ml-1 rounded hover:bg-gray-100 transition-colors"
+                className="p-1 -ml-1 rounded-lg hover:bg-gray-100 transition-colors"
                 aria-label="Back to address list"
               >
                 <ArrowLeft className="h-4 w-4 text-gray-500" />
@@ -376,7 +376,7 @@ export default function DesktopCheckoutView({
               <button
                 type="button"
                 onClick={handleConfirmDelete}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors"
               >
                 Delete
               </button>
@@ -386,7 +386,7 @@ export default function DesktopCheckoutView({
               <button
                 type="submit"
                 form="address-form"
-                className="px-5 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-5 py-2 text-sm font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {editingAddress ? "Update Address" : "Save Address"}
               </button>
