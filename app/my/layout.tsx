@@ -2,18 +2,19 @@
 
 import ProfileSidebar from "@/components/user/ProfileSidebar";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
 
 export default function MyLayout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.replace("/login");
+      router.replace(`/login?returnUrl=${encodeURIComponent(pathname)}`);
     }
-  }, [status, router]);
+  }, [status, router, pathname]);
 
   if (status === "loading") {
     return (

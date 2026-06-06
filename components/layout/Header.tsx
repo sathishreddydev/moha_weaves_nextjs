@@ -10,13 +10,14 @@ import { useWishlistCount } from "@/hooks/useWishlistQueries";
 import { useCartSocketSync } from "@/hooks/useCartSocketSync";
 import { Heart, Menu, ShoppingBag, UserIcon } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
 import Search from "../navigation/Search";
 
 export default function Header() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeMegaMenu, setActiveMegaMenu] = useState(null);
   const { hasOfferData, isBannerVisible } = useOffersBanner();
@@ -150,7 +151,7 @@ export default function Header() {
                 </button>
 
                 <button
-                  onClick={() => router.push("/login")}
+                  onClick={() => router.push(`/login?returnUrl=${encodeURIComponent(pathname)}`)}
                   className="touch-manipulation active:scale-95 transition-transform"
                 >
                   <UserIcon className="w-6 h-6 lg:w-5 lg:h-5" />

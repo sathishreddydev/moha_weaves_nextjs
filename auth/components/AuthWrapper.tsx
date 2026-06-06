@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '../hooks/useAuth';
 
 interface AuthWrapperProps {
@@ -11,6 +11,7 @@ interface AuthWrapperProps {
 export default function AuthWrapper({ children }: AuthWrapperProps) {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [isRedirecting, setIsRedirecting] = React.useState(false);
 
   React.useEffect(() => {
@@ -18,9 +19,9 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
     
     if (!isAuthenticated && !isRedirecting) {
       setIsRedirecting(true);
-      router.push('/login');
+      router.push(`/login?returnUrl=${encodeURIComponent(pathname)}`);
     }
-  }, [isAuthenticated, isLoading, router, isRedirecting]);
+  }, [isAuthenticated, isLoading, router, isRedirecting, pathname]);
 
   if (isLoading) {
     return (
