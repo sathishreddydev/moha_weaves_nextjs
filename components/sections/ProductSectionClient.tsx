@@ -98,7 +98,7 @@ export default function ProductSectionClient({
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1
-              className="font-serif tracking-wide transition-colors text-2xl"
+              className="font-serif tracking-wide transition-colors text-xl"
               data-testid="text-featured-title"
             >
               {title}

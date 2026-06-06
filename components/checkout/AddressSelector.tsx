@@ -6,7 +6,6 @@ import { ThreeDotsMenu } from "@/components/ui/three-dots-menu";
 import {
   MapPin,
   Plus,
-  Check,
   Loader2,
   ChevronRight,
   Briefcase,
@@ -21,9 +20,9 @@ import {
 // ─── Address type icon ────────────────────────────────────────────────────────
 
 function AddressTypeIcon({ type }: { type?: string }) {
-  if (type === "work") return <Briefcase className="h-3 w-3" />;
-  if (type === "other") return <Building2 className="h-3 w-3" />;
-  return <Home className="h-3 w-3" />;
+  if (type === "work") return <Briefcase className="h-4 w-4 text-gray-500" />;
+  if (type === "other") return <Building2 className="h-4 w-4 text-gray-500" />;
+  return <Home className="h-4 w-4 text-gray-500" />;
 }
 
 // ─── Single address row ───────────────────────────────────────────────────────
@@ -190,24 +189,21 @@ export default function AddressSelector({
   // ── Selected address card ──────────────────────────────────────────────────
   return (
     <div className="border border-gray-900 rounded-xl p-3 bg-gray-50">
-      <div className="flex items-start gap-3">
-        {/* Check icon */}
-        <div className="flex-shrink-0 mt-0.5 w-5 h-5 rounded-full bg-gray-900 flex items-center justify-center">
-          <Check className="h-3 w-3 text-white" />
+      <div className="flex items-start gap-2">
+        {/* Address type icon — bare, no circle */}
+        <div
+          className="flex-shrink-0 mt-0.5"
+          title={selectedAddress?.addressType || "home"}
+        >
+          <AddressTypeIcon type={selectedAddress?.addressType} />
         </div>
 
         {/* Address details */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-            <span className="text-sm font-semibold text-gray-900">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <span className="text-sm font-semibold text-gray-900 truncate">
               {selectedAddress?.name ?? "Select an address"}
             </span>
-            {selectedAddress && (
-              <span className="flex items-center gap-0.5 text-xs text-gray-500 bg-white border border-gray-200 px-1.5 py-0.5 rounded-full capitalize">
-                <AddressTypeIcon type={selectedAddress.addressType} />
-                {selectedAddress.addressType || "home"}
-              </span>
-            )}
           </div>
           {selectedAddress ? (
             <>

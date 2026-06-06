@@ -14,7 +14,7 @@ export default function ShopCategories() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2
-            className="font-serif tracking-wide transition-colors text-2xl"
+            className="font-serif tracking-wide transition-colors text-xl"
             data-testid="text-categories-title"
           >
             Shop by Category
@@ -38,7 +38,7 @@ export default function ShopCategories() {
           return (
             <Link key={category.id} href={categoryUrl}>
               <Card
-                className="group relative aspect-square overflow-hidden hover-elevate cursor-pointer rounded-none"
+                className="group relative aspect-square overflow-hidden hover-elevate cursor-pointer"
                 data-testid={`card-category-${category.id}`}
               >
                 <Image

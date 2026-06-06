@@ -249,9 +249,9 @@ export default function DesktopCheckoutView({
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         {/* LEFT COLUMN — Delivery */}
-        <div className="lg:col-span-2">
+        <div>
           <div className="space-y-8">
             <section>
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-4">
@@ -294,7 +294,7 @@ export default function DesktopCheckoutView({
         </div>
 
         {/* RIGHT COLUMN — Order Summary */}
-        <div className="lg:col-span-1">
+        <div>
           <div
             className="sticky space-y-6"
             style={{

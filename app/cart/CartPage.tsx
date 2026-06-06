@@ -198,7 +198,7 @@ export default function CartPage() {
   return (
     <div className="max-w-5xl mx-auto">
       {/* Mobile top bar — back button + title */}
-      <div className="sm:hidden flex items-center gap-3 mb-5">
+      <div className="sm:hidden flex items-center mb-5">
         <button
           onClick={() => {
             if (currentStep === "checkout") setCurrentStep("bag");

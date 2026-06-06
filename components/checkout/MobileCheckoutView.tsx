@@ -241,7 +241,7 @@ export default function MobileCheckoutView({
   // ── Main mobile checkout ────────────────────────────────────────────────
   return (
     <>
-      <div className="px-4 space-y-6">
+      <div className="space-y-6">
         {/* Stock issue banner */}
         {hasStockIssues && (
           <div className="py-3 px-4 bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg flex items-center gap-2">
@@ -291,7 +291,7 @@ export default function MobileCheckoutView({
 
 
         {/* Order items */}
-        <section className="bg-gray-50 rounded-lg p-4">
+        <section className="bg-gray-50 rounded-lg py-4">
           <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">
             Order Summary ({items.length})
           </h2>

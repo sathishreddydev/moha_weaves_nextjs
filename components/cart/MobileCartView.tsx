@@ -123,7 +123,7 @@ export default function MobileCartView({
           return (
             <div
               key={item.id}
-              className={`relative px-4 py-5 ${isOutOfStock ? "opacity-60" : ""}`}
+              className={`relative py-5 ${isOutOfStock ? "opacity-60" : ""}`}
             >
               {/* Removing status overlay — only shown for remove action */}
               {updating === item.id && updatingAction === "removing" && (
@@ -383,7 +383,7 @@ export default function MobileCartView({
 
       {/* Related Products */}
       {relatedProducts.length > 0 && (
-        <div className="mt-10 mb-4 px-4 border-t border-gray-200 pt-8">
+        <div className="mt-10 mb-4 border-t border-gray-200 pt-8">
           <div className="flex items-center justify-between mb-5">
             <h2 className="font-serif tracking-wide text-lg">
               You May Also Like
