@@ -124,6 +124,6 @@ export function LoadingSpinner({ size = "md", className }: { size?: "sm" | "md" 
   };
 
   return (
-    <div className={cn("animate-spin rounded-full border-2 border-gray-300 border-t-blue-600", sizeClasses[size], className)} />
+    <div className={cn("animate-spin rounded-full border border-gray-300 border-t-blue-600", sizeClasses[size], className)} />
   );
 }

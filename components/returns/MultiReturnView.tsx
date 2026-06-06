@@ -296,7 +296,7 @@ export default function MultiReturnView({
                     key={item.id}
                     onClick={() => toggleItem(item)}
                     className={[
-                      "flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all",
+                      "flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all",
                       selected
                         ? "border-gray-900 bg-gray-50"
                         : "border-gray-200 bg-white hover:border-gray-300",
@@ -306,7 +306,7 @@ export default function MultiReturnView({
                     <div className="flex-shrink-0 mt-0.5">
                       <div
                         className={[
-                          "w-4 h-4 rounded border-2 flex items-center justify-center transition-colors",
+                          "w-4 h-4 rounded border flex items-center justify-center transition-colors",
                           selected
                             ? "bg-gray-900 border-gray-900"
                             : "border-gray-300 bg-white",
@@ -561,7 +561,7 @@ export default function MultiReturnView({
                   type="button"
                   onClick={() => setResolution("refund")}
                   className={[
-                    "py-2.5 px-3 rounded-xl border-2 text-xs font-medium transition-all text-left",
+                    "py-2.5 px-3 rounded-xl border text-xs font-medium transition-all text-left",
                     resolution === "refund"
                       ? "border-gray-900 bg-gray-50 text-gray-900"
                       : "border-gray-200 bg-white text-gray-600 hover:border-gray-300",
@@ -577,7 +577,7 @@ export default function MultiReturnView({
                   type="button"
                   onClick={() => setResolution("store_credit")}
                   className={[
-                    "py-2.5 px-3 rounded-xl border-2 text-xs font-medium transition-all text-left",
+                    "py-2.5 px-3 rounded-xl border text-xs font-medium transition-all text-left",
                     resolution === "store_credit"
                       ? "border-green-600 bg-green-50 text-green-800"
                       : "border-gray-200 bg-white text-gray-600 hover:border-gray-300",

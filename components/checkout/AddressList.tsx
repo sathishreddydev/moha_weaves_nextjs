@@ -76,7 +76,7 @@ export default function AddressList({
               <div className="flex items-start space-x-3 flex-1">
                 <div className="flex-shrink-0 mt-1">
                   <div
-                    className={`w-4 h-4 rounded-full border-2 ${
+                    className={`w-4 h-4 rounded-full border ${
                       selectedAddressId === address.id
                         ? "bg-blue-600 border-blue-600"
                         : "border-gray-300"

@@ -372,7 +372,7 @@ export default function ProductDetailClient({
                         aria-current={
                           selectedImageIndex === index ? "true" : "false"
                         }
-                        className={`relative flex-shrink-0 w-16 h-16 lg:w-18 lg:h-18 bg-gray-100 rounded-md overflow-hidden border-2 transition-colors snap-center focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        className={`relative flex-shrink-0 w-16 h-16 lg:w-18 lg:h-18 bg-gray-100 rounded-md overflow-hidden border transition-colors snap-center focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                           selectedImageIndex === index
                             ? "border-blue-500"
                             : "border-transparent"
@@ -586,7 +586,7 @@ export default function ProductDetailClient({
                       variant="outline"
                       size="sm"
                       disabled={wishlistUpdating === product.id}
-                      className={`h-10 w-10 rounded-full border-2 transition-all duration-200 ${
+                      className={`h-10 w-10 rounded-full border transition-all duration-200 ${
                         isWishlisted
                           ? "border-red-500 bg-red-50 text-red-500 hover:bg-red-100"
                           : "border-gray-300 bg-white text-gray-600 hover:border-gray-400 hover:bg-gray-50"
@@ -602,7 +602,7 @@ export default function ProductDetailClient({
                       onClick={handleShare}
                       variant="outline"
                       size="sm"
-                      className="h-10 w-10 rounded-full border-2 border-gray-300 bg-white text-gray-600 hover:border-gray-400 hover:bg-gray-50 transition-all duration-200"
+                      className="h-10 w-10 rounded-full border border-gray-300 bg-white text-gray-600 hover:border-gray-400 hover:bg-gray-50 transition-all duration-200"
                     >
                       <Share2 className="h-4 w-4" />
                     </Button>

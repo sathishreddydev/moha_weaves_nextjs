@@ -129,7 +129,7 @@ export default function MobileCartView({
               {updating === item.id && updatingAction === "removing" && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 rounded-lg backdrop-blur-[1px]">
                   <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 shadow-sm px-3 py-1.5 rounded-full">
-                    <span className="inline-block w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                    <span className="inline-block w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin" />
                     Removing…
                   </span>
                 </div>

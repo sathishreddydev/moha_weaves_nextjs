@@ -204,7 +204,7 @@ export default function CartPage() {
             if (currentStep === "checkout") setCurrentStep("bag");
             else window.history.back();
           }}
-          className="h-9 w-9 flex items-center justify-center rounded-full border border-gray-200 hover:bg-gray-50 transition-colors"
+          className="h-9 w-9 flex items-center justify-center hover:opacity-60 transition-opacity"
           aria-label="Go back"
         >
           <ArrowLeft className="h-4 w-4 text-gray-700" />

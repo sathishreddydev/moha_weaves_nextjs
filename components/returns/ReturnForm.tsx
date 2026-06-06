@@ -230,7 +230,7 @@ export default function ReturnForm({
               type="button"
               onClick={() => setResolution("refund")}
               className={[
-                "py-2.5 px-3 rounded-xl border-2 text-xs font-medium transition-all text-left",
+                "py-2.5 px-3 rounded-xl border text-xs font-medium transition-all text-left",
                 resolution === "refund"
                   ? "border-gray-900 bg-gray-50 text-gray-900"
                   : "border-gray-200 bg-white text-gray-600 hover:border-gray-300",
@@ -244,7 +244,7 @@ export default function ReturnForm({
               type="button"
               onClick={() => setResolution("store_credit")}
               className={[
-                "py-2.5 px-3 rounded-xl border-2 text-xs font-medium transition-all text-left",
+                "py-2.5 px-3 rounded-xl border text-xs font-medium transition-all text-left",
                 resolution === "store_credit"
                   ? "border-green-600 bg-green-50 text-green-800"
                   : "border-gray-200 bg-white text-gray-600 hover:border-gray-300",

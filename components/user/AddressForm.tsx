@@ -499,7 +499,7 @@ export default function AddressForm({
                     variant={isSelected ? "default" : "outline"}
                     disabled={isLoading}
                     className={[
-                      "rounded-xl border-2 text-xs font-medium",
+                      "rounded-xl border text-xs font-medium",
                       isSelected
                         ? "border-gray-900 bg-gray-900"
                         : "border-gray-200 hover:border-gray-400",
@@ -697,7 +697,7 @@ export default function AddressForm({
 
         {/* Set as Default */}
         {isAlreadyDefault ? (
-          <div className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-green-200 bg-green-50">
+          <div className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-green-200 bg-green-50">
             <Lock className="h-4 w-4 text-green-600 flex-shrink-0" />
             <div className="text-left">
               <p className="text-xs font-medium text-green-800">
@@ -728,7 +728,7 @@ export default function AddressForm({
               <div
                 aria-hidden="true"
                 className={[
-                  "w-4 h-4 rounded border-2 flex items-center justify-center transition-colors",
+                  "w-4 h-4 rounded border flex items-center justify-center transition-colors",
                   isDefault
                     ? "bg-gray-900 border-gray-900"
                     : "border-gray-300 bg-white",

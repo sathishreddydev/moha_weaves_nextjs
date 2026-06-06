@@ -474,7 +474,7 @@ function OrderDetailsContent({
                 className="rounded-3xl w-full sm:w-auto flex items-center justify-center gap-2"
               >
                 {invoiceLoading ? (
-                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border border-current border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <Download className="w-4 h-4" />
                 )}
@@ -516,7 +516,7 @@ function OrderDetailsContent({
           <button
             type="button"
             onClick={() => onReturnClick("", "return")}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-gray-200 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-gray-200 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors"
           >
             <RotateCcw className="w-4 h-4" />
             Return Items from this order

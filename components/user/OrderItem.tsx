@@ -378,11 +378,11 @@ function InlineReviewPanel({
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading}
-                  className="w-16 h-16 flex-shrink-0 border-2 border-dashed border-slate-200 rounded-lg flex flex-col items-center justify-center gap-1 text-slate-400 hover:border-slate-400 hover:text-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-16 h-16 flex-shrink-0 border border-dashed border-slate-200 rounded-lg flex flex-col items-center justify-center gap-1 text-slate-400 hover:border-slate-400 hover:text-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="Add photo"
                 >
                   {uploading ? (
-                    <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+                    <div className="w-4 h-4 border border-slate-300 border-t-slate-600 rounded-full animate-spin" />
                   ) : (
                     <>
                       <ImagePlus className="w-4 h-4" />

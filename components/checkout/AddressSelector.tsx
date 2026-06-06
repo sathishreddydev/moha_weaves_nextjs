@@ -58,7 +58,7 @@ export function AddressRow({
     <div
       onClick={onSelect}
       className={[
-        "relative flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all",
+        "relative flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all",
         isSelected
           ? "border-gray-900 bg-gray-50"
           : "border-gray-200 hover:border-gray-300 bg-white",
@@ -68,7 +68,7 @@ export function AddressRow({
       <div className="flex-shrink-0 mt-0.5">
         <div
           className={[
-            "w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors",
+            "w-4 h-4 rounded-full border flex items-center justify-center transition-colors",
             isSelected ? "border-gray-900 bg-gray-900" : "border-gray-300",
           ].join(" ")}
         >
@@ -175,7 +175,7 @@ export default function AddressSelector({
   // ── Empty state ────────────────────────────────────────────────────────────
   if (addresses.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 px-4 border-2 border-dashed border-gray-200 rounded-xl text-center">
+      <div className="flex flex-col items-center justify-center py-8 px-4 border border-dashed border-gray-200 rounded-xl text-center">
         <MapPin className="h-8 w-8 text-gray-300 mb-2" />
         <p className="text-sm font-medium text-gray-700 mb-1">No saved addresses</p>
         <p className="text-xs text-gray-500 mb-4">Add an address to continue</p>
@@ -189,7 +189,7 @@ export default function AddressSelector({
 
   // ── Selected address card ──────────────────────────────────────────────────
   return (
-    <div className="border-2 border-gray-900 rounded-xl p-3 bg-gray-50">
+    <div className="border border-gray-900 rounded-xl p-3 bg-gray-50">
       <div className="flex items-start gap-3">
         {/* Check icon */}
         <div className="flex-shrink-0 mt-0.5 w-5 h-5 rounded-full bg-gray-900 flex items-center justify-center">
@@ -284,7 +284,7 @@ export function AddressListView({
       <button
         type="button"
         onClick={onAddNew}
-        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-gray-200 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors"
+        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-gray-200 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors"
       >
         <Plus className="h-4 w-4" />
         Add New Address
