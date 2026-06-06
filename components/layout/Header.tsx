@@ -9,6 +9,7 @@ import { useCartCount } from "@/hooks/useCartQueries";
 import { useWishlistCount } from "@/hooks/useWishlistQueries";
 import { useCartSocketSync } from "@/hooks/useCartSocketSync";
 import { Heart, Menu, ShoppingBag, UserIcon } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
@@ -68,7 +69,7 @@ export default function Header() {
         }`}
       >
         {/* Inner content constrained to max-w-7xl */}
-        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+        <div className="max-w-7xl mx-auto py-2 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
           <div className="flex items-center gap-4">
             <button
               onClick={handleMobileMenuToggle}
@@ -78,8 +79,15 @@ export default function Header() {
             >
               <Menu className="w-6 h-6" />
             </button>
-            <Link href="/" className="text-xl font-bold text-primary-600">
-              Urumi
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/urumilogo.png"
+                alt="Urumi"
+                width={110}
+                height={44}
+                className="h-11 w-auto object-contain object-center"
+                priority
+              />
             </Link>
             <MegaMenu
               activeMegaMenu={activeMegaMenu}
