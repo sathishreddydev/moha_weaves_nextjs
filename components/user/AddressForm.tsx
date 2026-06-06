@@ -430,7 +430,7 @@ export default function AddressForm({
               inputMode="text"
               autoComplete="name"
               type="text"
-              icon={<User className="h-3.5 w-3.5 text-gray-400" />}
+              endIcon={<User className="h-3.5 w-3.5 text-gray-400" />}
             />
             <Input
               required
@@ -449,7 +449,7 @@ export default function AddressForm({
               autoComplete="tel"
               type="tel"
               maxLength={10}
-              icon={<Phone className="h-3.5 w-3.5 text-gray-400" />}
+              endIcon={<Phone className="h-3.5 w-3.5 text-gray-400" />}
             />
             <div className="sm:col-span-2">
               <Input
@@ -467,7 +467,7 @@ export default function AddressForm({
                 inputMode="email"
                 autoComplete="email"
                 type="email"
-                icon={<Mail className="h-3.5 w-3.5 text-gray-400" />}
+                endIcon={<Mail className="h-3.5 w-3.5 text-gray-400" />}
               />
             </div>
           </div>
@@ -603,7 +603,7 @@ export default function AddressForm({
               inputMode="text"
               autoComplete="address-line1"
               type="text"
-              icon={<Home className="h-3.5 w-3.5 text-gray-400" />}
+              endIcon={<Home className="h-3.5 w-3.5 text-gray-400" />}
             />
           )}
 
@@ -635,7 +635,7 @@ export default function AddressForm({
                     : undefined
                 }
                 aria-autocomplete="list"
-                icon={
+                endIcon={
                   suggestionsLoading ? (
                     <Loader2 className="h-3.5 w-3.5 text-gray-400 animate-spin" />
                   ) : (

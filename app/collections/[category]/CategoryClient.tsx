@@ -4,13 +4,6 @@ import { ProductFilters } from "@/app/api/products/productService";
 import VirtualizedProductGrid from "@/components/products/VirtualizedProductGrid";
 import { Button } from "@/components/ui/button";
 import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -19,8 +12,9 @@ import {
 } from "@/components/ui/select";
 import CategoryFilterSections from "@/components/filters/CategoryFilterSections";
 import ActiveFilterBadges from "@/components/filters/ActiveFilterBadges";
+import StickyPanel from "@/components/ui/StickyPanel";
 import { CategoryWithSubcategories, ProductWithDetails } from "@/shared";
-import { FilterIcon } from "lucide-react";
+import { FilterIcon, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useState, useEffect } from "react";
 import { useAuth } from "@/auth";
@@ -99,7 +93,8 @@ export default function CategoryClient({
     setDisplayedProducts(initialProducts || []);
     setTotalCount(initialCount || 0);
     setOffset(initialProducts?.length || 0);
-  }, [initialProducts, initialCount]);
+    setCurrentFilters(initialFilters);
+  }, [initialProducts, initialCount, initialFilters]);
 
   // ── Category / subcategories ───────────────────────────────────────────────
   const currentCategory = categories.find(
@@ -257,6 +252,9 @@ export default function CategoryClient({
 
   // ── Active filter badges ───────────────────────────────────────────────────
   const activeBadges = [
+    ...(currentFilters.search
+      ? [{ label: `"${currentFilters.search}"`, onRemove: () => handleFilterChange({ search: undefined }) }]
+      : []),
     ...(currentFilters.subcategories || []).map((s) => ({ label: s, onRemove: () => handleSubcategoryChange(s, false) })),
     ...(currentFilters.colors || []).map((c) => ({ label: c, onRemove: () => handleColorChange(c, false) })),
     ...(currentFilters.fabrics || []).map((f) => ({ label: f, onRemove: () => handleFabricChange(f, false) })),
@@ -272,7 +270,7 @@ export default function CategoryClient({
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Filters Sidebar - Desktop */}
         <aside className="hidden lg:block w-64 flex-shrink-0">
-          <div className="sticky space-y-6" style={{ top: "calc(var(--banner-height, 0px) + var(--header-height, 74px) + 1.5rem)" }}>
+          <div className="sticky space-y-6 overflow-y-auto" style={{ top: "calc(var(--banner-height, 0px) + var(--header-height, 74px) + 1.5rem)", maxHeight: "calc(100vh - var(--banner-height, 0px) - var(--header-height, 74px) - 3rem)" }}>
             <h1 className="text-xl font-light text-gray-900 uppercase tracking-[0.1em]">
               {currentCategory?.name || categoryName.charAt(0).toUpperCase() + categoryName.slice(1)}
             </h1>
@@ -323,59 +321,70 @@ export default function CategoryClient({
               </SelectContent>
             </Select>
 
-            {/* Mobile-only filter drawer — hidden on sm+ so it never renders on desktop */}
+            {/* Mobile-only filter panel — hidden on sm+ so it never renders on desktop */}
             <div className="sm:hidden">
-              <Drawer open={showFilters} onOpenChange={setShowFilters}>
-                <DrawerTrigger asChild>
-                  <Button variant="outline" className="h-8 px-2 border border-gray-300 rounded-lg">
-                    <FilterIcon className="h-4 w-4" />
-                  </Button>
-                </DrawerTrigger>
-                <DrawerContent className="h-[85vh] flex flex-col overflow-hidden">
-                  {/* Drag handle */}
-                  <div className="mx-auto mt-3 mb-1 h-1.5 w-12 rounded-full bg-gray-300 flex-shrink-0" />
-                  {/* Sticky header */}
-                  <DrawerHeader className="flex-shrink-0 border-b border-gray-100 px-5 py-4">
-                    <div className="flex items-center justify-between">
-                      <DrawerTitle className="text-left text-base font-semibold">Filters</DrawerTitle>
-                      <Button
-                        variant="link"
-                        onClick={handleClearAllFilters}
-                        className="text-sm text-blue-600 hover:text-blue-800 font-medium p-0 h-auto"
-                      >
-                        Clear All
-                      </Button>
-                    </div>
-                  </DrawerHeader>
-                  {/* Scrollable content */}
-                  <div className="flex-1 min-h-0 overflow-y-auto px-5 py-5">
-                    <CategoryFilterSections
-                      categoryName={categoryName}
-                      currentCategory={currentCategory}
-                      currentSubcategories={currentSubcategories}
-                      colors={colors}
-                      fabrics={fabrics}
-                      currentFilters={currentFilters}
-                      onSubcategoryChange={handleSubcategoryChange}
-                      onColorChange={handleColorChange}
-                      onFabricChange={handleFabricChange}
-                      onToggleFilter={handleToggleFilter}
-                      onPriceRangeChange={handlePriceRangeChange}
-                    />
-                  </div>
-                  {/* Sticky footer */}
-                  <div className="flex-shrink-0 px-5 py-4 border-t border-gray-100 bg-white">
-                    <Button className="w-full h-10 text-sm font-medium" onClick={() => setShowFilters(false)}>
+              <Button variant="outline" className="h-8 px-2 border border-gray-300 rounded-lg" onClick={() => setShowFilters(true)}>
+                <FilterIcon className="h-4 w-4" />
+              </Button>
+              <StickyPanel
+                isMobile
+                isOpen={showFilters}
+                onClose={() => setShowFilters(false)}
+                title="Filters"
+                footer={
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1 h-10 text-sm font-medium"
+                      onClick={handleClearAllFilters}
+                    >
+                      Clear All
+                    </Button>
+                    <Button
+                      className="flex-1 h-10 text-sm font-medium"
+                      onClick={() => setShowFilters(false)}
+                    >
                       Apply Filters
                     </Button>
                   </div>
-                </DrawerContent>
-              </Drawer>
+                }
+              >
+                <CategoryFilterSections
+                  categoryName={categoryName}
+                  currentCategory={currentCategory}
+                  currentSubcategories={currentSubcategories}
+                  colors={colors}
+                  fabrics={fabrics}
+                  currentFilters={currentFilters}
+                  onSubcategoryChange={handleSubcategoryChange}
+                  onColorChange={handleColorChange}
+                  onFabricChange={handleFabricChange}
+                  onToggleFilter={handleToggleFilter}
+                  onPriceRangeChange={handlePriceRangeChange}
+                />
+              </StickyPanel>
             </div>
           </div>
 
           {/* Active Filter Badges - Mobile only */}
           <ActiveFilterBadges filters={activeBadges} onClearAll={handleClearAllFilters} />
+
+          {/* Search term badge — visible on desktop only (mobile uses ActiveFilterBadges) */}
+          {currentFilters.search && (
+            <div className="hidden lg:flex items-center gap-2 mt-2">
+              <span className="text-sm text-gray-500">Results for</span>
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gray-900 text-white text-xs font-medium">
+                {currentFilters.search}
+                <button
+                  onClick={() => handleFilterChange({ search: undefined })}
+                  className="ml-0.5 hover:text-gray-300 transition-colors"
+                  aria-label="Clear search"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            </div>
+          )}
 
           {/* Sale context banner — shown when user arrives via an offer link */}
           {/* {currentFilters.onSale && (

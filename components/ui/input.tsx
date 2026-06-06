@@ -3,13 +3,28 @@
 import { forwardRef } from "react";
 import { cn } from "@/lib/utils";
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+// ── Size variants ─────────────────────────────────────────────────────────────
+const sizeStyles = {
+  xs: { wrapper: "h-7",  text: "text-xs",  px: "px-3",  icon: "h-3 w-3",  iconX: "right-2.5 left-2.5" },
+  sm: { wrapper: "h-8",  text: "text-xs",  px: "px-3.5",icon: "h-3.5 w-3.5", iconX: "right-3 left-3" },
+  md: { wrapper: "h-10", text: "text-sm",  px: "px-5",  icon: "h-4 w-4",  iconX: "right-4 left-4" },
+  lg: { wrapper: "h-12", text: "text-base",px: "px-5",  icon: "h-5 w-5",  iconX: "right-4 left-4" },
+} as const;
+
+type InputSize = keyof typeof sizeStyles;
+
+interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "size"> {
   label?: string;
   error?: string;
   helperText?: string;
   inputMode?: "text" | "numeric" | "tel" | "email" | "url" | "search";
   autoComplete?: string;
-  icon?: React.ReactNode;
+  /** Size variant — controls height, font size, padding and icon size together */
+  size?: InputSize;
+  /** Icon rendered on the left inside the input */
+  startIcon?: React.ReactNode;
+  /** Icon rendered on the right inside the input */
+  endIcon?: React.ReactNode;
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
@@ -22,7 +37,9 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       inputMode,
       autoComplete,
       id,
-      icon,
+      startIcon,
+      endIcon,
+      size = "md",
       required,
       placeholder,
       value,
@@ -30,10 +47,14 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     },
     ref,
   ) => {
-    const inputId: string =
+    const inputId =
       id || `input-${Math.random().toString(36).substring(2, 9)}`;
 
     const hasValue = value !== undefined && value !== null && value !== "";
+    const s = sizeStyles[size];
+
+    // endIcon is the right-side icon
+    const trailingIcon = endIcon;
 
     const effectivePlaceholder = label
       ? placeholder || `Enter ${label.replace(/\s*\*\s*$/, "")}`
@@ -57,17 +78,28 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             }}
             placeholder={effectivePlaceholder}
             className={cn(
-              "peer block w-full px-5 h-10 text-sm bg-white border border-gray-300 text-gray-900 transition-all duration-200 outline-none rounded-xl",
+              // base
+              "peer block w-full bg-white border border-gray-300 text-gray-900 transition-all duration-200 outline-none rounded-xl",
+              // size-driven
+              s.wrapper, s.text, s.px,
+              // placeholder behaviour
               label
-                ? "placeholder:text-transparent placeholder:text-sm focus:placeholder:text-gray-400"
-                : "placeholder:text-gray-400 placeholder:text-sm",
+                ? "placeholder:text-transparent focus:placeholder:text-gray-400"
+                : "placeholder:text-gray-400",
+              // focus ring
               "focus:border-black focus:ring-1 focus:ring-gray-100",
+              // disabled
               "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-gray-50",
-              icon && "pr-12",
+              // icon padding adjustments
+              startIcon && "pl-9",
+              trailingIcon && "pr-9",
+              // error
               error && "border-red-500 focus:border-red-500 focus:ring-red-100",
               className,
             )}
           />
+
+          {/* Floating label */}
           {label && (
             <label
               htmlFor={inputId}
@@ -82,24 +114,31 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             >
               {label}
               {required && (
-                <span
-                  className="ml-0.5 font-medium select-none"
-                  aria-hidden="true"
-                >
+                <span className="ml-0.5 font-medium select-none" aria-hidden="true">
                   *
                 </span>
               )}
             </label>
           )}
-          {icon && (
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-              {icon}
+
+          {/* Start icon */}
+          {startIcon && (
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none flex items-center justify-center [&_svg]:h-[1em] [&_svg]:w-[1em]">
+              <span className={cn("flex items-center", s.icon)}>{startIcon}</span>
+            </div>
+          )}
+
+          {/* End icon */}
+          {trailingIcon && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 flex items-center justify-center [&_svg]:h-[1em] [&_svg]:w-[1em]">
+              <span className={cn("flex items-center", s.icon)}>{trailingIcon}</span>
             </div>
           )}
         </div>
+
         {error && (
           <p className="text-[11px] text-red-600 pl-2 flex items-center gap-1">
-            <span className="w-1 h-1 rounded-full bg-red-500 inline-block animate-pulse"></span>
+            <span className="w-1 h-1 rounded-full bg-red-500 inline-block animate-pulse" />
             {error}
           </p>
         )}
@@ -114,3 +153,4 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
 Input.displayName = "Input";
 
 export { Input };
+export type { InputSize };

@@ -100,7 +100,7 @@ export default function Header() {
                 >
                   <Heart className="w-6 h-6 lg:w-5 lg:h-5" />
                   {wishlistCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-gray-900 text-white text-[9px] font-semibold rounded-full min-w-[16px] h-4 px-0.5 flex items-center justify-center leading-none">
+                    <span className="absolute -top-1.5 -right-1.5 bg-gray-900 text-white text-[8px] font-semibold rounded-full min-w-[16px] h-4 px-0.5 flex items-center justify-center leading-none">
                       {wishlistCount > 9 ? "9+" : wishlistCount}
                     </span>
                   )}
@@ -112,7 +112,7 @@ export default function Header() {
                 >
                   <ShoppingBag className="w-6 h-6 lg:w-5 lg:h-5" />
                   {cartCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-gray-900 text-white text-[9px] font-semibold rounded-full min-w-[16px] h-4 px-0.5 flex items-center justify-center leading-none">
+                    <span className="absolute -top-1.5 -right-1.5 bg-gray-900 text-white text-[8px] font-semibold rounded-full min-w-[16px] h-4 px-0.5 flex items-center justify-center leading-none">
                       {cartCount > 9 ? "9+" : cartCount}
                     </span>
                   )}
@@ -133,7 +133,7 @@ export default function Header() {
                 >
                   <Heart className="w-6 h-6 lg:w-5 lg:h-5" />
                   {wishlistCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-gray-900 text-white text-[9px] font-semibold rounded-full min-w-[16px] h-4 px-0.5 flex items-center justify-center leading-none">
+                    <span className="absolute -top-1.5 -right-1.5 bg-gray-900 text-white text-[8px] font-semibold rounded-full min-w-[16px] h-4 px-0.5 flex items-center justify-center leading-none">
                       {wishlistCount > 9 ? "9+" : wishlistCount}
                     </span>
                   )}
@@ -144,7 +144,7 @@ export default function Header() {
                 >
                   <ShoppingBag className="w-6 h-6 lg:w-5 lg:h-5" />
                   {cartCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-gray-900 text-white text-[9px] font-semibold rounded-full min-w-[16px] h-4 px-0.5 flex items-center justify-center leading-none">
+                    <span className="absolute -top-1.5 -right-1.5 bg-gray-900 text-white text-[8px] font-semibold rounded-full min-w-[16px] h-4 px-0.5 flex items-center justify-center leading-none">
                       {cartCount > 9 ? "9+" : cartCount}
                     </span>
                   )}

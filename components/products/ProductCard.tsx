@@ -58,7 +58,7 @@ export default function ProductCard({
     product.discountedPrice < Number(product.price);
 
   return (
-    <div className={`flex flex-col gap-1 md:gap-2 ${className}`}>
+    <div className={`flex flex-col pb-4 gap-1 md:gap-2 ${className}`}>
       {/* Image container */}
       <div
         className={`relative aspect-[3/4] overflow-hidden bg-stone-100 ${

@@ -182,7 +182,7 @@ export default function ProfileDetails() {
                       className="mt-1 h-9"
                       disabled={saving}
                       label="Full Name"
-                      icon={<User size={18} />}
+                      endIcon={<User size={18} />}
                     />
                   ) : (
                     <p className="text-gray-700 font-medium">
@@ -206,7 +206,7 @@ export default function ProfileDetails() {
                       className="mt-1 h-9"
                       disabled={saving}
                       label="Email"
-                      icon={<Mail size={18} />}
+                      endIcon={<Mail size={18} />}
                     />
                   ) : (
                     <div className="flex items-center gap-2">
@@ -241,7 +241,7 @@ export default function ProfileDetails() {
                         className="rounded-l-none h-9"
                         disabled={saving}
                         label="Phone Number"
-                        icon={<Phone size={18} />}
+                        endIcon={<Phone size={18} />}
                       />
                     </div>
                   ) : (

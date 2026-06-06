@@ -1,6 +1,9 @@
+"use client";
+
 import { CategoryWithSubcategories, Color, Fabric } from "@/shared";
-import { Checkbox } from "@/components/ui/checkbox";
 import { PriceRangeSlider } from "@/components/ui/price-range-slider";
+import { Checkbox } from "@/components/ui/checkbox";
+import FilterSection from "./FilterSection";
 
 interface FilterSectionsProps {
   categories: CategoryWithSubcategories[];
@@ -37,68 +40,37 @@ export default function CollectionsFilterSections({
   return (
     <div className="space-y-7">
       {/* Categories */}
-      <div>
-        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-          Categories
-        </h4>
-        <div className="space-y-3">
-          {categories.map((category) => (
-            <div key={category.id}>
-              <label className="flex items-center gap-2.5 cursor-pointer">
-                <Checkbox
-                  checked={
-                    currentFilters.categories?.includes(category.name.toLowerCase()) || false
-                  }
-                  onCheckedChange={(checked) => onCategoryChange(category.name, checked as boolean)}
-                />
-                <span className="text-sm text-gray-700">{category.name}</span>
-              </label>
-            </div>
-          ))}
-        </div>
-      </div>
+      <FilterSection
+        title="Categories"
+        items={categories.map((c) => ({ id: c.name.toLowerCase(), label: c.name }))}
+        isChecked={(id) => currentFilters.categories?.includes(id) ?? false}
+        onCheckedChange={(id, checked) => onCategoryChange(id, checked)}
+      />
 
       {/* Colors */}
-      <div>
-        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-          Colors
-        </h4>
-        <div className="space-y-3">
-          {colors.map((color) => (
-            <label key={color.id} className="flex items-center gap-2.5 cursor-pointer">
-              <Checkbox
-                checked={currentFilters.colors?.includes(color.name.toLowerCase()) || false}
-                onCheckedChange={(checked) => onColorChange(color.name, checked as boolean)}
-              />
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-4 h-4 rounded-full border border-gray-300 flex-shrink-0"
-                  style={{ backgroundColor: color.hexCode }}
-                />
-                <span className="text-sm text-gray-700">{color.name}</span>
-              </div>
-            </label>
-          ))}
-        </div>
-      </div>
+      <FilterSection
+        title="Colors"
+        items={colors.map((c) => ({
+          id: c.name.toLowerCase(),
+          label: c.name,
+          extra: (
+            <div
+              className="w-4 h-4 rounded-full border border-gray-300 flex-shrink-0"
+              style={{ backgroundColor: c.hexCode }}
+            />
+          ),
+        }))}
+        isChecked={(id) => currentFilters.colors?.includes(id) ?? false}
+        onCheckedChange={(id, checked) => onColorChange(id, checked)}
+      />
 
       {/* Fabrics */}
-      <div>
-        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-          Fabrics
-        </h4>
-        <div className="space-y-3">
-          {fabrics.map((fabric) => (
-            <label key={fabric.id} className="flex items-center gap-2.5 cursor-pointer">
-              <Checkbox
-                checked={currentFilters.fabrics?.includes(fabric.name.toLowerCase()) || false}
-                onCheckedChange={(checked) => onFabricChange(fabric.name, checked as boolean)}
-              />
-              <span className="text-sm text-gray-700">{fabric.name}</span>
-            </label>
-          ))}
-        </div>
-      </div>
+      <FilterSection
+        title="Fabrics"
+        items={fabrics.map((f) => ({ id: f.name.toLowerCase(), label: f.name }))}
+        isChecked={(id) => currentFilters.fabrics?.includes(id) ?? false}
+        onCheckedChange={(id, checked) => onFabricChange(id, checked)}
+      />
 
       {/* Price Range */}
       <div>
@@ -114,12 +86,12 @@ export default function CollectionsFilterSections({
         />
       </div>
 
-      {/* Special Filters */}
+      {/* Special */}
       <div>
         <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
           Special
         </h4>
-        <div className="space-y-3">
+        <div className="space-y-1">
           <label className="flex items-center gap-2.5 cursor-pointer">
             <Checkbox
               checked={currentFilters.featured || false}

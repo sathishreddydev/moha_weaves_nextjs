@@ -1,6 +1,9 @@
+"use client";
+
 import { Checkbox } from "@/components/ui/checkbox";
 import { PriceRangeSlider } from "@/components/ui/price-range-slider";
 import { CategoryWithSubcategories, Color, Fabric } from "@/shared";
+import FilterSection from "./FilterSection";
 
 interface CategoryFilterSectionsProps {
   categoryName: string;
@@ -26,8 +29,6 @@ interface CategoryFilterSectionsProps {
 }
 
 export default function CategoryFilterSections({
-  categoryName,
-  currentCategory,
   currentSubcategories,
   colors,
   fabrics,
@@ -40,122 +41,91 @@ export default function CategoryFilterSections({
 }: CategoryFilterSectionsProps) {
   return (
     <div className="space-y-6">
-      <div>
-        <h4 className="text-sm font-medium text-gray-700 mb-2">Categories</h4>
-        {currentSubcategories.length > 0 ? (
-          <div className="space-y-2 overflow-y-auto">
-            {currentSubcategories.map((subcategory) => (
-              <div key={subcategory.id}>
-                <label className="flex items-center cursor-pointer">
-                  <Checkbox
-                    className="mr-2"
-                    checked={
-                      currentFilters.subcategories?.includes(
-                        subcategory.name.toLowerCase(),
-                      ) || false
-                    }
-                    onCheckedChange={(checked) =>
-                      onSubcategoryChange(subcategory.name, checked as boolean)
-                    }
-                  />
-                  <span className="text-sm text-gray-600">
-                    {subcategory.name}
-                  </span>
-                </label>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-sm text-gray-500 ml-4">
-            No subcategories available
-          </div>
-        )}
-      </div>
-
-      <div>
-        <h4 className="text-sm font-medium text-gray-700 mb-2">Colors</h4>
-        <div className="space-y-2 overflow-y-auto">
-          {colors.map((color) => (
-            <label key={color.id} className="flex items-center cursor-pointer">
-              <Checkbox
-                className="mr-2"
-                checked={
-                  currentFilters.colors?.includes(color.name.toLowerCase()) ||
-                  false
-                }
-                onCheckedChange={(checked) =>
-                  onColorChange(color.name, checked as boolean)
-                }
-              />
-              <div className="flex items-center">
-                <div
-                  className="w-4 h-4 rounded-full mr-2 border border-gray-300"
-                  style={{ backgroundColor: color.hexCode }}
-                ></div>
-                <span className="text-sm text-gray-600">{color.name}</span>
-              </div>
-            </label>
-          ))}
+      {/* Subcategories */}
+      {currentSubcategories.length > 0 ? (
+        <FilterSection
+          title="Categories"
+          items={currentSubcategories.map((s) => ({
+            id: s.name.toLowerCase(),
+            label: s.name,
+          }))}
+          isChecked={(id) => currentFilters.subcategories?.includes(id) ?? false}
+          onCheckedChange={(id, checked) => onSubcategoryChange(id, checked)}
+        />
+      ) : (
+        <div>
+          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+            Categories
+          </h4>
+          <p className="text-sm text-gray-500 ml-0.5">No subcategories available</p>
         </div>
-      </div>
+      )}
 
-      <div>
-        <h4 className="text-sm font-medium text-gray-700 mb-2">Fabrics</h4>
-        <div className="space-y-2 overflow-y-auto">
-          {fabrics.map((fabric) => (
-            <label key={fabric.id} className="flex items-center cursor-pointer">
-              <Checkbox
-                className="mr-2"
-                checked={
-                  currentFilters.fabrics?.includes(fabric.name.toLowerCase()) ||
-                  false
-                }
-                onCheckedChange={(checked) =>
-                  onFabricChange(fabric.name, checked as boolean)
-                }
-              />
-              <span className="text-sm text-gray-600">{fabric.name}</span>
-            </label>
-          ))}
-        </div>
-      </div>
+      {/* Colors */}
+      <FilterSection
+        title="Colors"
+        items={colors.map((c) => ({
+          id: c.name.toLowerCase(),
+          label: c.name,
+          extra: (
+            <div
+              className="w-4 h-4 rounded-full border border-gray-300 flex-shrink-0"
+              style={{ backgroundColor: c.hexCode }}
+            />
+          ),
+        }))}
+        isChecked={(id) => currentFilters.colors?.includes(id) ?? false}
+        onCheckedChange={(id, checked) => onColorChange(id, checked)}
+      />
 
+      {/* Fabrics */}
+      <FilterSection
+        title="Fabrics"
+        items={fabrics.map((f) => ({ id: f.name.toLowerCase(), label: f.name }))}
+        isChecked={(id) => currentFilters.fabrics?.includes(id) ?? false}
+        onCheckedChange={(id, checked) => onFabricChange(id, checked)}
+      />
+
+      {/* Price Range */}
       <div>
-        <h4 className="text-sm font-medium text-gray-700 mb-2">Price Range</h4>
+        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+          Price Range
+        </h4>
         <PriceRangeSlider
           min={100}
           max={50000}
           step={100}
-          value={currentFilters.priceRange || [
+          value={[
             currentFilters.minPrice || 100,
-            currentFilters.maxPrice || 50000
+            currentFilters.maxPrice || 50000,
           ]}
           onValueChange={onPriceRangeChange || (() => {})}
         />
       </div>
 
+      {/* Special */}
       <div>
-        <h4 className="text-sm font-medium text-gray-700 mb-2">Special</h4>
-        <div className="space-y-2">
-          <label className="flex items-center cursor-pointer">
+        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          Special
+        </h4>
+        <div className="space-y-1">
+          <label className="flex items-center gap-2.5 cursor-pointer">
             <Checkbox
-              className="mr-2"
               checked={currentFilters.featured || false}
               onCheckedChange={(checked) =>
                 onToggleFilter("featured", checked as boolean)
               }
             />
-            <span className="text-sm text-gray-600">Featured</span>
+            <span className="text-sm text-gray-700">Featured</span>
           </label>
-          <label className="flex items-center cursor-pointer">
+          <label className="flex items-center gap-2.5 cursor-pointer">
             <Checkbox
-              className="mr-2"
               checked={currentFilters.onSale || false}
               onCheckedChange={(checked) =>
                 onToggleFilter("onSale", checked as boolean)
               }
             />
-            <span className="text-sm text-gray-600">On Sale</span>
+            <span className="text-sm text-gray-700">On Sale</span>
           </label>
         </div>
       </div>
