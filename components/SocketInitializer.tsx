@@ -10,8 +10,8 @@ import socketService from '@/realtime/socket';
  * Re-connects with a fresh token whenever the user authenticates so the
  * socket joins the correct user:{userId} room on the server.
  *
- * Uses useSession() directly to get the accessToken — avoids the httpOnly
- * cookie limitation that AuthTokenManager.getAccessToken() runs into.
+ * Uses useSession() directly to get the accessToken from the NextAuth
+ * session — this is the only correct way since tokens are not in localStorage.
  */
 export function SocketInitializer() {
   const { disconnect } = useSocketStore();

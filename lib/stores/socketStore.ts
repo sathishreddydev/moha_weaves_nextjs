@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { Socket } from 'socket.io-client';
 import socketService from '@/realtime/socket';
-import { AuthTokenManager } from '@/auth/services/token-manager';
 
 interface SocketState {
   socket: Socket | null;
@@ -9,7 +8,7 @@ interface SocketState {
 }
 
 interface SocketActions {
-  connect: () => void;
+  connect: (token?: string) => void;
   disconnect: () => void;
   emit: (event: string, data?: any) => void;
   on: (event: string, callback: (data: any) => void) => void;
@@ -22,8 +21,7 @@ export const useSocketStore = create<SocketStore>((set) => ({
   socket: null,
   isConnected: false,
 
-  connect: () => {
-    const token = AuthTokenManager.getAccessToken();
+  connect: (token?: string) => {
     const socketInstance = socketService.connect(token || undefined);
 
     // Remove any previously registered store listeners before adding new ones
