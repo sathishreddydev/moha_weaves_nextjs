@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { categories, sales } from "@/shared";
-import { desc, eq, gte, lte, not, or } from "drizzle-orm";
+import { and, desc, eq, gt, gte, lt, lte, not, or } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getActiveOffers } from "./offersService";
 
@@ -30,7 +30,11 @@ export async function GET() {
     // Active offers via shared service
     const activeOffers = await getActiveOffers();
 
-    // Inactive offers still needed for the full API response (admin UI etc.)
+    // Inactive offers: not active flag, not yet started, or already expired.
+    // Use lt (strict less-than) for expiry so offers that just became valid
+    // at exactly "now" are not incorrectly marked inactive.
+    // Also exclude IDs already in activeOffers to prevent double-counting.
+    const activeOfferIds = activeOffers.map((o) => o.id);
     const inactiveSales = await db
       .select(selectFields)
       .from(sales)
@@ -38,8 +42,8 @@ export async function GET() {
       .where(
         or(
           not(eq(sales.isActive, true)),
-          gte(sales.validFrom, now),
-          lte(sales.validUntil, now),
+          gt(sales.validFrom, now),   // not yet started
+          lt(sales.validUntil, now),  // strictly expired
         ),
       )
       .orderBy(desc(sales.createdAt));

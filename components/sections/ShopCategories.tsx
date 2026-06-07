@@ -41,12 +41,20 @@ export default function ShopCategories() {
                 className="group relative aspect-square overflow-hidden hover-elevate cursor-pointer"
                 data-testid={`card-category-${category.id}`}
               >
-                <Image
-                  src={category?.imageUrl || ""}
-                  alt={category.name}
-                  fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
-                />
+                {category.imageUrl ? (
+                  <Image
+                    src={category.imageUrl}
+                    alt={category.name}
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-500 text-sm font-medium">
+                      {category.name.slice(0, 2).toUpperCase()}
+                    </span>
+                  </div>
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-4">
                   <h3 className="font-serif text-lg font-medium text-white">

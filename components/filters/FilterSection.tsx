@@ -35,7 +35,8 @@ export default function FilterSection({
   const visible =
     query.trim() || expanded ? filtered : filtered.slice(0, INITIAL_VISIBLE);
 
-  const hiddenCount = items.length - INITIAL_VISIBLE;
+  // Base hiddenCount on the filtered list so "+N more" is accurate when search is active
+  const hiddenCount = filtered.length - INITIAL_VISIBLE;
 
   const openSearch = () => {
     setSearching(true);

@@ -48,7 +48,7 @@ interface DesktopCheckoutViewProps {
   razorpayProps: any;
   onSelectAddress: (id: string) => void;
   onEditAddress: (addr: UserAddress) => void;
-  onDeleteAddress: (id: string) => void;
+  onDeleteAddress: (id: string) => Promise<void>;
   onSetDefault: (id: string) => Promise<void>;
   onAddressSubmit: (data: AddressFormData) => Promise<void>;
   onSetEditingAddress: (addr: UserAddress | null) => void;
@@ -103,9 +103,11 @@ export default function DesktopCheckoutView({
     setPanelView("confirm-delete");
   };
 
-  const handleConfirmDelete = () => {
+  // Fix: await the delete before switching panel view, so if it fails
+  // the panel stays and the user sees the error toast from CheckoutPage.
+  const handleConfirmDelete = async () => {
     if (deletingAddressId) {
-      onDeleteAddress(deletingAddressId);
+      await onDeleteAddress(deletingAddressId);
     }
     setDeletingAddressId(null);
     setPanelView("list");

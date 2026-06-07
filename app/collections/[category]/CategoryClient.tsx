@@ -56,10 +56,17 @@ export default function CategoryClient({
     if (isAuthenticated) removeFromWishlistMutation.mutate(productId);
     else guestWishlist.removeFromWishlist(productId);
   };
-  const isInWishlist = (productId: string) => {
-    if (isAuthenticated) return (wishlistData?.wishlist ?? []).some(item => item.productId === productId);
-    return guestWishlist.isInWishlist(productId);
-  };
+  // Fix: isInWishlist wrapped in useCallback so handleWishlistToggle truly memoizes
+  const isInWishlist = useCallback(
+    (productId: string) => {
+      if (isAuthenticated)
+        return (wishlistData?.wishlist ?? []).some(
+          (item) => item.productId === productId,
+        );
+      return guestWishlist.isInWishlist(productId);
+    },
+    [isAuthenticated, wishlistData, guestWishlist],
+  );
 
   useEffect(() => {
     if (!isAuthenticated) guestWishlist.fetchWishlist();
@@ -222,6 +229,7 @@ export default function CategoryClient({
       params.set("offset", String(offset));
 
       const res = await fetch(`/api/products?${params.toString()}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.success && data.data?.length) {
         setDisplayedProducts((prev) => [...prev, ...data.data]);

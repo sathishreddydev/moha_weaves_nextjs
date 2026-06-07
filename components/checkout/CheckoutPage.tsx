@@ -178,15 +178,22 @@ export default function CheckoutPage() {
     }
   };
 
+  // Use refs so handlePaymentSuccess always reads the latest values without
+  // needing to be recreated on every price/cart change (stale closure fix).
+  const totalRef = useRef(total);
+  const itemCountRef = useRef(items.length);
+  useEffect(() => { totalRef.current = total; }, [total]);
+  useEffect(() => { itemCountRef.current = items.length; }, [items.length]);
+
   const handlePaymentSuccess = useCallback(
     (newOrderId: string) => {
-      setOrderTotal(total);
-      setOrderItemCount(items.length);
+      setOrderTotal(totalRef.current);
+      setOrderItemCount(itemCountRef.current);
       clearCartMutation.mutate();
       setOrderId(newOrderId);
       setOrderPlaced(true);
     },
-    [clearCartMutation, total, items.length],
+    [clearCartMutation],
   );
 
   // ── Loading ───────────────────────────────────────────────────────────────

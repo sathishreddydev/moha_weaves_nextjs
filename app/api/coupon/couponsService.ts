@@ -3,15 +3,12 @@ import {
   coupons,
   couponUsage,
   CouponUsage,
-  CouponWithUsage,
-  InsertCoupon,
 } from "@/shared";
-import { and, desc, eq, sql, gte, lte, lt } from "drizzle-orm";
+import { and, desc, eq, inArray, sql, gte, lte } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { orderService } from "../orders/orderService";
 
 export interface ICouponsRepository {
-  // Coupons
   getCoupon(id: string): Promise<Coupon | undefined>;
   getCouponByCode(code: string): Promise<Coupon | undefined>;
   getAvailableCoupons(userId: string, orderAmount?: number): Promise<Coupon[]>;
@@ -23,9 +20,9 @@ export interface ICouponsRepository {
     isValid: boolean;
     coupon?: Coupon;
     discountAmount?: number;
+    isFreeShipping?: boolean;
     message?: string;
   }>;
-
   applyCoupon(
     couponId: string,
     userId: string,
@@ -33,9 +30,38 @@ export interface ICouponsRepository {
     discountAmount: string,
   ): Promise<CouponUsage>;
 }
-export class CouponsRepository implements ICouponsRepository {
-  // Coupons
 
+/**
+ * Batches per-user coupon usage counts in a single query — fixes N+1.
+ */
+async function batchGetUserUsageCounts(
+  couponIds: string[],
+  userId: string,
+): Promise<Map<string, number>> {
+  if (!couponIds.length) return new Map();
+
+  const rows = await db
+    .select({
+      couponId: couponUsage.couponId,
+      count: sql<number>`count(*)`,
+    })
+    .from(couponUsage)
+    .where(
+      and(
+        inArray(couponUsage.couponId, couponIds),
+        eq(couponUsage.userId, userId),
+      ),
+    )
+    .groupBy(couponUsage.couponId);
+
+  const map = new Map<string, number>();
+  for (const row of rows) {
+    map.set(row.couponId, Number(row.count));
+  }
+  return map;
+}
+
+export class CouponsRepository implements ICouponsRepository {
   async getCoupon(id: string): Promise<Coupon | undefined> {
     const [result] = await db.select().from(coupons).where(eq(coupons.id, id));
     return result || undefined;
@@ -55,7 +81,6 @@ export class CouponsRepository implements ICouponsRepository {
   ): Promise<Coupon[]> {
     const now = new Date();
 
-    // Get all active coupons that are currently valid
     const allCoupons = await db
       .select()
       .from(coupons)
@@ -68,32 +93,29 @@ export class CouponsRepository implements ICouponsRepository {
       )
       .orderBy(desc(coupons.createdAt));
 
+    // Batch fetch all per-user usage counts in one query (fixes N+1)
+    const couponIds = allCoupons
+      .filter((c) => c.perUserLimit)
+      .map((c) => c.id);
+    const usageMap = await batchGetUserUsageCounts(couponIds, userId);
+
     const availableCoupons: Coupon[] = [];
 
     for (const coupon of allCoupons) {
-      // Check usage limit
+      // Check global usage limit
       if (coupon.usageLimit && (coupon.usedCount || 0) >= coupon.usageLimit) {
         continue;
       }
 
-      // Check per-user limit
+      // Check per-user limit using batched map
       if (coupon.perUserLimit) {
-        const userUsageCount = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(couponUsage)
-          .where(
-            and(
-              eq(couponUsage.couponId, coupon.id),
-              eq(couponUsage.userId, userId),
-            ),
-          );
-
-        if (userUsageCount[0]?.count >= coupon.perUserLimit) {
+        const userCount = usageMap.get(coupon.id) ?? 0;
+        if (userCount >= coupon.perUserLimit) {
           continue;
         }
       }
 
-      // Check minimum order amount if provided
+      // Check minimum order amount
       if (
         orderAmount &&
         coupon.minOrderAmount &&
@@ -117,7 +139,6 @@ export class CouponsRepository implements ICouponsRepository {
   }> {
     const now = new Date();
 
-    // Get all active coupons that are currently valid
     const allCoupons = await db
       .select()
       .from(coupons)
@@ -130,22 +151,15 @@ export class CouponsRepository implements ICouponsRepository {
       )
       .orderBy(desc(coupons.createdAt));
 
+    // Batch fetch all per-user usage counts in one query (fixes N+1)
+    const allCouponIds = allCoupons.map((c) => c.id);
+    const usageMap = await batchGetUserUsageCounts(allCouponIds, userId);
+
     const availableCoupons: Coupon[] = [];
     const usedCoupons: Coupon[] = [];
 
     for (const coupon of allCoupons) {
-      // Get user usage count for this coupon
-      const userUsageCount = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(couponUsage)
-        .where(
-          and(
-            eq(couponUsage.couponId, coupon.id),
-            eq(couponUsage.userId, userId),
-          ),
-        );
-
-      const usageCount = userUsageCount[0]?.count || 0;
+      const usageCount = usageMap.get(coupon.id) ?? 0;
       const isUsedByUser = usageCount > 0;
       const isUsageLimitReached = coupon.perUserLimit
         ? usageCount >= coupon.perUserLimit
@@ -170,10 +184,7 @@ export class CouponsRepository implements ICouponsRepository {
       }
     }
 
-    return {
-      available: availableCoupons,
-      used: usedCoupons,
-    };
+    return { available: availableCoupons, used: usedCoupons };
   }
 
   async validateCoupon(
@@ -184,6 +195,7 @@ export class CouponsRepository implements ICouponsRepository {
     isValid: boolean;
     coupon?: Coupon;
     discountAmount?: number;
+    isFreeShipping?: boolean;
     message?: string;
   }> {
     const coupon = await this.getCoupon(couponId);
@@ -192,12 +204,10 @@ export class CouponsRepository implements ICouponsRepository {
       return { isValid: false, message: "Coupon not found" };
     }
 
-    // Check if coupon is active
     if (!coupon.isActive) {
       return { isValid: false, message: "Coupon is not active" };
     }
 
-    // Check date validity
     const now = new Date();
     const validFrom = new Date(coupon.validFrom);
     const validUntil = new Date(coupon.validUntil);
@@ -206,14 +216,12 @@ export class CouponsRepository implements ICouponsRepository {
       return { isValid: false, message: "Coupon has expired" };
     }
 
-    // Check usage limit
     if (coupon.usageLimit && (coupon.usedCount || 0) >= coupon.usageLimit) {
       return { isValid: false, message: "Coupon usage limit reached" };
     }
 
-    // Check per-user limit
     if (coupon.perUserLimit) {
-      const userUsageCount = await db
+      const [row] = await db
         .select({ count: sql<number>`count(*)` })
         .from(couponUsage)
         .where(
@@ -223,9 +231,7 @@ export class CouponsRepository implements ICouponsRepository {
           ),
         );
 
-      const usageCount = userUsageCount[0]?.count || 0;
-
-      if (usageCount >= coupon.perUserLimit) {
+      if (Number(row?.count ?? 0) >= coupon.perUserLimit) {
         return {
           isValid: false,
           message: "You have reached the usage limit for this coupon",
@@ -233,7 +239,6 @@ export class CouponsRepository implements ICouponsRepository {
       }
     }
 
-    // Check minimum order amount
     if (coupon.minOrderAmount && orderAmount < Number(coupon.minOrderAmount)) {
       return {
         isValid: false,
@@ -241,13 +246,16 @@ export class CouponsRepository implements ICouponsRepository {
       };
     }
 
-    // Calculate discount
+    // Calculate discount — free_shipping coupons return 0 discount with isFreeShipping flag
     let discountAmount = 0;
+    let isFreeShipping = false;
 
     if (coupon.type === "percentage") {
       discountAmount = (orderAmount * Number(coupon.value)) / 100;
     } else if (coupon.type === "fixed") {
       discountAmount = Number(coupon.value);
+    } else if (coupon.type === "free_shipping") {
+      isFreeShipping = true;
     }
 
     // Apply maximum discount cap
@@ -255,11 +263,7 @@ export class CouponsRepository implements ICouponsRepository {
       discountAmount = Number(coupon.maxDiscount);
     }
 
-    return {
-      isValid: true,
-      coupon,
-      discountAmount,
-    };
+    return { isValid: true, coupon, discountAmount, isFreeShipping };
   }
 
   async applyCoupon(
@@ -269,23 +273,14 @@ export class CouponsRepository implements ICouponsRepository {
     discountAmount: string,
   ): Promise<CouponUsage> {
     return await db.transaction(async (trx) => {
-      // Create coupon usage record
       const [usageResult] = await trx
         .insert(couponUsage)
-        .values({
-          couponId,
-          userId,
-          orderId,
-          discountAmount,
-        })
+        .values({ couponId, userId, orderId, discountAmount })
         .returning();
 
-      // Increment coupon usedCount
       await trx
         .update(coupons)
-        .set({
-          usedCount: sql`${coupons.usedCount} + 1`,
-        })
+        .set({ usedCount: sql`${coupons.usedCount} + 1` })
         .where(eq(coupons.id, couponId));
 
       return usageResult;
@@ -300,58 +295,39 @@ export class CouponsRepository implements ICouponsRepository {
     discountAmount?: string,
   ) {
     return await db.transaction(async (trx) => {
-      try {
-        // Get coupon details if provided
-        let couponDetails = null;
-        if (couponId) {
-          const [coupon] = await trx
-            .select()
-            .from(coupons)
-            .where(eq(coupons.id, couponId));
-
-          couponDetails = coupon;
-        }
-
-        // Add coupon details to order data
-        const enhancedOrderData = {
-          ...orderData,
-          couponCode: couponDetails?.code || null,
-          couponType: couponDetails?.type || null,
-          couponValue: couponDetails?.value || null,
-        };
-
-        // Create order with coupon details
-        console.log(
-          "Passing orderItems to createOrderWithTransaction:",
-          orderItems,
-        );
-        const order = await orderService.createOrderWithTransaction(
-          trx,
-          enhancedOrderData,
-          orderItems,
-        );
-
-        // Apply coupon if provided
-        if (
-          couponId &&
-          userId &&
-          discountAmount &&
-          parseFloat(discountAmount) > 0
-        ) {
-          await this.applyCouponWithTransaction(
-            trx,
-            couponId,
-            userId,
-            order.id,
-            discountAmount,
-          );
-        }
-
-        return order;
-      } catch (error) {
-        // Transaction will automatically rollback on error
-        throw error;
+      let couponDetails = null;
+      if (couponId) {
+        const [coupon] = await trx
+          .select()
+          .from(coupons)
+          .where(eq(coupons.id, couponId));
+        couponDetails = coupon;
       }
+
+      const enhancedOrderData = {
+        ...orderData,
+        couponCode: couponDetails?.code || null,
+        couponType: couponDetails?.type || null,
+        couponValue: couponDetails?.value || null,
+      };
+
+      const order = await orderService.createOrderWithTransaction(
+        trx,
+        enhancedOrderData,
+        orderItems,
+      );
+
+      if (couponId && userId && discountAmount && parseFloat(discountAmount) > 0) {
+        await this.applyCouponWithTransaction(
+          trx,
+          couponId,
+          userId,
+          order.id,
+          discountAmount,
+        );
+      }
+
+      return order;
     });
   }
 
@@ -362,23 +338,14 @@ export class CouponsRepository implements ICouponsRepository {
     orderId: string,
     discountAmount: string,
   ): Promise<CouponUsage> {
-    // Create coupon usage record
     const [usageResult] = await trx
       .insert(couponUsage)
-      .values({
-        couponId,
-        userId,
-        orderId,
-        discountAmount,
-      })
+      .values({ couponId, userId, orderId, discountAmount })
       .returning();
 
-    // Increment coupon usedCount
     await trx
       .update(coupons)
-      .set({
-        usedCount: sql`${coupons.usedCount} + 1`,
-      })
+      .set({ usedCount: sql`${coupons.usedCount} + 1` })
       .where(eq(coupons.id, couponId));
 
     return usageResult;

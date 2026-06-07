@@ -7,7 +7,7 @@ import { FilterInitializer } from "@/components/FilterInitializer";
 import { useFilterStore } from "@/lib/stores/fillterStore";
 import type { FiltersData } from "@/app/api/filters/filterService";
 import type { Offer } from "@/app/api/offers/offersService";
-import { useState, useRef, createContext, useContext } from "react";
+import { useState, useRef, createContext, useContext, useLayoutEffect } from "react";
 const InitialOffersContext = createContext<Offer[]>([]);
 export const useInitialOffers = () => useContext(InitialOffersContext);
 
@@ -36,18 +36,22 @@ export function Providers({
       }),
   );
 
+  // Seed filter store once from server-provided data.
+  // Runs in useLayoutEffect to avoid side-effects during render (StrictMode / concurrent mode safe).
   const seeded = useRef(false);
-  if (!seeded.current && filters) {
-    useFilterStore.setState({
-      categories: filters.categories,
-      colors: filters.colors,
-      fabrics: filters.fabrics,
-      isHydrated: true,
-      loading: false,
-      error: null,
-    });
-    seeded.current = true;
-  }
+  useLayoutEffect(() => {
+    if (!seeded.current && filters) {
+      useFilterStore.setState({
+        categories: filters.categories,
+        colors: filters.colors,
+        fabrics: filters.fabrics,
+        isHydrated: true,
+        loading: false,
+        error: null,
+      });
+      seeded.current = true;
+    }
+  }, [filters]);
 
   return (
     <InitialOffersContext.Provider value={initialOffers}>

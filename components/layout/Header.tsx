@@ -21,7 +21,7 @@ interface HeaderProps {
 }
 
 export default function Header({ initialNewProducts = [] }: HeaderProps) {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -59,7 +59,6 @@ export default function Header({ initialNewProducts = [] }: HeaderProps) {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
   const profileRoute = "/my";
 
   return (

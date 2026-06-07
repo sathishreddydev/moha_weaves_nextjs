@@ -656,8 +656,9 @@ export class OrderRepository implements OrderStorage {
         .where(eq(orderItems.id, orderItemId))
         .returning();
 
-      // Create status history record
-      await storage.itemHistory(
+      // Create status history record — use tx (not db) so it rolls back with the transaction
+      await storage.itemHistoryWithTransaction(
+        tx,
         orderItemId,
         currentItem.status,
         status,

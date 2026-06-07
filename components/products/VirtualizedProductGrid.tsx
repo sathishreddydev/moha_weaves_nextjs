@@ -74,7 +74,9 @@ export default function VirtualizedProductGrid({
     [columns],
   );
 
-  // Track scrollMargin dynamically so it updates when banner appears/disappears
+  // Track scrollMargin dynamically — uses ResizeObserver on the header element
+  // instead of MutationObserver on documentElement (which caused reflows on every
+  // style attribute change: modals, theme toggles, etc.)
   const [scrollMargin, setScrollMargin] = useState(0);
 
   useEffect(() => {
@@ -87,18 +89,15 @@ export default function VirtualizedProductGrid({
 
     updateScrollMargin();
 
-    // Use MutationObserver on document to detect layout shifts (banner show/hide)
-    const observer = new MutationObserver(updateScrollMargin);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['style'],
-    });
+    // Watch the header element for size changes (banner appears/disappears)
+    const header = document.querySelector("header");
+    const resizeObserver = new ResizeObserver(updateScrollMargin);
+    if (header) resizeObserver.observe(header);
 
-    // Also update on resize
-    window.addEventListener('resize', updateScrollMargin);
+    window.addEventListener("resize", updateScrollMargin);
     return () => {
-      observer.disconnect();
-      window.removeEventListener('resize', updateScrollMargin);
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateScrollMargin);
     };
   }, []);
 

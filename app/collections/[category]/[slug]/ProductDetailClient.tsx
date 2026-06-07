@@ -214,11 +214,10 @@ export default function ProductDetailClient({
     [galleryItems?.length],
   );
 
-  // Keyboard navigation for images
+  // Keyboard navigation — single handler covers both normal and lightbox mode.
+  // Previously there were two separate useEffects causing double key-fires when zoomed.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't handle keyboard navigation if a modal/lightbox from another component is open
-      // Check if any fixed overlay (like review lightbox) is currently visible
       const hasOtherLightbox = document.querySelector(
         '[data-review-lightbox="true"]',
       );
@@ -229,13 +228,14 @@ export default function ProductDetailClient({
       } else if (e.key === "ArrowRight") {
         handleImageChange("next");
       } else if (e.key === "Escape") {
-        setIsZoomed(false);
+        if (isZoomed) handleLightboxClose();
+        else setIsZoomed(false);
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleImageChange]);
+  }, [handleImageChange, isZoomed]);
 
   // Preload adjacent images for smooth transitions
   useEffect(() => {
@@ -257,25 +257,7 @@ export default function ProductDetailClient({
     }
   }, [selectedImageIndex, galleryItems]);
 
-  // Lightbox keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isZoomed) return;
-
-      if (e.key === "ArrowLeft") {
-        handleImageChange("prev");
-      } else if (e.key === "ArrowRight") {
-        handleImageChange("next");
-      } else if (e.key === "Escape") {
-        handleLightboxClose();
-      }
-    };
-
-    if (isZoomed) {
-      window.addEventListener("keydown", handleKeyDown);
-      return () => window.removeEventListener("keydown", handleKeyDown);
-    }
-  }, [isZoomed, handleImageChange]);
+  // Lightbox keyboard navigation — removed (merged into the handler above to prevent double-firing)
 
   // Lock body scroll when lightbox is open
   useEffect(() => {
@@ -318,9 +300,15 @@ export default function ProductDetailClient({
   };
 
   const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) {
-      // No swipe movement detected — this was a tap, trigger zoom
+    // Only treat as tap (zoom toggle) if touchStart was set AND no movement occurred.
+    // touchEnd is null when touchMove never fired — but also when touchStart wasn't set.
+    // Guard on touchStart to avoid spurious zooms from phantom touches.
+    if (!touchStart) return;
+
+    if (!touchEnd) {
+      // touchMove never fired — genuine tap, toggle zoom
       handleImageClick();
+      setTouchStart(null);
       return;
     }
 
@@ -328,10 +316,12 @@ export default function ProductDetailClient({
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
 
-    if (isLeftSwipe && (images?.length ?? 0) > 1) {
+    setTouchStart(null);
+    setTouchEnd(null);
+    if (isLeftSwipe && (galleryItems?.length ?? 0) > 1) {
       handleImageChange("next");
     }
-    if (isRightSwipe && (images?.length ?? 0) > 1) {
+    if (isRightSwipe && (galleryItems?.length ?? 0) > 1) {
       handleImageChange("prev");
     }
   };

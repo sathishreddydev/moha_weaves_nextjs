@@ -55,15 +55,25 @@ export default function CollectionsClient({
     if (isAuthenticated) removeFromWishlistMutation.mutate(productId);
     else guestWishlist.removeFromWishlist(productId);
   };
-  const isInWishlist = (productId: string) => {
-    if (isAuthenticated) return (wishlistData?.wishlist ?? []).some(item => item.productId === productId);
-    return guestWishlist.isInWishlist(productId);
-  };
+  // Fix: isInWishlist is stable via useCallback so handleWishlistToggle truly memoizes
+  const isInWishlistCb = useCallback(
+    (productId: string) => {
+      if (isAuthenticated)
+        return (wishlistData?.wishlist ?? []).some(
+          (item) => item.productId === productId,
+        );
+      return guestWishlist.isInWishlist(productId);
+    },
+    [isAuthenticated, wishlistData, guestWishlist],
+  );
+
+  const isInWishlist = isInWishlistCb;
 
   useEffect(() => {
     if (!isAuthenticated) guestWishlist.fetchWishlist();
   }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Fix: missing `socket` in deps — stale listener / memory leak when socket reconnects
   useEffect(() => {
     if (!socket) return;
     const handleProductEvent = () => router.refresh();
@@ -73,7 +83,7 @@ export default function CollectionsClient({
       socket.off("product_event", handleProductEvent);
       socket.off("offer_event", handleProductEvent);
     };
-  }, [isSocketConnected, router]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [socket, router]);
 
   const [showFilters, setShowFilters] = useState(false);
 
@@ -213,7 +223,7 @@ export default function CollectionsClient({
     setTimeout(() => setIsApplyingFilters(false), 500);
   }, [updateURL]);
 
-  // ── Load More ──────────────────────────────────────────────────────────────
+  // Fix: res.ok check before json() prevents crash on HTML error responses
   const handleLoadMore = useCallback(async () => {
     if (isLoadingMore) return;
     setIsLoadingMore(true);
@@ -238,6 +248,7 @@ export default function CollectionsClient({
       params.set("offset", String(offset));
 
       const res = await fetch(`/api/products?${params.toString()}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.success && data.data?.length) {
         setDisplayedProducts((prev) => [...prev, ...data.data]);

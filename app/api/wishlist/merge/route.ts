@@ -67,7 +67,6 @@ async function mergeGuestWishlistToUser(user: User, guestWishlistItems: string[]
     const newItems = guestWishlistItems.filter(productId => !existingProductIds.includes(productId));
 
     if (newItems.length === 0) {
-      console.log('No new wishlist items to merge for user', user.id);
       return;
     }
 

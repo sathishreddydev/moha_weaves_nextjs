@@ -97,12 +97,12 @@ export default function ProductSectionClient({
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1
+            <h2
               className="font-serif tracking-wide transition-colors text-xl"
               data-testid="text-featured-title"
             >
               {title}
-            </h1>
+            </h2>
             <p className="text-muted-foreground text-xs">{subtitle}</p>
           </div>
           <Link
