@@ -60,7 +60,7 @@ export default async function middleware(request: NextRequest) {
       'Strict-Transport-Security',
       'max-age=63072000; includeSubDomains; preload'
     );
-    response.headers.set('X-Frame-Options', 'DENY');
+    response.headers.set('X-Frame-Options', 'SAMEORIGIN');
     response.headers.set('X-Content-Type-Options', 'nosniff');
     response.headers.set('Referrer-Policy', 'origin-when-cross-origin');
     response.headers.set(
@@ -113,8 +113,10 @@ export default async function middleware(request: NextRequest) {
     // combination. Use the specific allowed origin instead.
     if (pathname.startsWith('/api/')) {
       const origin = request.headers.get('origin') || '';
+      const frontendUrl = process.env.NEXTAUTH_URL || 'https://urumibymounika.com';
       const allowed = [
         apiUrl,
+        frontendUrl,
         'http://localhost:3000',
         'http://localhost:5000',
       ];
