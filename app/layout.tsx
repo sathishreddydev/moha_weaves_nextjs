@@ -8,6 +8,8 @@ import { Providers } from "@/components/providers";
 import { OffersBannerProvider } from "@/hooks/use-offers-banner";
 import { getFiltersData, FiltersData } from "@/app/api/filters/filterService";
 import { getActiveOffers, Offer } from "@/app/api/offers/offersService";
+import { getNewProducts } from "@/lib/services/productSectionService";
+import { ProductWithDetails } from "@/shared";
 import type { Metadata, Viewport } from "next";
 import { getServerSession } from "next-auth/next";
 import { Inter } from "next/font/google";
@@ -77,10 +79,11 @@ export default async function RootLayout({
 }) {
   // Fetch session, filters, and offers in parallel on the server —
   // all three are ready before a single byte of HTML is sent to the browser.
-  const [session, filters, initialOffers] = await Promise.all([
+  const [session, filters, initialOffers, initialNewProducts] = await Promise.all([
     getServerSession(authOptions),
     getFiltersData().catch(() => ({ categories: [], colors: [], fabrics: [] } as FiltersData)),
     getActiveOffers().catch(() => [] as Offer[]),
+    getNewProducts().catch(() => [] as ProductWithDetails[]),
   ]);
 
   return (
@@ -90,7 +93,7 @@ export default async function RootLayout({
           <OffersBannerProvider>
             {/* <GlobalSwipeNavigation> */}
               <OffersBanner />
-              <Header />
+              <Header initialNewProducts={initialNewProducts} />
               <LayoutWrapper>{children}</LayoutWrapper>
               <Footer />
             {/* </GlobalSwipeNavigation> */}

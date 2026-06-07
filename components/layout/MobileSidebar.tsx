@@ -28,11 +28,13 @@ import React, {
 } from "react";
 import Image from "next/image";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ProductWithDetails } from "@/shared";
 
 interface MobileSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   onLinkClick?: () => void;
+  initialNewProducts?: ProductWithDetails[];
 }
 
 
@@ -78,6 +80,7 @@ export default function MobileSidebar({
   isOpen,
   onClose,
   onLinkClick,
+  initialNewProducts = [],
 }: MobileSidebarProps) {
   const router = useRouter();
   const { categories } = useFilterStore();
@@ -85,12 +88,13 @@ export default function MobileSidebar({
   const queryClient = useQueryClient();
   const [mobileSearch, setMobileSearch] = useState("");
 
-  // Fetch new products with react-query (cached, no refetch on every open)
+  // Fetch new products with react-query (seeded from server, only refetches on socket events)
   const { data: newProducts = [], isLoading: newProductsLoading } = useQuery({
     queryKey: ["newProducts", "sidebar"],
     queryFn: () => ProductService.getProducts("/api/products/new"),
     enabled: isOpen,
     staleTime: Infinity, // Never stale — only refetches on invalidation
+    initialData: initialNewProducts.length > 0 ? initialNewProducts : undefined,
   });
 
   // Invalidate new products cache when a product_event arrives via socket

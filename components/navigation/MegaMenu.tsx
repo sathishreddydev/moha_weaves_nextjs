@@ -45,7 +45,7 @@ export default function MegaMenu({
 
   return (
     <>
-      <nav className="hidden lg:flex items-center pt-[6px] gap-4">
+      <nav className="hidden lg:flex items-center gap-4">
         <div
           className="flex items-center pl-1"
           onMouseEnter={() => setActiveMegaMenu("collections")}

@@ -14,8 +14,13 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
 import Search from "../navigation/Search";
+import { ProductWithDetails } from "@/shared";
 
-export default function Header() {
+interface HeaderProps {
+  initialNewProducts?: ProductWithDetails[];
+}
+
+export default function Header({ initialNewProducts = [] }: HeaderProps) {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -70,7 +75,7 @@ export default function Header() {
       >
         {/* Inner content constrained to max-w-7xl */}
         <div className="max-w-7xl mx-auto py-2 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <button
               onClick={handleMobileMenuToggle}
               className="md:hidden touch-manipulation active:scale-95 transition-transform"
@@ -81,11 +86,11 @@ export default function Header() {
             </button>
             <Link href="/" className="flex items-center">
               <Image
-                src="/urumilogo.png"
+                src="/urumilogo1.png"
                 alt="Urumi"
                 width={110}
                 height={44}
-                className="h-11 w-auto object-contain object-center"
+                className="mt-[14px] h-11 w-auto object-contain object-center"
                 priority
               />
             </Link>
@@ -173,6 +178,7 @@ export default function Header() {
       <MobileSidebar
         isOpen={isMobileMenuOpen}
         onClose={handleMobileMenuToggle}
+        initialNewProducts={initialNewProducts}
       />
     </div>
   );
