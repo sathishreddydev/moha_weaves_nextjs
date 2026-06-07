@@ -1,14 +1,17 @@
 # Multi-stage build for Next.js
 FROM node:20-alpine AS base
 
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
 # ── deps stage: install dependencies ──────────────────────────────────────────
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Use npm ci for reproducible, locked installs
-COPY package.json package-lock.json* ./
-RUN npm ci --legacy-peer-deps
+# Use pnpm for reproducible installs
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 # ── builder stage: compile the application ────────────────────────────────────
 FROM base AS builder
@@ -31,7 +34,7 @@ ENV NEXT_PUBLIC_SOCKET_URL=$NEXT_PUBLIC_SOCKET_URL
 ENV NEXT_PUBLIC_RAZORPAY_KEY_ID=$NEXT_PUBLIC_RAZORPAY_KEY_ID
 
 # Build the application
-RUN npm run build
+RUN pnpm build
 
 # ── runner stage: lean production image ───────────────────────────────────────
 FROM base AS runner
