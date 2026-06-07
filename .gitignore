@@ -9,12 +9,22 @@ out/
 build/
 dist/
 
-# Environment variables
+# Environment variables — ignore ALL env files with real secrets
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+
+# environments/ folder contains real secrets — never commit populated files
+environments/.env.prod
+environments/.env.vps
+environments/.env.development
+environments/.env.stage
+environments/.env.beta
+
+# SSL certificates
+nginx/ssl/
 
 
 # IDE and editor files

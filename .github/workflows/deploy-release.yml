@@ -30,10 +30,24 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          # NOTE: .env.local must already exist on the VPS with real credentials.
+          # It is NOT committed to git and is NOT copied here.
+          # Deploy it manually once: scp environments/.env.vps user@host:/opt/moha_weaves_nextjs/.env.local
           script: |
+            set -euo pipefail
             cd /opt/moha_weaves_nextjs
+
+            # Verify .env.local exists and has no placeholder values
+            if grep -q 'REPLACE_WITH' .env.local 2>/dev/null; then
+              echo "❌ .env.local still contains placeholder values. Populate it before deploying."
+              exit 1
+            fi
+            if [ ! -f .env.local ]; then
+              echo "❌ .env.local not found on VPS. Copy environments/.env.vps → .env.local first."
+              exit 1
+            fi
+
             git pull origin main
-            cp .env.vps .env.local
-            docker compose down
+            docker compose down --remove-orphans
             docker compose up -d --build
             echo "✅ VPS deployment complete!"

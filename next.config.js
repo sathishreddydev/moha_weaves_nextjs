@@ -22,11 +22,7 @@ const nextConfig = {
         hostname: "admin.urumibymounika.com",
         pathname: "/**",
       },
-      {
-        protocol: "http",
-        hostname: "103.127.146.58",
-        pathname: "/**",
-      },
+      // Dev only — localhost images
       {
         protocol: "http",
         hostname: "localhost",
@@ -40,6 +36,11 @@ const nextConfig = {
   poweredByHeader: false,
 
   async headers() {
+    const isDev = process.env.NODE_ENV !== 'production';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://admin.urumibymounika.com';
+    // Strip protocol for wss:// equivalent
+    const apiHostname = apiUrl.replace(/^https?:\/\//, '');
+
     return [
       {
         source: "/(.*)",
@@ -54,15 +55,29 @@ const nextConfig = {
 
               "style-src 'self' 'unsafe-inline'",
 
-              "img-src 'self' data: blob: https: http:",
+              "img-src 'self' data: blob: https:",
 
               "font-src 'self'",
 
               // Video/audio from Cloudinary
               "media-src 'self' https://res.cloudinary.com",
 
-              // API calls
-              "connect-src 'self' https://api.razorpay.com https://*.razorpay.com https://admin.urumibymounika.com wss://admin.urumibymounika.com http://103.127.146.58:5000 ws://103.127.146.58:5000 ws://localhost:3000 http://localhost:3000 ws://localhost:5000 ws: wss:",
+              // API and socket connections — use env var, fall back to prod domain
+              [
+                "connect-src 'self'",
+                "https://api.razorpay.com",
+                "https://*.razorpay.com",
+                `https://${apiHostname}`,
+                `wss://${apiHostname}`,
+                ...(isDev
+                  ? [
+                      "ws://localhost:3000",
+                      "http://localhost:3000",
+                      "ws://localhost:5000",
+                      "http://localhost:5000",
+                    ]
+                  : []),
+              ].join(" "),
 
               // Razorpay payment popup
               "frame-src 'self' https://checkout.razorpay.com https://api.razorpay.com",
@@ -99,7 +114,9 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_IMAGE_URL: process.env.NEXT_PUBLIC_IMAGE_URL,
     NEXT_PUBLIC_RAZORPAY_KEY_ID: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-  }
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+    NEXT_PUBLIC_SOCKET_URL: process.env.NEXT_PUBLIC_SOCKET_URL,
+  },
 }
 
 module.exports = nextConfig

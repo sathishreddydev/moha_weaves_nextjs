@@ -111,10 +111,21 @@ export function useAuth() {
       // Clear React Query caches for cart and wishlist
       queryClient.removeQueries({ queryKey: cartKeys.all });
       queryClient.removeQueries({ queryKey: wishlistKeys.all });
-      await signOut({ redirect: false });
-      router.push('/login');
-      router.refresh();
+
+      // Reset merge ref so guest data merges correctly on next login
+      hasMergedRef.current = false;
+
+      // Call server-side signout to ensure cookie is cleared with correct name/flags
+      await fetch('/api/auth/signout', { method: 'POST' }).catch(() => {});
+
+      // Also call NextAuth signOut to clear client-side session state
+      await signOut({ redirect: false, callbackUrl: '/login' });
+
+      // Hard redirect to login to ensure session state is fully reset
+      window.location.href = '/login';
     } catch (error) {
+      // Fallback: force redirect even if signOut fails
+      window.location.href = '/login';
     }
   }, [router, queryClient]);
 

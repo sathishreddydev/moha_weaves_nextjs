@@ -36,14 +36,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Load environment variables
-        run: |
-          echo "Loading production environment variables..."
-          cp .env.prod .env.local
-
       - name: Run database migrations
+        # DATABASE_URL is injected directly from secrets — template env file is NOT
+        # copied because it contains placeholder values, not real credentials.
         run: npx drizzle-kit migrate
         env:
+          NODE_ENV: production
           DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
 
       - name: Build application
@@ -62,6 +60,7 @@ jobs:
           NEXT_PUBLIC_RAZORPAY_KEY_ID: ${{ secrets.PROD_RAZORPAY_KEY_ID }}
           NEXT_PUBLIC_SOCKET_URL: ${{ secrets.PROD_SOCKET_URL }}
           NEXT_PUBLIC_IMAGE_URL: ${{ secrets.PROD_IMAGE_URL }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.PROD_API_URL }}
 
       - name: Login to Azure
         uses: azure/login@v2

@@ -1,73 +1,76 @@
-
 services:
+  # ── Next.js Frontend ─────────────────────────────────────────────────────────
   nextjs:
     build:
       context: .
       dockerfile: Dockerfile
+      # Only NEXT_PUBLIC_* values are safe as build ARGs (embedded in JS bundle).
+      # Server-side secrets are injected at runtime via env_file — NOT as ARGs.
       args:
-        DATABASE_URL: postgresql://postgres:Mohaweaves%40123@postgres:5432/moha_weaves
-        REDIS_URL: redis://redis:6379
-        NEXT_PUBLIC_IMAGE_URL: http://103.127.146.58:5000/uploads
-        NEXTAUTH_URL: http://103.127.146.58:3000
-        NEXTAUTH_SECRET: mohaweaves_secret_key_production
-        JWT_SECRET: mohaweaves_jwt_secret_key_very_long_and_secure_production
-        CLOUDINARY_CLOUD_NAME: dtnj9soo7
-        CLOUDINARY_API_KEY: 162729439253832
-        CLOUDINARY_API_SECRET: -J68bCqXcCft9WS3338T7Cyw8zs
-        RAZORPAY_KEY_ID: rzp_test_UxXBzl98ySixq7
-        RAZORPAY_KEY_SECRET: n78QX7ZaxGndqCdRryofDbNU
-        RAZORPAY_WEBHOOK_SECRET: Ksr@0337
-        NEXT_PUBLIC_RAZORPAY_KEY_ID: rzp_test_UxXBzl98ySixq7
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_IMAGE_URL: ${NEXT_PUBLIC_IMAGE_URL}
+        NEXT_PUBLIC_SOCKET_URL: ${NEXT_PUBLIC_SOCKET_URL}
+        NEXTAUTH_URL: ${NEXTAUTH_URL}
+        NEXT_PUBLIC_RAZORPAY_KEY_ID: ${NEXT_PUBLIC_RAZORPAY_KEY_ID}
+    # All secrets come ONLY from the env file — single source of truth.
+    env_file:
+      - .env.local
     container_name: moha_weaves_frontend
     restart: unless-stopped
     ports:
       - "3000:3000"
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: postgresql://postgres:Mohaweaves%40123@postgres:5432/moha_weaves
-      REDIS_URL: redis://redis:6379
-      NEXT_PUBLIC_IMAGE_URL: http://103.127.146.58:5000/uploads
-      NEXTAUTH_URL: http://103.127.146.58:3000
-      NEXTAUTH_SECRET: mohaweaves_secret_key_production
-      JWT_SECRET: mohaweaves_jwt_secret_key_very_long_and_secure_production
-      CLOUDINARY_CLOUD_NAME: dtnj9soo7
-      CLOUDINARY_API_KEY: 162729439253832
-      CLOUDINARY_API_SECRET: -J68bCqXcCft9WS3338T7Cyw8zs
-      RAZORPAY_KEY_ID: rzp_test_UxXBzl98ySixq7
-      RAZORPAY_KEY_SECRET: n78QX7ZaxGndqCdRryofDbNU
-      RAZORPAY_WEBHOOK_SECRET: Ksr@0337
-      NEXT_PUBLIC_RAZORPAY_KEY_ID: rzp_test_UxXBzl98ySixq7
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - moha_weaves_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
+  # ── PostgreSQL Database ──────────────────────────────────────────────────────
   postgres:
     image: postgres:15-alpine
     container_name: moha_weaves_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: moha_weaves
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: Mohaweaves@123
-    ports:
-      - "5432:5432"
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    # Postgres is NOT exposed to the host — internal Docker network only
     networks:
       - moha_weaves_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
+  # ── Redis Cache ──────────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     container_name: moha_weaves_redis
     restart: unless-stopped
-    ports:
-      - "6379:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD}
     volumes:
       - redis_data:/data
+    # Redis is NOT exposed to the host — internal Docker network only
     networks:
       - moha_weaves_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
 
 volumes:
   postgres_data:
