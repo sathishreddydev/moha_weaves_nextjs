@@ -4,15 +4,20 @@ if (!process.env.REDIS_URL) {
   throw new Error("REDIS_URL environment variable is not set");
 }
 
-// Single shared Redis client for pub/sub publishing
-const redis = new Redis(process.env.REDIS_URL);
+const redis = new Redis(process.env.REDIS_URL, {
+  maxRetriesPerRequest: 3,
+  retryDelayOnFailover: 100,
+  keepAlive: 30000,
+  lazyConnect: false,
+});
 
 redis.on("connect", () => {
   console.log("✅ Redis connected");
 });
 
 redis.on("error", (err) => {
-  console.error("❌ Redis error:", err);
+  // Log only the message — never the full error which may contain the URL/credentials
+  console.error("❌ Redis error:", err.message);
 });
 
 export default redis;

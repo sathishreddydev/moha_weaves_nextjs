@@ -89,9 +89,15 @@ export class AuthService {
   static async createSessionTokens(user: User) {
     try {
       const accessToken = this.generateAccessToken(user);
+      // Use SHA-256 for the stored hash — bcrypt is intentionally slow which is
+      // fine for passwords but causes measurable latency on every token refresh
+      // since we hash-compare on lookup. SHA-256 is sufficient here because the
+      // refresh token itself is 32 bytes of CSPRNG output (256-bit entropy).
       const refreshToken = this.generateRefreshToken();
-
-      const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+      const refreshTokenHash = crypto
+        .createHash("sha256")
+        .update(refreshToken)
+        .digest("hex");
 
       await db.insert(tables.refreshTokens).values({
         userId: user.id,
@@ -165,66 +171,52 @@ export class AuthService {
     return crypto.randomBytes(32).toString("hex");
   }
 
-  // Validate refresh token
+  // Validate refresh token — direct SHA-256 hash lookup (O(1), no bcrypt loop)
   static async validateRefreshToken(token: string, userId: string): Promise<User | null> {
     try {
-      // Only fetch tokens for the specific user (not all tokens in the system)
-      const tokens = await db
+      const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+      const [record] = await db
         .select()
         .from(tables.refreshTokens)
         .where(
           and(
             eq(tables.refreshTokens.userId, userId),
+            eq(tables.refreshTokens.token, tokenHash),
             gt(tables.refreshTokens.expiresAt, new Date()),
             eq(tables.refreshTokens.isRevoked, false)
           )
-        );
+        )
+        .limit(1);
 
-      for (const record of tokens) {
-        const match = await bcrypt.compare(token, record.token);
+      if (!record) return null;
 
-        if (match) {
-          const users = await db
-            .select()
-            .from(tables.users)
-            .where(eq(tables.users.id, record.userId))
-            .limit(1);
+      const [user] = await db
+        .select()
+        .from(tables.users)
+        .where(eq(tables.users.id, record.userId))
+        .limit(1);
 
-          return users[0] || null;
-        }
-      }
-
-      return null;
+      return user || null;
     } catch (error) {
       return null;
     }
   }
 
-  // Revoke refresh token for a specific user
+  // Revoke refresh token — direct SHA-256 hash lookup
   static async revokeRefreshToken(token: string, userId: string) {
     try {
-      const tokens = await db
-        .select()
-        .from(tables.refreshTokens)
+      const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+      await db
+        .update(tables.refreshTokens)
+        .set({ isRevoked: true })
         .where(
           and(
             eq(tables.refreshTokens.userId, userId),
-            eq(tables.refreshTokens.isRevoked, false)
+            eq(tables.refreshTokens.token, tokenHash)
           )
         );
-
-      for (const record of tokens) {
-        const match = await bcrypt.compare(token, record.token);
-
-        if (match) {
-          await db
-            .update(tables.refreshTokens)
-            .set({ isRevoked: true })
-            .where(eq(tables.refreshTokens.id, record.id));
-
-          return;
-        }
-      }
     } catch (error) {
       throw error;
     }
