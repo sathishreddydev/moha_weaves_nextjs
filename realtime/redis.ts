@@ -6,7 +6,6 @@ if (!process.env.REDIS_URL) {
 
 const redis = new Redis(process.env.REDIS_URL, {
   maxRetriesPerRequest: 3,
-  retryDelayOnFailover: 100,
   keepAlive: 30000,
   lazyConnect: false,
 });
