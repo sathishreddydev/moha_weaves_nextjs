@@ -11,7 +11,8 @@ WORKDIR /app
 
 # Use pnpm for reproducible installs
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --ignore-scripts
+RUN pnpm rebuild
 
 # ── builder stage: compile the application ────────────────────────────────────
 FROM base AS builder
