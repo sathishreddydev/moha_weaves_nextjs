@@ -205,8 +205,33 @@ function InlineReviewPanel({
     }
   };
 
-  const removeImage = (index: number) => {
+  const removeImage = async (index: number) => {
+    const url = images[index];
+    // Optimistically remove from UI first
     setImages((prev) => prev.filter((_, i) => i !== index));
+
+    // Delete from Cloudinary in the background — fire and forget
+    // (non-blocking: UI is already updated, failure is non-critical)
+    if (url) {
+      fetch("/api/uploads/cloudinary", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      }).catch((err) => console.error("Failed to delete image from Cloudinary:", err));
+    }
+  };
+
+  // Delete all staged images from Cloudinary when user cancels without submitting
+  const deleteAllStagedImages = (stagedImages: string[]) => {
+    stagedImages.forEach((url) => {
+      if (url) {
+        fetch("/api/uploads/cloudinary", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url }),
+        }).catch((err) => console.error("Failed to delete staged image from Cloudinary:", err));
+      }
+    });
   };
 
   // ── Submit ──────────────────────────────────────────────────────────────────
@@ -257,6 +282,14 @@ function InlineReviewPanel({
     }
   };
 
+  const handleCancel = () => {
+    // Clean up any images that were uploaded but not submitted
+    if (images.length > 0) {
+      deleteAllStagedImages(images);
+    }
+    onCancel();
+  };
+
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
@@ -280,7 +313,7 @@ function InlineReviewPanel({
             </p>
             <button
               type="button"
-              onClick={onCancel}
+              onClick={handleCancel}
               className="text-slate-400 hover:text-slate-600 transition-colors"
               aria-label="Cancel review"
             >
@@ -417,7 +450,7 @@ function InlineReviewPanel({
             <Button
               variant="outline"
               size="sm"
-              onClick={onCancel}
+              onClick={handleCancel}
               disabled={loading || uploading}
               className="h-7 text-xs"
             >
