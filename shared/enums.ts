@@ -24,9 +24,14 @@ export const itemStatusEnum = pgEnum("item_status", [
   "pending",
   "confirmed",
   "processing",
+  "dispatched",        // 🆕 Delhivery dispatched
+  "in_transit",        // 🆕 Delhivery in transit
+  "out_for_delivery",  // 🆕 Delhivery out for delivery
   "shipped",
   "delivered",
-  // Return sub-statuses (mirrors returnStatusEnum values stored via `as any`)
+  "rto_initiated",     // 🆕 Return to Origin
+  "ndr_pending",       // 🆕 Non-Delivery Report
+  // Return sub-statuses
   "return_requested",
   "return_approved",
   "return_pickup_scheduled",
@@ -238,4 +243,19 @@ export const damageSourceEnum = pgEnum("damage_source", [
 export const shippingMethodEnum = pgEnum("shipping_method", [
   "manual",
   "delhivery",
+]);
+
+export const shipmentStatusEnum = pgEnum("shipment_status", [
+  "pending",
+  "processing",
+  "dispatched",
+  "in_transit",
+  "out_for_delivery",
+  "delivered",
+  "cancelled",
+]);
+
+export const shipmentTypeEnum = pgEnum("shipment_type", [
+  "complete",
+  "split",
 ]);

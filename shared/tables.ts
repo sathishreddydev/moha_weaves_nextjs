@@ -902,6 +902,23 @@ export const productDamages = pgTable("product_damages", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// Shipments table for split orders and Delhivery tracking
+export const shipments = pgTable("shipments", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  orderId: varchar("order_id")
+    .references(() => orders.id)
+    .notNull(),
+  waybill: varchar("waybill"),
+  status: enums.shipmentStatusEnum("status").default("pending"),
+  items: text("items"), // JSON array of item IDs
+  shippingMethod: enums.shippingMethodEnum("shipping_method").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  shippedAt: timestamp("shipped_at"),
+  deliveredAt: timestamp("delivered_at"),
+});
+
 // Contact Us Schema
 export const contactMessages = pgTable("contact_messages", {
   id: varchar("id")
