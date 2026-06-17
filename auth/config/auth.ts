@@ -27,6 +27,7 @@ declare module 'next-auth/jwt' {
 }
 
 export const authOptions = {
+  debug: true, // Enable NextAuth debug logging
   session: {
     strategy: 'jwt' as const,
     maxAge: 30 * 24 * 60 * 60, // 30 days for ecommerce
