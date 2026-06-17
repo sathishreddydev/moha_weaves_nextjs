@@ -1,19 +1,8 @@
 import { authOptions } from '@/auth/config/auth';
 import NextAuth from 'next-auth';
-import { NextRequest } from 'next/server';
 
-const nextAuthHandler = NextAuth(authOptions);
+// next-auth@4 expects the classic handler export style.
+// In Next.js 15+/16, we need to let NextAuth handle the routing internally.
+const handler = NextAuth(authOptions);
 
-export async function GET(
-  req: NextRequest, 
-  ctx: { params: Promise<{ nextauth: string[] }> }
-) {
-  return nextAuthHandler(req, ctx);
-}
-
-export async function POST(
-  req: NextRequest, 
-  ctx: { params: Promise<{ nextauth: string[] }> }
-) {
-  return nextAuthHandler(req, ctx);
-}
+export { handler as GET, handler as POST };
