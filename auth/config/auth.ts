@@ -122,12 +122,16 @@ export const authOptions = {
       // Handle Google sign-in: find or create user in DB
       if (account?.provider === 'google') {
         try {
+          console.log('[AUTH] Google signIn callback - email:', user.email, 'name:', user.name);
+          
           // Check if user exists by email
           const [existingUser] = await db
             .select()
             .from(users)
             .where(eq(users.email, user.email))
             .limit(1);
+
+          console.log('[AUTH] Existing user found:', !!existingUser, existingUser?.id);
 
           if (!existingUser) {
             // Create new user from Google profile
@@ -142,6 +146,7 @@ export const authOptions = {
               })
               .returning();
 
+            console.log('[AUTH] Created new user:', newUser.id);
             user.dbId = newUser.id;
             user.role = newUser.role;
             user.phone = newUser.phone;
@@ -159,9 +164,10 @@ export const authOptions = {
             }
           }
 
+          console.log('[AUTH] Google signIn success - returning true');
           return true;
-        } catch (error) {
-          console.error('Google signIn callback error:', error);
+        } catch (error: any) {
+          console.error('[AUTH] Google signIn callback FAILED:', error?.message, error?.stack);
           return false;
         }
       }
