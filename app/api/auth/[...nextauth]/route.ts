@@ -1,9 +1,17 @@
-import { authOptions } from '@/auth/config/auth';
+import { getAuthOptions } from '@/auth/config/auth';
 import NextAuth from 'next-auth';
 
-// For next-auth@4 on Next.js 15+/16, use the standard pattern.
-// NextAuth internally handles the params extraction from the request URL.
-const handler = NextAuth(authOptions);
+// Create the handler lazily on first request — this ensures env vars
+// (GOOGLE_CLIENT_ID, NEXTAUTH_SECRET, etc.) are read at runtime,
+// not baked in during `next build` when they are unavailable.
+let _handler: ReturnType<typeof NextAuth> | null = null;
 
-export const GET = handler;
-export const POST = handler;
+function getHandler() {
+  if (!_handler) {
+    _handler = NextAuth(getAuthOptions());
+  }
+  return _handler;
+}
+
+export const GET = (...args: any[]) => getHandler()(...args);
+export const POST = (...args: any[]) => getHandler()(...args);
