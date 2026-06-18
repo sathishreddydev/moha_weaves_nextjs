@@ -172,14 +172,4 @@ export function getAuthOptions(): AuthOptions {
   };
 }
 
-// Lazy static export for getServerSession() calls elsewhere in the app.
-// Uses a getter so it's only evaluated when accessed at runtime.
-let _authOptions: AuthOptions | null = null;
-export const authOptions: AuthOptions = new Proxy({} as AuthOptions, {
-  get(_target, prop) {
-    if (!_authOptions) {
-      _authOptions = getAuthOptions();
-    }
-    return (_authOptions as any)[prop];
-  },
-});
+export const authOptions: AuthOptions = getAuthOptions();
