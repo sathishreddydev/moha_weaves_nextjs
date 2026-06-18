@@ -50,27 +50,6 @@ export function getAuthOptions(): AuthOptions {
         clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       }),
       CredentialsProvider({
-        id: 'credentials',
-        name: 'credentials',
-        credentials: {
-          email: { label: 'Email', type: 'email' },
-          password: { label: 'Password', type: 'password' },
-        },
-        async authorize(credentials) {
-          try {
-            if (!credentials?.email || !credentials?.password) return null;
-            const user = await AuthService.findUserByEmail(credentials.email);
-            if (!user || !user.password) return null;
-            const isValid = await AuthService.verifyPassword(credentials.password, user.password);
-            if (!isValid) return null;
-            const tokens = await AuthService.createSessionTokens(user);
-            return { ...tokens.user, phone: user.phone, accessToken: tokens.accessToken };
-          } catch {
-            return null;
-          }
-        },
-      }),
-      CredentialsProvider({
         id: 'otp-login',
         name: 'OTP Login',
         credentials: {

@@ -1,12 +1,11 @@
 import 'server-only';
 
-import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { User } from "@/shared";
 import { db } from "@/lib/db";
 import * as tables from "@/shared/tables";
-import { eq, and, gt, sql } from "drizzle-orm";
+import { eq, and, gt } from "drizzle-orm";
 
 function getJWTSecret(): string {
   const secret = process.env.JWT_SECRET;
@@ -58,33 +57,7 @@ export class RateLimitService {
 
 export class AuthService {
 
-  // Find user by email
-  static async findUserByEmail(email: string): Promise<User | null> {
-    try {
-      const users = await db
-        .select()
-        .from(tables.users)
-        .where(eq(tables.users.email, email))
-        .limit(1);
-
-      return users[0] || null;
-    } catch (error) {
-      return null;
-    }
-  }
-
-  // Verify password
-  static async verifyPassword(
-    password: string,
-    hashedPassword: string
-  ): Promise<boolean> {
-    try {
-      return await bcrypt.compare(password, hashedPassword);
-    } catch (error) {
-      return false;
-    }
-  }
-
+  // Create session tokens
   // Create session tokens
   static async createSessionTokens(user: User) {
     try {
@@ -234,23 +207,6 @@ export class AuthService {
             eq(tables.refreshTokens.isRevoked, false)
           )
         );
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  // Update password
-  static async updatePassword(userId: string, newPassword: string) {
-    try {
-      const hashedPassword = await bcrypt.hash(newPassword, 12);
-
-      await db
-        .update(tables.users)
-        .set({
-          password: hashedPassword,
-          tokenVersion: sql`${tables.users.tokenVersion} + 1`
-        })
-        .where(eq(tables.users.id, userId));
     } catch (error) {
       throw error;
     }
