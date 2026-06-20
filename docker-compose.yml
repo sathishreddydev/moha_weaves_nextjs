@@ -14,7 +14,7 @@ services:
         NEXT_PUBLIC_RAZORPAY_KEY_ID: ${NEXT_PUBLIC_RAZORPAY_KEY_ID}
     # All secrets come ONLY from the env file — single source of truth.
     env_file:
-      - .env.local
+      - .env.prod
     container_name: moha_weaves_frontend
     restart: unless-stopped
     ports:
