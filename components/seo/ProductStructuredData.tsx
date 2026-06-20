@@ -23,7 +23,7 @@ export default function ProductStructuredData({
       {
         "@type": "Product",
         name: product.name, 
-        description: product.description || `Beautiful ${product.name} from Urumi`,
+        description: product.description || `Beautiful ${product.name} from Urumi by Mounika`,
         url: absoluteUrl,
         image: product.images?.length > 0 
           ? product.images.map((img: string) => ({
@@ -35,11 +35,11 @@ export default function ProductStructuredData({
         sku: product.sku || String(product.id),
         brand: {
           "@type": "Brand",
-          name: "Urumi",
+          name: "Urumi by Mounika",
           url: baseUrl,
           logo: `${baseUrl}/logo.png`
         },
-        category: product.category?.name || "Indian Ethnic Wear",
+        category: product.category?.name || "Designer Ethnic Wear",
         offers: {
           "@type": "Offer",
           price: product.discountedPrice || product.price,
@@ -47,7 +47,7 @@ export default function ProductStructuredData({
           availability: product.totalStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
           seller: {
             "@type": "Organization",
-            name: "Urumi",
+            name: "Urumi by Mounika",
             url: baseUrl
           },
           priceValidUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // YYYY-MM-DD format
@@ -112,7 +112,7 @@ export default function ProductStructuredData({
           {
             "@type": "ListItem",
             position: 3,
-            name: product.category?.name || "Indian Ethnic Wear",
+            name: product.category?.name || "Designer Ethnic Wear",
             item: `${baseUrl}/collections/${encodeURIComponent((product.category?.name || 'ethnic-wear').toLowerCase())}`
           },
           {

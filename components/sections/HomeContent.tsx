@@ -20,7 +20,7 @@ export default async function HomeContent() {
       <OrganizationSchema />
       {/* Visually hidden h1 for SEO — the hero section provides the visual heading */}
       <h1 className="sr-only">
-        Urumi - Premium Designer Fashion for Men &amp; Women
+        Urumi by Mounika - Women&apos;s Clothing, Sarees, Lehengas, Kurtis, Baby Frocks &amp; Men&apos;s Designer Outfits Online
       </h1>
 
       {/* Hero is full-bleed — no max-width constraint */}

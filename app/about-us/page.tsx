@@ -5,9 +5,19 @@ import Image from "next/image";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "About Us - Urumi",
+  title: "Our Story | Urumi by Mounika – Where Tradition Meets Trend",
   description:
-    "Learn about Urumi and our commitment to preserving India's textile heritage.",
+    "Founded in 2020, Urumi by Mounika brings you the best of Indian fashion — from timeless ethnic classics to modern western looks. 200+ artisan families, 10,000+ happy customers & counting.",
+  keywords: "urumi, urumi by mounika, about urumi, women clothing brand india, online fashion store, indian ethnic wear brand",
+  openGraph: {
+    title: "Our Story | Urumi by Mounika – Where Tradition Meets Trend",
+    description: "Founded in 2020, Urumi brings you the best of Indian fashion — from timeless ethnic classics to modern western looks. 10,000+ happy customers.",
+    type: "website",
+    siteName: "Urumi by Mounika",
+  },
+  alternates: {
+    canonical: "/about-us",
+  },
 };
 
 export default function AboutUsPage() {
@@ -20,8 +30,8 @@ export default function AboutUsPage() {
             About Urumi
           </h1>
           <p className="text-slate-500 text-xs leading-relaxed max-w-xl">
-            Celebrating India&apos;s textile heritage through handcrafted sarees that
-            blend tradition with contemporary style.
+            Celebrating India&apos;s textile heritage through designer ethnic wear that
+            blends tradition with contemporary style.
           </p>
         </header>
 
@@ -36,7 +46,7 @@ export default function AboutUsPage() {
                 Founded in 2020, Urumi was born from a passion for
                 preserving India&apos;s centuries-old textile traditions. We work
                 directly with skilled artisans across India to bring authentic
-                handcrafted sarees to contemporary fashion enthusiasts.
+                designer ethnic wear to contemporary fashion enthusiasts.
               </p>
               <p className="text-xs text-gray-700 leading-relaxed">
                 Our name represents the love and devotion that goes into every
@@ -48,7 +58,7 @@ export default function AboutUsPage() {
               <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
                 <Image
                   src="/placeholder-about-1.jpg"
-                  alt="Artisan weaving traditional saree"
+                  alt="Artisan crafting traditional ethnic wear"
                   fill
                   className="object-cover"
                 />
@@ -139,7 +149,7 @@ export default function AboutUsPage() {
             Join Our Journey
           </h2>
           <p className="text-xs text-gray-700 mb-8 max-w-2xl mx-auto">
-            Explore our collection of handcrafted sarees and support traditional
+            Explore our collection of designer ethnic wear and support traditional
             craftsmanship.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

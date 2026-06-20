@@ -1,7 +1,7 @@
 {
-  "name": "Urumi - Premium Designer Fashion",
+  "name": "Urumi by Mounika - Women's Clothing, Sarees, Lehengas, Kurtis & More",
   "short_name": "Urumi",
-  "description": "Discover premium designer fashion for men and women at Urumi. Shop our curated collection of clothing, accessories, and lifestyle products.",
+  "description": "Shop all women's clothing at Urumi by Mounika – sarees, lehengas, kurtis, salwar suits, dupattas, blouses, indo-western, western wear, baby frocks & men's designer outfits. Free shipping across India.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -34,7 +34,7 @@
     {
       "name": "Browse Collections",
       "short_name": "Collections",
-      "description": "Browse our premium collections",
+      "description": "Browse all women's clothing collections",
       "url": "/collections",
       "icons": [
         {
@@ -46,8 +46,8 @@
     {
       "name": "Shop Sarees",
       "short_name": "Sarees",
-      "description": "Shop our exclusive saree collection",
-      "url": "/collections?categories=saree",
+      "description": "Shop our saree collection",
+      "url": "/collections/sarees",
       "icons": [
         {
           "src": "/favicon.png",

@@ -24,7 +24,7 @@ export default function StructuredData({ products, filters, currentUrl }: Struct
       {
         "@type": "CollectionPage",
         name: filters ? generateCollectionTitle(filters) : "Collections",
-        description: filters ? generateCollectionDescription(filters) : "Discover exquisite Indian ethnic wear",
+        description: filters ? generateCollectionDescription(filters) : "Discover designer ethnic wear for men & women",
         url: absoluteUrl,
         mainEntity: {
           "@type": "ItemList",
@@ -43,9 +43,9 @@ export default function StructuredData({ products, filters, currentUrl }: Struct
             },
             brand: {
               "@type": "Brand",
-              name: "Urumi"
+              name: "Urumi by Mounika"
             },
-            category: product.category?.name || "Indian Ethnic Wear",
+            category: product.category?.name || "Designer Ethnic Wear",
             color: product.color?.name,
             material: product.fabric?.name,
           })),
@@ -75,5 +75,5 @@ function generateCollectionDescription(filters: any): string {
   if (filters.categories?.length) parts.push(`beautiful ${filters.categories.join(", ")}`);
   if (filters.colors?.length) parts.push(`in ${filters.colors.join(" and ")} colors`);
   if (filters.fabrics?.length) parts.push(`made from ${filters.fabrics.join(" and ")} fabric`);
-  return parts.length > 0 ? parts.join(" ") : "exquisite Indian ethnic wear";
+  return parts.length > 0 ? parts.join(" ") : "designer ethnic wear for men & women";
 }

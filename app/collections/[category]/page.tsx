@@ -39,9 +39,9 @@ export async function generateMetadata({
 
   const categoryName = decodeURIComponent(resolvedParams.category);
 
-  const title = `${categoryName.charAt(0).toUpperCase() + categoryName.slice(1)} Collection - Premium Indian Ethnic Wear | Urumi`;
+  const title = `${categoryName.charAt(0).toUpperCase() + categoryName.slice(1)} – Latest Designs & Styles | Urumi by Mounika`;
 
-  const description = `Discover premium ${categoryName} at Urumi. Beautiful Indian ethnic wear crafted with traditional artistry.`;
+  const description = `Discover beautiful ${categoryName} at Urumi by Mounika. Handpicked designs, premium fabrics & trending styles. Shop now with free delivery across India.`;
 
   // Get base URL from environment
   const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
@@ -51,6 +51,7 @@ export async function generateMetadata({
   return {
     title,
     description,
+    keywords: `urumi ${categoryName}, ${categoryName} online, buy ${categoryName}, urumi by mounika ${categoryName}, women ${categoryName}, ${categoryName} india, latest ${categoryName}`,
     metadataBase: new URL(baseUrl),
     alternates: { canonical },
     openGraph: {
@@ -59,7 +60,7 @@ export async function generateMetadata({
       url: canonical,
       type: "website",
       locale: "en_IN",
-      siteName: "Urumi",
+      siteName: "Urumi by Mounika",
     },
   };
 }

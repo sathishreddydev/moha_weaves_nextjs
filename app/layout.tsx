@@ -20,12 +20,20 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXTAUTH_URL || 'http://localhost:3000'),
   title: {
-    default: "Urumi - Premium Designer Fashion for Men & Women",
-    template: "%s | Urumi",
+    default: "Urumi by Mounika | Shop Trendy Women's Fashion, Ethnic Wear & Kids Clothing Online",
+    template: "%s | Urumi by Mounika",
   },
   description:
-    "Discover premium designer fashion for men and women at Urumi. Shop our curated collection of clothing, accessories, and lifestyle products.",
-  keywords: ["fashion", "designer clothing", "men fashion", "women fashion", "D2C", "urumi", "indian fashion online"],
+    "Explore stunning sarees, lehengas, kurtis, salwar suits, indo-western & western outfits for women. Adorable baby frocks & stylish men's wear too. Handpicked designs, premium fabrics & free delivery across India.",
+  keywords: [
+    "urumi", "urumi fashion", "urumi by mounika", "urumibymounika", "urumi online store",
+    "women clothing online india", "sarees online", "lehengas online", "designer kurtis",
+    "short kurtis", "salwar suits", "dupattas", "blouses",
+    "indo western wear", "fusion gowns", "cape dresses", "co-ord sets",
+    "western wear women", "dresses", "tops", "jumpsuits", "skirts",
+    "baby frocks online", "kids frocks india",
+    "men designer outfits", "indian fashion online",
+  ],
   icons: {
     icon: "/favicon.png",
     shortcut: "/favicon.png",
@@ -34,19 +42,22 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    title: "Urumi",
+    title: "Urumi by Mounika",
     statusBarStyle: "default",
   },
   openGraph: {
-    title: "Urumi - Premium Designer Fashion",
-    description: "Discover premium designer fashion for men and women at Urumi",
+    title: "Urumi by Mounika | Trendy Women's Fashion & Ethnic Wear Online",
+    description: "From elegant sarees & lehengas to chic western outfits — shop the latest women's fashion at Urumi. Handpicked designs, premium fabrics, free delivery.",
     type: "website",
     locale: "en_IN",
-    siteName: "Urumi",
+    siteName: "Urumi by Mounika",
+    url: "https://urumibymounika.com",
   },
   twitter: {
     card: "summary_large_image",
     site: "@urumifashion",
+    title: "Urumi by Mounika | Trendy Women's Fashion & Ethnic Wear",
+    description: "From elegant sarees & lehengas to chic western outfits — shop the latest women's fashion at Urumi. Free delivery across India.",
   },
   robots: {
     index: true,
@@ -59,10 +70,10 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  // Add your Google Search Console verification code here
-  // verification: {
-  //   google: "your-google-verification-code",
-  // },
+  verification: {
+    // Add your Google Search Console verification code here after setting it up
+    // google: "your-google-verification-code",
+  },
 };
 
 export const viewport: Viewport = {

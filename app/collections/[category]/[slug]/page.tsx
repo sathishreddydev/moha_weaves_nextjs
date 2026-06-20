@@ -34,15 +34,15 @@ export async function generateMetadata({
   // Use SEO data from product if available, otherwise generate
   const title =
     product.seoTitle ||
-    `${product.name} - ${categoryName.charAt(0).toUpperCase() + categoryName.slice(1)} | Urumi`;
+    `${product.name} – Buy Online | Urumi by Mounika`;
 
   const description =
     product.seoDescription ||
-    `Shop ${product.name} from Urumi ${categoryName} collection. ${product.description || "Premium quality Indian ethnic wear with traditional craftsmanship."}`;
+    `Shop ${product.name} at Urumi by Mounika. ${product.description || "Handpicked design, premium fabric & perfect fit. Order now with free delivery across India."}`;
 
   const keywords =
     product.seoKeywords ||
-    `${product.name}, ${categoryName}, indian ethnic wear, Urumi, ${product.category?.name || "traditional clothing"}, ${product.color?.name || ""}, ${product.fabric?.name || ""}`;
+    `${product.name}, urumi ${categoryName}, urumi by mounika, buy ${product.name} online, ${product.category?.name || "women fashion"}, ${product.color?.name || ""}, ${product.fabric?.name || ""}`.trim();
 
   // Get base URL from environment
   const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'

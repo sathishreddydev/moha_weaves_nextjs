@@ -50,23 +50,25 @@ export async function generateMetadata({
 
   const title =
     titleParts.length > 0
-      ? `${titleParts.join(" | ")} - Premium Indian Ethnic Wear | Urumi`
-      : "Collections - Premium Indian Ethnic Wear | Urumi";
+      ? `${titleParts.join(" | ")} – Shop Now | Urumi by Mounika`
+      : "All Collections | Sarees, Lehengas, Kurtis & Trendy Outfits | Urumi by Mounika";
 
   const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
 
   return {
     title,
     description:
-      "Discover exquisite Indian ethnic wear including sarees, salwar kameez, lehengas and more.",
+      "Explore our handpicked collections of sarees, lehengas, kurtis, salwar suits, indo-western looks, western wear, baby frocks & men's fashion. New styles added daily. Free delivery across India.",
+    keywords: "urumi collections, women clothing online, sarees, lehengas, kurtis, salwar suits, dupattas, indo western, western wear, baby frocks, urumi by mounika",
     alternates: {
       canonical: `${baseUrl}/collections`,
     },
     openGraph: {
       title,
-      description: "Discover exquisite Indian ethnic wear including sarees, salwar kameez, lehengas and more.",
+      description: "Explore handpicked collections – sarees, lehengas, kurtis, western wear & more at Urumi. New styles added daily.",
       url: `${baseUrl}/collections`,
       type: "website",
+      siteName: "Urumi by Mounika",
     },
   };
 }
