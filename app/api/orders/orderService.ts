@@ -327,7 +327,8 @@ export class OrderRepository implements OrderStorage {
   async createOrderWithTransaction(
     trx: any,
     order: InsertOrder,
-    items: Omit<InsertOrderItem, "orderId">[]
+    items: Omit<InsertOrderItem, "orderId">[],
+    initialItemStatus: string = "pending"
   ): Promise<Order> {
     // Generate order ID
     const orderId = await IdGenerator.generateOrderId();
@@ -345,16 +346,16 @@ export class OrderRepository implements OrderStorage {
         ...item,
         id: itemId,
         orderId: newOrder.id,
-        status: "pending"
+        status: initialItemStatus
       }).returning();
 
       // Create initial item status history
       await storage.itemHistoryWithTransaction(
         trx,
         newOrderItem.id,
-        "pending",
-        "pending",
-        "Order created"
+        initialItemStatus,
+        initialItemStatus,
+        initialItemStatus === "confirmed" ? "Payment confirmed" : "Order created"
       );
       itemIndex++;
     }

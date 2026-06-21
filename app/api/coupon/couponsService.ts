@@ -293,6 +293,7 @@ export class CouponsRepository implements ICouponsRepository {
     couponId?: string,
     userId?: string,
     discountAmount?: string,
+    initialItemStatus: string = "pending",
   ) {
     return await db.transaction(async (trx) => {
       let couponDetails = null;
@@ -315,6 +316,7 @@ export class CouponsRepository implements ICouponsRepository {
         trx,
         enhancedOrderData,
         orderItems,
+        initialItemStatus,
       );
 
       if (couponId && userId && discountAmount && parseFloat(discountAmount) > 0) {

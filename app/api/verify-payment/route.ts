@@ -181,6 +181,7 @@ export async function POST(req: NextRequest) {
         couponId,
         user.id,
         pricing.discountAmount.toString(),
+        "confirmed",
       );
     } catch (orderErr) {
       // Order creation failed after stock was deducted — restore stock so
