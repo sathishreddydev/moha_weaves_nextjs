@@ -154,7 +154,7 @@ export async function POST(req: NextRequest) {
           phone,
           notes,
           couponId,
-          status: "created",
+          status: "processing",
           paymentStatus: "paid",
           paymentMethod: "razorpay",
           razorpayPaymentId,
