@@ -2,14 +2,31 @@
 
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { User } from '@/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { cartKeys } from '@/hooks/useCartQueries';
 import { wishlistKeys } from '@/hooks/useWishlistQueries';
 
+/**
+ * Wait for the session to be fully established after signIn().
+ * signIn({ redirect: false }) sets the cookie but useSession() needs
+ * a moment to pick it up. We poll /api/auth/session to confirm.
+ */
+async function waitForSession(maxAttempts = 10, interval = 300): Promise<boolean> {
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const res = await fetch('/api/auth/session');
+      const data = await res.json();
+      if (data?.user?.id) return true;
+    } catch { /* ignore */ }
+    await new Promise((r) => setTimeout(r, interval));
+  }
+  return false;
+}
+
 export function useAuth() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update: updateSession } = useSession();
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -17,50 +34,84 @@ export function useAuth() {
   const isLoading = status === 'loading';
   const user = session?.user as User | null;
   const hasMergedRef = useRef(false);
+  const isMergingRef = useRef(false);
+  const [isMerging, setIsMerging] = useState(false);
 
   const mergeGuestData = useCallback(async () => {
+    // Prevent concurrent merge calls
+    if (isMergingRef.current) return;
+
     const guestCart = localStorage.getItem('urumi_guest_cart');
     const guestWishlist = localStorage.getItem('urumi_guest_wishlist');
 
-    // Merge guest cart after successful login
-    if (guestCart) {
-      await fetch('/api/cart/merge', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ guestCartItems: JSON.parse(guestCart) })
-      });
-      localStorage.removeItem('urumi_guest_cart');
-    }
+    if (!guestCart && !guestWishlist) return;
 
-    // Merge guest wishlist after successful login
-    if (guestWishlist) {
-      const parsedWishlist = JSON.parse(guestWishlist);
-      const productIds = parsedWishlist.map((item: any) =>
-        typeof item === 'string' ? item : item.productId
-      ).filter(Boolean);
+    isMergingRef.current = true;
+    setIsMerging(true);
 
-      if (productIds.length > 0) {
-        await fetch('/api/wishlist/merge', {
+    try {
+      // Merge guest cart after successful login
+      if (guestCart) {
+        const res = await fetch('/api/cart/merge', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ guestWishlistItems: productIds })
+          body: JSON.stringify({ guestCartItems: JSON.parse(guestCart) })
         });
+        // Only clear localStorage if merge was successful
+        if (res.ok) {
+          localStorage.removeItem('urumi_guest_cart');
+        } else if (res.status === 401) {
+          // Session not ready yet — bail out and let the useEffect retry
+          isMergingRef.current = false;
+          setIsMerging(false);
+          hasMergedRef.current = false;
+          return;
+        }
       }
-      localStorage.removeItem('urumi_guest_wishlist');
-    }
 
-    // Invalidate React Query caches to trigger fresh fetches
-    queryClient.invalidateQueries({ queryKey: cartKeys.all });
-    queryClient.invalidateQueries({ queryKey: wishlistKeys.all });
+      // Merge guest wishlist after successful login
+      if (guestWishlist) {
+        const parsedWishlist = JSON.parse(guestWishlist);
+        const productIds = parsedWishlist.map((item: any) =>
+          typeof item === 'string' ? item : item.productId
+        ).filter(Boolean);
+
+        if (productIds.length > 0) {
+          const res = await fetch('/api/wishlist/merge', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ guestWishlistItems: productIds })
+          });
+          // Only clear localStorage if merge was successful
+          if (res.ok) {
+            localStorage.removeItem('urumi_guest_wishlist');
+          }
+        } else {
+          // No valid items to merge, safe to clear
+          localStorage.removeItem('urumi_guest_wishlist');
+        }
+      }
+
+      // Mark as successfully merged
+      hasMergedRef.current = true;
+    } catch {
+      // On network error, reset so the useEffect can retry
+      hasMergedRef.current = false;
+    } finally {
+      isMergingRef.current = false;
+      setIsMerging(false);
+      // Invalidate React Query caches to trigger fresh fetches after merge
+      queryClient.invalidateQueries({ queryKey: cartKeys.all });
+      queryClient.invalidateQueries({ queryKey: wishlistKeys.all });
+    }
   }, [queryClient]);
 
   // Auto-merge guest data on any login method (Google redirect, OTP, credentials)
   useEffect(() => {
-    if (status === 'authenticated' && !hasMergedRef.current) {
+    if (status === 'authenticated' && !hasMergedRef.current && !isMergingRef.current) {
       const guestCart = localStorage.getItem('urumi_guest_cart');
       const guestWishlist = localStorage.getItem('urumi_guest_wishlist');
       if (guestCart || guestWishlist) {
-        hasMergedRef.current = true;
         mergeGuestData();
       }
     }
@@ -78,13 +129,19 @@ export function useAuth() {
         return { success: false, error: 'Invalid email or password' };
       }
 
-      await mergeGuestData();
+      // Wait for session cookie to be fully established before merging
+      const sessionReady = await waitForSession();
+      if (sessionReady) {
+        await mergeGuestData();
+      }
+      // Trigger session refetch so useSession picks up the new state
+      await updateSession();
       router.refresh();
       return { success: true };
     } catch (error) {
       return { success: false, error: 'Login failed' };
     }
-  }, [router, mergeGuestData]);
+  }, [router, mergeGuestData, updateSession]);
 
   const loginWithOtp = useCallback(async (phone: string, userId: string) => {
     try {
@@ -98,13 +155,19 @@ export function useAuth() {
         return { success: false, error: 'OTP login failed' };
       }
 
-      await mergeGuestData();
+      // Wait for session cookie to be fully established before merging
+      const sessionReady = await waitForSession();
+      if (sessionReady) {
+        await mergeGuestData();
+      }
+      // Trigger session refetch so useSession picks up the new state
+      await updateSession();
       router.refresh();
       return { success: true };
     } catch (error) {
       return { success: false, error: 'OTP login failed' };
     }
-  }, [router, mergeGuestData]);
+  }, [router, mergeGuestData, updateSession]);
 
   const logout = useCallback(async () => {
     try {
@@ -133,6 +196,7 @@ export function useAuth() {
     user,
     status,
     isLoading,
+    isMerging,
     isAuthenticated,
     login,
     loginWithOtp,

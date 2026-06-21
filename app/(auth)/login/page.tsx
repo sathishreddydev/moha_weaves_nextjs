@@ -25,7 +25,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.push(returnUrl);
+      // Use replace so the login page is removed from history.
+      // Without this, pressing back after login goes back to /login.
+      router.replace(returnUrl);
     }
   }, [isAuthenticated, router, returnUrl]);
 
@@ -117,7 +119,7 @@ export default function LoginPage() {
       if (!result.success) {
         setError(result.error || "Login failed");
       } else {
-        router.push(returnUrl);
+        router.replace(returnUrl);
       }
     } catch {
       setError("Verification failed. Try again.");

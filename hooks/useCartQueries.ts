@@ -103,12 +103,13 @@ async function clearCartApi(): Promise<CartQueryData> {
 
 // ─── Cart Query Hook ──────────────────────────────────────────────────────────
 export function useCartQuery() {
-  const { status } = useAuth();
+  const { status, isMerging } = useAuth();
 
   return useQuery<CartQueryData>({
     queryKey: cartKeys.list(),
     queryFn: fetchCart,
-    enabled: status === "authenticated",
+    // Don't fetch cart while guest data is being merged to the server
+    enabled: status === "authenticated" && !isMerging,
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: true,

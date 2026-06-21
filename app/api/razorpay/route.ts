@@ -83,6 +83,11 @@ export async function POST(req: NextRequest) {
       currency: "INR",
       receipt: `r${Date.now()}`,
       payment_capture: true,
+      notes: {
+        userId: user.id,
+        userEmail: user.email || "",
+        userPhone: user.phone || "",
+      },
     });
 
     return NextResponse.json({

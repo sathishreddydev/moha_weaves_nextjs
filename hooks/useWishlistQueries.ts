@@ -94,12 +94,13 @@ async function moveWishlistItemToCart(params: {
 
 // ─── Wishlist Query Hook ──────────────────────────────────────────────────────
 export function useWishlistQuery() {
-  const { status } = useAuth();
+  const { status, isMerging } = useAuth();
 
   return useQuery<WishlistQueryData>({
     queryKey: wishlistKeys.list(),
     queryFn: fetchWishlist,
-    enabled: status === "authenticated",
+    // Don't fetch wishlist while guest data is being merged to the server
+    enabled: status === "authenticated" && !isMerging,
     staleTime: 60 * 1000, // 60 seconds
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: (failureCount, error) => {
