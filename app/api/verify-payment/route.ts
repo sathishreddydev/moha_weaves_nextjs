@@ -5,7 +5,7 @@ import { authOptions } from "@/auth/server";
 import { cartServices } from "../cart/cartService";
 import { stockTransactionService } from "@/lib/services/stockTransactionService";
 import { db } from "@/lib/db";
-import { orders } from "@/shared";
+import { orders, pendingPayments } from "@/shared";
 import { eq } from "drizzle-orm";
 import { calculatePricing, getEffectivePrice } from "@/lib/pricing-utils";
 import { couponsService } from "../coupon/couponsService";
@@ -197,7 +197,14 @@ export async function POST(req: NextRequest) {
     // ── 9. Clear cart after successful order creation ─────────────────────────
     await cartServices.clearCart(user.id);
 
-    // ── 10. Notify admin/inventory of new order in real-time ──────────────────
+    // ── 10. Mark pending payment as completed ─────────────────────────────────
+    await db
+      .update(pendingPayments)
+      .set({ status: "completed", completedAt: new Date() })
+      .where(eq(pendingPayments.razorpayOrderId, razorpayOrderId))
+      .catch(() => {}); // Non-critical
+
+    // ── 11. Notify admin/inventory of new order in real-time ──────────────────
     await publishRealtimeEvent("order_event", {
       target: { role: "admin" },
     });

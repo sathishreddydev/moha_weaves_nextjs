@@ -1,10 +1,14 @@
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { orders, refunds, auditLogs } from "@/shared";
-import { eq } from "drizzle-orm";
+import { orders, refunds, auditLogs, pendingPayments } from "@/shared";
+import { eq, and } from "drizzle-orm";
 import { refundService } from "@/app/api/orders/refundService/refundService";
 import { publishRealtimeEvent } from "@/realtime/publisher";
+import { cartServices } from "@/app/api/cart/cartService";
+import { stockTransactionService } from "@/lib/services/stockTransactionService";
+import { couponsService } from "@/app/api/coupon/couponsService";
+import { calculatePricing, getEffectivePrice } from "@/lib/pricing-utils";
 
 /**
  * Razorpay Webhook Handler
@@ -123,7 +127,7 @@ async function handlePaymentCaptured(payment: any): Promise<void> {
     const razorpayPaymentId = payment.id;
     const razorpayOrderId = payment.order_id;
 
-    // Find order by payment ID first, fallback to searching by razorpay order notes
+    // Find order by payment ID first
     const [order] = await db
       .select()
       .from(orders)
@@ -131,7 +135,7 @@ async function handlePaymentCaptured(payment: any): Promise<void> {
       .limit(1);
 
     if (order) {
-      // Only update if payment status isn't already "paid"
+      // Order exists — just confirm payment status if needed
       if (order.paymentStatus !== "paid") {
         await db
           .update(orders)
@@ -144,19 +148,131 @@ async function handlePaymentCaptured(payment: any): Promise<void> {
 
         console.log(`[razorpay-webhook] payment.captured: Order ${order.id} marked as paid`);
 
-        // Notify admin of confirmed payment
         await publishRealtimeEvent("order_event", {
           target: { role: "admin" },
         }).catch(() => {});
       }
-    } else {
-      // Order might not exist yet if verify-payment hasn't completed.
-      // This is a race condition — the verify-payment route handles the
-      // primary order creation. Log for monitoring.
-      console.warn(
-        `[razorpay-webhook] payment.captured: No order found for paymentId=${razorpayPaymentId}, orderId=${razorpayOrderId}`
-      );
+      return;
     }
+
+    // ── No order found — check if verify-payment never completed ─────────────
+    // Look up the pending payment record to create the order from the webhook
+    const [pending] = await db
+      .select()
+      .from(pendingPayments)
+      .where(
+        and(
+          eq(pendingPayments.razorpayOrderId, razorpayOrderId),
+          eq(pendingPayments.status, "pending")
+        )
+      )
+      .limit(1);
+
+    if (!pending) {
+      console.warn(
+        `[razorpay-webhook] payment.captured: No order or pending payment found for paymentId=${razorpayPaymentId}, orderId=${razorpayOrderId}`
+      );
+      return;
+    }
+
+    console.log(`[razorpay-webhook] payment.captured: Creating order from pending payment for user=${pending.userId}`);
+
+    // Recreate the order from the saved cart snapshot
+    const cartItems = pending.cartSnapshot as any[];
+
+    if (!cartItems || cartItems.length === 0) {
+      console.error(`[razorpay-webhook] payment.captured: Empty cart snapshot for pending payment ${pending.id}`);
+      return;
+    }
+
+    // Validate and deduct stock
+    const stockResult = await stockTransactionService.validateAndDeductStock(
+      cartItems,
+      razorpayOrderId,
+    );
+
+    if (!stockResult.success) {
+      console.error(`[razorpay-webhook] payment.captured: Stock deduction failed for pending payment ${pending.id}: ${stockResult.message}`);
+      // Payment captured but can't fulfill — needs manual intervention
+      // Log to audit for admin visibility
+      await db.insert(auditLogs).values({
+        userId: pending.userId,
+        action: "order_creation_failed_webhook",
+        entityType: "payment",
+        entityId: razorpayOrderId,
+        oldValues: null,
+        newValues: { razorpayPaymentId, reason: stockResult.message },
+        notes: `Payment captured but order creation failed: ${stockResult.message}. Manual refund may be needed.`,
+      }).catch(() => {});
+      return;
+    }
+
+    // Calculate pricing
+    let coupon = null;
+    if (pending.couponId) {
+      const subtotal = cartItems.reduce((sum: number, item: any) => {
+        const effectivePrice = getEffectivePrice(item.product);
+        return sum + effectivePrice * item.quantity;
+      }, 0);
+      const validation = await couponsService.validateCoupon(pending.couponId, pending.userId, subtotal);
+      if (validation.isValid) coupon = validation.coupon ?? null;
+    }
+    const pricing = calculatePricing(cartItems, coupon);
+
+    // Create the order
+    const newOrder = await couponsService.createOrderWithCoupon(
+      {
+        userId: pending.userId,
+        totalAmount: pricing.subtotal.toString(),
+        discountAmount: pricing.discountAmount.toString(),
+        finalAmount: pricing.totalAmount.toString(),
+        shippingAddress: pending.shippingAddress || "{}",
+        phone: pending.phone || "",
+        notes: pending.notes,
+        couponId: pending.couponId,
+        status: "processing",
+        paymentStatus: "paid",
+        paymentMethod: "razorpay",
+        razorpayPaymentId,
+      },
+      cartItems.map((item: any) => {
+        const variant = item.variantId
+          ? item.product?.variants?.find((v: any) => v.id === item.variantId)
+          : null;
+        const variantPrice = variant?.price ? parseFloat(variant.price) : null;
+        const effectivePrice = variantPrice ?? getEffectivePrice(item.product);
+
+        return {
+          productId: item.productId,
+          variantId: item.variantId || undefined,
+          quantity: item.quantity,
+          price: effectivePrice.toString(),
+          productPrice: item.product.price.toString(),
+          discountedPrice: effectivePrice.toString(),
+          offerDetails: item.product?.activeSale || null,
+        };
+      }),
+      pending.couponId || undefined,
+      pending.userId,
+      pricing.discountAmount.toString(),
+      "confirmed",
+    );
+
+    // Mark pending payment as completed
+    await db
+      .update(pendingPayments)
+      .set({ status: "completed", completedAt: new Date() })
+      .where(eq(pendingPayments.id, pending.id));
+
+    // Clear user's cart
+    await cartServices.clearCart(pending.userId).catch(() => {});
+
+    // Notify admin
+    await publishRealtimeEvent("order_event", {
+      target: { role: "admin" },
+    }).catch(() => {});
+
+    console.log(`[razorpay-webhook] payment.captured: Order ${newOrder.id} created from webhook for user=${pending.userId}`);
   } catch (error) {
     console.error("[razorpay-webhook] Error handling payment.captured:", error);
   }

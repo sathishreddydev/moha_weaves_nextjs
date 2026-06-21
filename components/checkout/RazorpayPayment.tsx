@@ -178,7 +178,12 @@ export default function RazorpayPayment({
       const response = await fetch("/api/razorpay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ couponId: couponId || undefined }),
+        body: JSON.stringify({
+          couponId: couponId || undefined,
+          shippingAddress: selectedAddress || undefined,
+          phone: selectedAddress?.phone || undefined,
+          notes: notes || undefined,
+        }),
       });
 
       if (!response.ok) {

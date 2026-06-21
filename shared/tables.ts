@@ -947,3 +947,24 @@ export const auditLogs = pgTable("audit_logs", {
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+
+// Pending Payments — tracks Razorpay orders before payment is confirmed.
+// If user pays but closes browser before verify-payment completes,
+// the webhook can use this record to create the order.
+export const pendingPayments = pgTable("pending_payments", {
+  id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id", { length: 255 }).notNull().references(() => users.id),
+  razorpayOrderId: varchar("razorpay_order_id", { length: 255 }).notNull().unique(),
+  amount: integer("amount").notNull(), // in paise
+  currency: varchar("currency", { length: 10 }).notNull().default("INR"),
+  couponId: varchar("coupon_id", { length: 255 }),
+  shippingAddress: text("shipping_address"),
+  phone: text("phone"),
+  notes: text("notes"),
+  cartSnapshot: json("cart_snapshot").notNull(), // cart items at time of payment
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // pending | completed | expired
+  completedAt: timestamp("completed_at"),
+  expiresAt: timestamp("expires_at").notNull(), // Razorpay orders expire in 30 min
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});

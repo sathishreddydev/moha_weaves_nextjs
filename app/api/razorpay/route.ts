@@ -6,6 +6,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth/server";
 import { calculatePricing } from "@/lib/pricing-utils";
 import { stockTransactionService } from "@/lib/services/stockTransactionService";
+import { db } from "@/lib/db";
+import { pendingPayments } from "@/shared";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -17,7 +19,7 @@ export async function POST(req: NextRequest) {
   try {
     const user = session.user;
     const body = await req.json();
-    const { couponId, previewOnly } = body;
+    const { couponId, previewOnly, shippingAddress, phone, notes } = body;
 
     const cartItems = await cartServices.getCartItems(user.id);
 
@@ -88,6 +90,24 @@ export async function POST(req: NextRequest) {
         userEmail: user.email || "",
         userPhone: user.phone || "",
       },
+    });
+
+    // ── Save pending payment so webhook can create order if client drops ─────
+    await db.insert(pendingPayments).values({
+      userId: user.id,
+      razorpayOrderId: razorpayOrder.id,
+      amount: amountInPaise,
+      currency: "INR",
+      couponId: couponId || null,
+      shippingAddress: shippingAddress ? JSON.stringify(shippingAddress) : null,
+      phone: phone || null,
+      notes: notes || null,
+      cartSnapshot: cartItems.cart,
+      status: "pending",
+      expiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30 min (Razorpay order expiry)
+    }).catch((err) => {
+      // Non-critical — don't block the payment flow if this fails
+      console.error("[razorpay] Failed to save pending payment:", err);
     });
 
     return NextResponse.json({
